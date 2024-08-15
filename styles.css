@@ -6,6 +6,7 @@ body {
 }
 
 #taskbar {
+    width: 100%;
     background-color: blanchedalmond;
     padding: 10px 20px;
     display: flex;
