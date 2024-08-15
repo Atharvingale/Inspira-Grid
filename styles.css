@@ -1,0 +1,196 @@
+body {
+    background-color: azure;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#taskbar {
+    background-color: blanchedalmond;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding-top: px;
+}
+
+#logo {
+    width: 35px;
+    height: auto;
+    border-radius: 25%;
+    margin-right: 10px;
+}
+
+#logoname {
+    color: rgb(24, 2, 35);
+    font-size: 30px;
+    font-style: italic;
+    margin-right: auto;
+}
+
+#login, #signup {
+    background-color: rgb(197, 134, 41);
+    border: 1px solid blanchedalmond;
+    border-radius: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+#login {
+    margin-left: 10px;
+    position: relative;
+    left: 27px;
+    z-index: 1;
+}
+
+#signup {
+    background-color: rgb(223, 183, 123);
+    position: relative;
+    padding-left: 30px;
+}
+
+#login:hover, #signup:hover {
+    background-color: rgb(225, 148, 13);
+    transform: scale(1.05);
+}
+
+#loginsignup {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+}
+
+#navbar {
+    display: flex ;
+    justify-content: right;
+    flex: 1;
+}
+
+#navbar a {
+    color: rgb(24, 2, 35);
+    text-decoration: none;
+    font-size: 18px;
+    border: 2px solid blanchedalmond;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-left: 5px;
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+#navbar a:hover {
+    background-color: rgb(207, 139, 23);
+    transform: scale(1.05);
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    color: rgb(24, 2, 35);
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+p {
+    line-height: 1.6;
+}
+
+.contact-info {
+    margin-top: 20px;
+}
+
+.contact-info h2 {
+    margin-bottom: 10px;
+}
+
+.contact-info p {
+    margin: 5px 0;
+}
+
+footer {
+    background-color: blanchedalmond;
+    padding: 10px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+footer p {
+    margin: 0;
+    color: rgb(24, 2, 35);
+}
+
+
+.contact-form {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.contact-form h2 {
+    margin-bottom: 15px;
+}
+
+.contact-form label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+.contact-form input, .contact-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.contact-form button {
+    background-color: rgb(197, 134, 41);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    font-size: 16px;
+}
+
+.contact-form button:hover {
+    background-color: rgb(225, 148, 13);
+    transform: scale(1.05);
+}
+
+.contact-info {
+    margin-top: 20px;
+}
+
+.contact-info h2 {
+    margin-bottom: 15px;
+}
+
+.contact-info p {
+    margin: 5px 0;
+}
+
+footer {
+    background-color: blanchedalmond;
+    padding: 10px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+footer p {
+    margin: 0;
+    color: rgb(24, 2, 35);
+}
