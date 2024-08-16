@@ -6,7 +6,6 @@ body {
 }
 
 #taskbar {
-    width: 100%;
     background-color: blanchedalmond;
     padding: 10px 20px;
     display: flex;
@@ -14,6 +13,7 @@ body {
     justify-content: space-between;
     height: 40px;
     width: auto;
+    padding-top: px;
 }
 
 #logo {
