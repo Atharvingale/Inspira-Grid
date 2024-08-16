@@ -13,7 +13,7 @@ body {
     align-items: center;
     justify-content: space-between;
     height: 40px;
-    padding-top: px;
+    width: auto;
 }
 
 #logo {
