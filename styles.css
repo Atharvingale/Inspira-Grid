@@ -119,6 +119,7 @@ p {
 }
 
 footer {
+    width:auto;
     background-color: blanchedalmond;
     padding: 10px;
     text-align: center;
