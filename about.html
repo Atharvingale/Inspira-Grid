@@ -8,17 +8,25 @@
     <link rel="icon" type="image/x-icon" href="logo.png">
 </head>
 <body>
-    <div id="header"></div>
-    <script>
-        fetch('header.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById("header").innerHTML = data;
-            })
-            .catch(error => {
-                console.error('Error loading header:', error);
-            });
-    </script>
+    <header>
+        <nav id="taskbar">
+            <a href="index.html">
+                <img src="Inspira Grid.png" alt="Website Logo" id="logo">
+            </a>
+            <span id="logoname" style="font-family:'glirock';">Inspira Grid</span>
+            <div id="navbar">
+                <a href="index.html" class="active">Home</a>
+                <a href="about.html">About</a>
+                <a href="#services">Services</a>
+                <a href="contact.html">Contact</a>
+            </div>
+            
+            <div id="loginsignup">
+                <span id="login">Log In</span>
+                <span id="signup">Sign Up</span>
+            </div>
+        </nav>
+    </header>
     
     <div class="container">
         <h1>About Inspira Grid</h1>
