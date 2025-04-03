@@ -1,0 +1,57 @@
+/* public/css/dashboard.css */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.welcome-card {
+    background: linear-gradient(to right, #4e54c8, #8f94fb);
+    color: white;
+    border: none;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+}
+
+.stat-box {
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 5px 10px;
+}
+
+.dropdown-menu {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+footer {
+    border-top: 1px solid #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .welcome-card h2 {
+        font-size: 1.5rem;
+    }
+}

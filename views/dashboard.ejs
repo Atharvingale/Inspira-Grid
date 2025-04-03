@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspira Grid Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Inspira Grid</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/teams">Teams</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/messages">Messages</a></li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
+                            <img src="<%= user.profile_pic || '/images/AtharvaIngale.jpeg' %>" class="rounded-circle me-2" width="30" height="30">
+                            <%= user.name %>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                            <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- 1. Welcome Section -->
+        <div class="card mb-4 welcome-card">
+            <div class="card-body">
+                <h2 class="card-title">Welcome back, <%= user.name %>! 👋</h2>
+                <p class="card-text">Ready to collaborate and innovate? Explore projects and connect with teams.</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- 2. User Stats & Quick Actions -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="stat-box">
+                                <h5><i class="fas fa-folder me-2"></i> Your Projects</h5>
+                                <p><%= userStats.activeProjects %> Active</p>
+                            </div>
+                            <a href="/projects/new" class="btn btn-sm btn-primary">+ Create New Project</a>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="stat-box">
+                                <h5><i class="fas fa-users me-2"></i> Your Teams</h5>
+                                <p><%= userStats.activeTeams %> Active</p>
+                            </div>
+                            <a href="/teams" class="btn btn-sm btn-primary">Manage Teams</a>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div class="stat-box">
+                                <h5><i class="fas fa-bell me-2"></i> Notifications</h5>
+                                <p><%= notifications.length %> New Alerts</p>
+                            </div>
+                            <a href="/notifications" class="btn btn-sm btn-primary">View All</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Your Active Projects -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-folder me-2"></i> Your Active Projects</h5>
+                        <a href="/projects" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <% if (userProjects.length > 0) { %>
+                            <div class="list-group">
+                                <% userProjects.forEach(project => { %>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1"><%= project.title %></h6>
+                                            <span class="badge <%= project.status === 'Open' ? 'bg-success' : 
+                                                                   project.status === 'In Progress' ? 'bg-warning' : 
+                                                                   'bg-secondary' %>">
+                                                <%= project.status %>
+                                            </span>
+                                        </div>
+                                        <a href="/projects/<%= project.project_id %>" class="btn btn-sm btn-outline-primary">Manage</a>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <p class="text-muted">No active projects. Start a new project!</p>
+                            <a href="/projects/new" class="btn btn-primary">Create New Project</a>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 6. Your Teams -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i> Your Teams</h5>
+                        <a href="/teams" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <% if (userTeams.length > 0) { %>
+                            <div class="list-group">
+                                <% userTeams.forEach(team => { %>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1"><%= team.team_name %></h6>
+                                            <small><%= team.project_title %> | <%= team.member_count %> Members</small>
+                                        </div>
+                                        <a href="/teams/<%= team.team_id %>" class="btn btn-sm btn-outline-primary">Manage</a>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <p class="text-muted">You are not part of any teams yet.</p>
+                            <a href="/teams/discover" class="btn btn-primary">Find Teams</a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- 9. Search & Explore Bar -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form action="/search" method="GET">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Search projects, users, teams..." name="q">
+                                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+                            </div>
+                            <div class="mt-2">
+                                <a href="/search/advanced" class="small">Advanced Search</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 3. Recent Messages & Chats -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-comment me-2"></i> Recent Messages</h5>
+                        <a href="/messages" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <% if (recentMessages.length > 0) { %>
+                            <div class="list-group list-group-flush">
+                                <% recentMessages.forEach(message => { %>
+                                    <a href="/messages/<%= message.sender_id %>" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1"><%= message.sender_name %></h6>
+                                            <small><%= message.time_ago %></small>
+                                        </div>
+                                        <p class="mb-1 text-truncate"><%= message.message %></p>
+                                    </a>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="p-3">
+                                <p class="text-muted">No recent messages.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 8. Notifications Panel -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-bell me-2"></i> Notifications</h5>
+                        <a href="/notifications" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <% if (notifications.length > 0) { %>
+                            <div class="list-group list-group-flush">
+                                <% notifications.forEach(notification => { %>
+                                    <a href="<%= notification.link %>" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <p class="mb-1"><i class="<%= notification.icon %>"></i> <%= notification.message %></p>
+                                            <small><%= notification.time_ago %></small>
+                                        </div>
+                                    </a>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="p-3">
+                                <p class="text-muted">No new notifications.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 7. Open Applications -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Open Applications</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <% if (applications.length > 0) { %>
+                            <div class="list-group list-group-flush">
+                                <% applications.forEach(application => { %>
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Applied for: <%= application.project_title %></h6>
+                                                <span class="badge <%= application.status === 'Pending' ? 'bg-warning' : 
+                                                                      application.status === 'Accepted' ? 'bg-success' : 
+                                                                      'bg-danger' %>">
+                                                    <%= application.status %>
+                                                </span>
+                                            </div>
+                                            <% if (application.status === 'Pending') { %>
+                                                <a href="/applications/<%= application.application_id %>/withdraw" class="btn btn-sm btn-outline-danger">Withdraw</a>
+                                            <% } else if (application.status === 'Accepted') { %>
+                                                <a href="/projects/<%= application.project_id %>" class="btn btn-sm btn-outline-success">View Project</a>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="p-3">
+                                <p class="text-muted">No open applications.</p>
+                                <a href="/projects/discover" class="btn btn-primary">Discover Projects</a>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 4. Recommended Projects -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i> Recommended Projects</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <% if (recommendedProjects.length > 0) { %>
+                            <div class="list-group list-group-flush">
+                                <% recommendedProjects.forEach(project => { %>
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><%= project.title %></h6>
+                                        <p class="mb-2 small"><%= project.description.substring(0, 100) %>...</p>
+                                        <p class="mb-2"><small class="text-muted">Skills: <%= project.required_skills %></small></p>
+                                        <a href="/projects/<%= project.project_id %>" class="btn btn-sm btn-primary">View Project</a>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="p-3">
+                                <p class="text-muted">No recommended projects available. Update your skills to get recommendations.</p>
+                                <a href="/profile/edit" class="btn btn-primary">Update Skills</a>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. Footer Section -->
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">© 2025 Inspira Grid. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/support" class="text-decoration-none me-3">Contact Support</a>
+                    <a href="/privacy" class="text-decoration-none me-3">Privacy Policy</a>
+                    <a href="/terms" class="text-decoration-none">Terms & Conditions</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
