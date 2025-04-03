@@ -3,307 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspira Grid - Profile</title>
+    <title>Inspira Grid Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/profile.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">Inspira Grid</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/teams">Teams</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/messages">Messages</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <div class="dropdown">
-                        <button class="btn btn-light dropdown-toggle" style="color:black "type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/images/user.jpeg' %>" class="rounded-circle me-2" width="30" height="30">
-                            <%= user.name %>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item active" href="/profile">My Profile</a></li>
-                            <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+    <%- include('./partials/header', { 
+        title: 'Dashboard', 
+        currentPage: 'dashboard',
+        cssFiles: ['dashboard']
+    }) %>
     <div class="container py-4">
-        <!-- 1. Profile Header -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 text-center">
-                        <img src="<%= user.profile_pic || '/images/user.jpeg' %>" class="rounded-circle img-fluid mb-3" style="max-width: 150px;">
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadPhotoModal">
-                                <i class="fas fa-camera me-1"></i> Change Photo
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-9">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2 class="mb-0"><%= user.name %></h2>
-                            <a href="/profile/edit" class="btn btn-primary">
-                                <i class="fas fa-edit me-1"></i> Edit Profile
-                            </a>
-                        </div>
-                        <p class="text-muted"><%= user.email %></p>
-                        <div class="mb-3">
-                            <h5>Bio</h5>
-                            <p><%= user.bio || 'No bio provided yet. Add one to tell others about yourself!' %></p>
-                        </div>
-                        <div class="mb-3">
-                            <h5>Skills</h5>
-                            <% if (user.skills) { %>
-                                <% user.skills.split(',').forEach(skill => { %>
-                                    <span class="badge bg-secondary me-1 mb-1"><%= skill.trim() %></span>
-                                <% }); %>
-                            <% } else { %>
-                                <p class="text-muted">No skills added yet. Add skills to match with projects!</p>
-                            <% } %>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="row">
-            <div class="col-lg-8">
-                <!-- 2. Projects Section -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-folder me-2"></i> Your Projects</h5>
-                        <a href="/projects" class="btn btn-sm btn-outline-primary">View All</a>
+            <div class="col-lg-4 mb-4">
+                <!-- Profile Card -->
+                <div class="card profile-card">
+                    <div class="profile-header"></div>
+                    <!-- Update the profile avatar image src -->
+                    <div class="profile-avatar">
+                        <img src="/profile-pic/<%= user.user_id %>" class="rounded-circle" width="120" height="120">
+                        <!-- Update the avatar edit button to trigger the modal -->
+                        <button class="btn btn-sm btn-light rounded-circle avatar-edit-btn" 
+                                title="Change Profile Picture" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#photoModal">
+                            <i class="fas fa-camera"></i>
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <% if (userProjects.length > 0) { %>
-                            <div class="list-group">
-                                <% userProjects.forEach(project => { %>
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1"><%= project.title %></h6>
-                                            <span class="badge <%= project.status === 'Open' ? 'bg-success' : 
-                                                                   project.status === 'In Progress' ? 'bg-warning' : 
-                                                                   'bg-secondary' %>">
-                                                <%= project.status %>
-                                            </span>
-                                            <small class="d-block text-muted mt-1">Created: <%= new Date(project.created_at).toLocaleDateString() %></small>
-                                        </div>
-                                        <a href="/projects/<%= project.project_id %>" class="btn btn-sm btn-outline-primary">Manage</a>
+                    <div class="card-body text-center">
+                        <h4 class="mb-1"><%= user.name %></h4>
+                        <p class="text-muted mb-3"><%= user.title %></p>
+                        
+                        <div class="profile-stats mb-4">
+                            <div class="row g-0">
+                                <div class="col-4">
+                                    <div class="p-3">
+                                        <h5 class="mb-0"><%= user.projectCount %></h5>
+                                        <small class="text-muted">Projects</small>
                                     </div>
-                                <% }); %>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3">
+                                        <h5 class="mb-0"><%= user.teamCount %></h5>
+                                        <small class="text-muted">Teams</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3">
+                                        <h5 class="mb-0"><%= user.taskCount %></h5>
+                                        <small class="text-muted">Tasks</small>
+                                    </div>
+                                </div>
                             </div>
-                        <% } else { %>
-                            <p class="text-muted">No active projects. Start a new project!</p>
-                            <a href="/projects/new" class="btn btn-primary">Create New Project</a>
-                        <% } %>
+                        </div>
+                        
+                        <!-- Keep only this Edit Profile button -->
+                        <button class="btn action-btn action-btn-outline w-100" onclick="window.location.href='/profile/edit'">
+                            <i class="fas fa-edit me-2"></i> Edit Profile
+                        </button>
                     </div>
                 </div>
-
-                <!-- 3. Teams Section -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-users me-2"></i> Your Teams</h5>
-                        <a href="/teams" class="btn btn-sm btn-outline-primary">View All</a>
-                    </div>
-                    <div class="card-body">
-                        <% if (userTeams.length > 0) { %>
-                            <div class="list-group">
-                                <% userTeams.forEach(team => { %>
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1"><%= team.team_name %></h6>
-                                            <small><%= team.project_title %> | <%= team.member_count %> Members</small>
-                                        </div>
-                                        <a href="/teams/<%= team.team_id %>" class="btn btn-sm btn-outline-primary">View Team</a>
-                                    </div>
-                                <% }); %>
-                            </div>
-                        <% } else { %>
-                            <p class="text-muted">You are not part of any teams yet.</p>
-                            <a href="/teams/discover" class="btn btn-primary">Find Teams</a>
-                        <% } %>
-                    </div>
-                </div>
-
-                <!-- 4. Activity Log -->
+                
+                <!-- Contact Information -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-history me-2"></i> Recent Activity</h5>
+                        <h5 class="mb-0"><i class="fas fa-address-card me-2"></i> Contact Information</h5>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            <% if (activityLog && activityLog.length > 0) { %>
-                                <% activityLog.forEach(activity => { %>
-                                    <div class="list-group-item">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1"><i class="<%= activity.icon %>"></i> <%= activity.action %></h6>
-                                            <small><%= activity.time_ago %></small>
-                                        </div>
-                                        <p class="mb-1 text-muted"><%= activity.description %></p>
-                                    </div>
-                                <% }); %>
-                            <% } else { %>
-                                <div class="p-3">
-                                    <p class="text-muted">No recent activity to display.</p>
-                                </div>
-                            <% } %>
+                    <div class="card-body">
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Email</small>
+                                <p class="mb-0"><%= user.email %></p>
+                            </div>
                         </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Phone</small>
+                                <p class="mb-0"><%= user.phone || 'Not provided' %></p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Location</small>
+                                <p class="mb-0"><%= user.location || 'Not provided' %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Skills -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tools me-2"></i> Skills</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (user.skills && Array.isArray(user.skills)) { %>
+                            <% user.skills.forEach(function(skill) { %>
+                                <div class="skill-item">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span><%= skill.name %></span>
+                                        <span><%= skill.level %>%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" style="width: <%= skill.level %>%;" 
+                                            aria-valuenow="<%= skill.level %>" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">No skills added yet.</p>
+                        <% } %>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-4">
-                <!-- 5. Stats Summary -->
+            
+            <div class="col-lg-8">
+                <!-- About Me -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Stats Summary</h5>
+                        <h5 class="mb-0"><i class="fas fa-user me-2"></i> About Me</h5>
                     </div>
                     <div class="card-body">
-                        <div class="stat-item mb-3">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Projects Created</span>
-                                <span class="fw-bold"><%= userStats.projectsCreated %></span>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width: <%= Math.min(userStats.projectsCreated * 10, 100) %>%"></div>
-                            </div>
-                        </div>
-                        <div class="stat-item mb-3">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Teams Joined</span>
-                                <span class="fw-bold"><%= userStats.activeTeams %></span>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: <%= Math.min(userStats.activeTeams * 10, 100) %>%"></div>
-                            </div>
-                        </div>
-                        <div class="stat-item mb-3">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Applications Submitted</span>
-                                <span class="fw-bold"><%= userStats.applicationsSubmitted %></span>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-info" role="progressbar" style="width: <%= Math.min(userStats.applicationsSubmitted * 5, 100) %>%"></div>
-                            </div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Messages Sent</span>
-                                <span class="fw-bold"><%= userStats.messagesSent %></span>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: <%= Math.min(userStats.messagesSent / 10, 100) %>%"></div>
-                            </div>
-                        </div>
+                        <p><%= user.bio || 'No bio provided yet.' %></p>
                     </div>
                 </div>
-
-                <!-- 6. Open Applications -->
+                
+                <!-- Work Experience -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Open Applications</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i> Work Experience</h5>
+                        <button class="btn btn-sm btn-link">
+                            <i class="fas fa-plus me-1"></i> Add
+                        </button>
                     </div>
-                    <div class="card-body p-0">
-                        <% if (applications.length > 0) { %>
-                            <div class="list-group list-group-flush">
-                                <% applications.forEach(application => { %>
-                                    <div class="list-group-item">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">Applied for: <%= application.project_title %></h6>
-                                                <span class="badge <%= application.status === 'Pending' ? 'bg-warning' : 
-                                                                    application.status === 'Accepted' ? 'bg-success' : 
-                                                                    'bg-danger' %>">
-                                                    <%= application.status %>
-                                                </span>
-                                                <small class="d-block text-muted mt-1">Applied: <%= new Date(application.applied_at).toLocaleDateString() %></small>
-                                            </div>
-                                            <% if (application.status === 'Pending') { %>
-                                                <a href="/applications/<%= application.application_id %>/withdraw" class="btn btn-sm btn-outline-danger">Withdraw</a>
-                                            <% } else if (application.status === 'Accepted') { %>
-                                                <a href="/projects/<%= application.project_id %>" class="btn btn-sm btn-outline-success">View Project</a>
-                                            <% } %>
+                    <div class="card-body">
+                        <% if (user.experience && user.experience.length > 0) { %>
+                            <% user.experience.forEach(function(exp) { %>
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between">
+                                        <h5><%= exp.position %></h5>
+                                        <div class="timeline-date">
+                                            <%= exp.startDate %> - <%= exp.endDate || 'Present' %>
                                         </div>
                                     </div>
-                                <% }); %>
+                                    <h6 class="text-primary"><%= exp.company %></h6>
+                                    <p><%= exp.description %></p>
+                                </div>
                             </div>
+                            <% }); %>
                         <% } else { %>
-                            <div class="p-3">
-                                <p class="text-muted">No open applications.</p>
-                                <a href="/projects/discover" class="btn btn-primary">Discover Projects</a>
-                            </div>
+                            <p class="text-muted">No work experience added yet.</p>
                         <% } %>
                     </div>
                 </div>
-
-                <!-- 7. Contact Section -->
+                
+                <!-- Education -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-id-card me-2"></i> Contact Information</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i> Education</h5>
+                        <button class="btn btn-sm btn-link">
+                            <i class="fas fa-plus me-1"></i> Add
+                        </button>
                     </div>
                     <div class="card-body">
+                        <% if (user.education && user.education.length > 0) { %>
+                            <% user.education.forEach(function(edu) { %>
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between">
+                                        <h5><%= edu.degree %></h5>
+                                        <div class="timeline-date">
+                                            <%= edu.startYear %> - <%= edu.endYear || 'Present' %>
+                                        </div>
+                                    </div>
+                                    <h6 class="text-primary"><%= edu.institution %></h6>
+                                    <p><%= edu.description %></p>
+                                </div>
+                            </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">No education details added yet.</p>
+                        <% } %>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i> Recent Activity</h5>
+                        <a href="/activity" class="btn btn-sm btn-link">
+                            <i class="fas fa-arrow-right me-1"></i> View All
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item px-0">
-                                <i class="fas fa-envelope me-2"></i> <%= user.email %>
-                            </li>
-                            <% if (user.phone) { %>
-                                <li class="list-group-item px-0">
-                                    <i class="fas fa-phone me-2"></i> <%= user.phone %>
-                                </li>
-                            <% } %>
-                            <% if (user.location) { %>
-                                <li class="list-group-item px-0">
-                                    <i class="fas fa-map-marker-alt me-2"></i> <%= user.location %>
-                                </li>
-                            <% } %>
-                            <% if (user.website) { %>
-                                <li class="list-group-item px-0">
-                                    <i class="fas fa-globe me-2"></i> <a href="<%= user.website %>" target="_blank"><%= user.website %></a>
-                                </li>
+                            <% if (user && user.recentActivities) { %>
+                                <% user.recentActivities.forEach(function(activity) { %>
+                                    <li class="list-group-item">
+                                        <div class="d-flex align-items-center">
+                                            <div class="activity-icon me-3">
+                                                <i class="<%= activity.icon %>"></i>
+                                            </div>
+                                            <div>
+                                                <p class="mb-0 fw-medium"><%= activity.description %></p>
+                                                <small class="text-muted"><i class="far fa-clock me-1"></i> <%= activity.time_ago %></small>
+                                            </div>
+                                        </div>
+                                    </li>
+                                <% }); %>
                             <% } %>
                         </ul>
-                        <div class="mt-3 text-center">
-                            <a href="/profile/edit" class="btn btn-outline-primary">
-                                <i class="fas fa-edit me-1"></i> Update Contact Info
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Upload Photo Modal -->
-    <div class="modal fade" id="uploadPhotoModal" tabindex="-1" aria-hidden="true">
+    <!-- Add this before the footer -->
+    <!-- Profile Photo Upload Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Change Profile Photo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Update Profile Picture</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form action="/profile/update-photo" method="POST" enctype="multipart/form-data">
+                    <form action="/profile/upload-photo" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
-                          <label for="profilePhoto" class="form-label">Select a new photo</label>
-                          <input type="file" class="form-control" id="profilePhoto" name="profilePhoto" accept="image/*" required>
+                            <label for="photo" class="form-label">Choose Photo</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
                         </div>
-                        <div class="text-end">
-                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="btn btn-primary">Upload Photo</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Upload Photo</button>
                         </div>
                     </form>
                 </div>
@@ -311,23 +258,13 @@
         </div>
     </div>
 
-    <!-- Footer Section -->
-    <footer class="bg-light py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="mb-0">© 2025 Inspira Grid. All rights reserved.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <a href="/support" class="text-decoration-none me-3">Contact Support</a>
-                    <a href="/privacy" class="text-decoration-none me-3">Privacy Policy</a>
-                    <a href="/terms" class="text-decoration-none">Terms & Conditions</a>
-                </div>
-            </div>
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0 text-muted">© 2025 Inspira Grid. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/dashboard.js"></script>
+    <!-- Keep only the profile.js file since other scripts are in header -->
+    <script src="/js/profile.js"></script>
 </body>
 </html>

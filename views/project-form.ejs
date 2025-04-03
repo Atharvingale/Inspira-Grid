@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= isNew ? 'Create New Project' : 'Edit Project' %> | InspiraGrid</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/projects.css">
+</head>
+<body>
+    <%- include('partials/header') %>
+    
+    <div class="container py-4">
+        <div class="row">
+            <!-- Sidebar removed -->
+            
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-folder-plus me-2"></i><%= isNew ? 'Create New Project' : 'Edit Project' %></h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (error) { %>
+                            <div class="alert alert-danger" role="alert">
+                                <%= error %>
+                            </div>
+                        <% } %>
+                        
+                        <% if (success) { %>
+                            <div class="alert alert-success" role="alert">
+                                <%= success %>
+                            </div>
+                        <% } %>
+                        
+                        <form action="<%= isNew ? '/projects/create' : '/projects/' + project.project_id + '/update' %>" method="POST">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Project Title*</label>
+                                <input type="text" class="form-control" id="title" name="title" value="<%= project.title || '' %>" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Project Description*</label>
+                                <textarea class="form-control" id="description" name="description" rows="5" required><%= project.description || '' %></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Project Category</label>
+                                <select class="form-control" id="category" name="category">
+                                    <option value="Web Development" <%= project.category === 'Web Development' ? 'selected' : '' %>>Web Development</option>
+                                    <option value="Mobile Development" <%= project.category === 'Mobile Development' ? 'selected' : '' %>>Mobile Development</option>
+                                    <option value="UI/UX Design" <%= project.category === 'UI/UX Design' ? 'selected' : '' %>>UI/UX Design</option>
+                                    <option value="Data Science" <%= project.category === 'Data Science' ? 'selected' : '' %>>Data Science</option>
+                                    <option value="Machine Learning" <%= project.category === 'Machine Learning' ? 'selected' : '' %>>Machine Learning</option>
+                                    <option value="DevOps" <%= project.category === 'DevOps' ? 'selected' : '' %>>DevOps</option>
+                                    <option value="Other" <%= project.category === 'Other' ? 'selected' : '' %>>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="required_skills" class="form-label">Required Skills</label>
+                                <select class="form-control select2-multi" id="required_skills" name="required_skills" multiple>
+                                    <% 
+                                    const skillOptions = [
+                                        'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift',
+                                        'React', 'Angular', 'Vue.js', 'Node.js', 'Django', 'Flask', 'Spring Boot',
+                                        'HTML5', 'CSS3', 'UI/UX Design', 'Graphic Design', 'Content Writing',
+                                        'Project Management', 'Data Analysis', 'Machine Learning', 'DevOps',
+                                        'Mobile Development', 'Database Management', 'Cloud Computing'
+                                    ];
+                                    
+                                    const selectedSkills = project.required_skills || [];
+                                    %>
+                                    
+                                    <% skillOptions.forEach(skill => { %>
+                                        <option value="<%= skill %>" <%= selectedSkills.includes(skill) ? 'selected' : '' %>><%= skill %></option>
+                                    <% }); %>
+                                </select>
+                                <small class="text-muted">Select multiple skills by clicking or searching</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Project Status</label>
+                                <select class="form-control" id="status" name="status">
+                                    <option value="Open" <%= (project.status === 'Open' || !project.status) ? 'selected' : '' %>>Open for Applications</option>
+                                    <option value="In Progress" <%= project.status === 'In Progress' ? 'selected' : '' %>>In Progress</option>
+                                    <option value="On Hold" <%= project.status === 'On Hold' ? 'selected' : '' %>>On Hold</option>
+                                    <option value="Completed" <%= project.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Project Milestones</label>
+                                <div id="milestones-container">
+                                    <% const milestones = project.milestones || ['Planning', 'Design', 'Development', 'Testing', 'Deployment']; %>
+                                    <% milestones.forEach((milestone, index) => { %>
+                                        <div class="milestone-item input-group mb-2">
+                                            <input type="text" class="form-control" name="milestones[]" value="<%= milestone %>" placeholder="Milestone name">
+                                            <select class="form-control" name="milestone_status[]">
+                                                <option value="pending" <%= (project.milestone_status && project.milestone_status[index] === 'pending') ? 'selected' : '' %>>Pending</option>
+                                                <option value="in-progress" <%= (project.milestone_status && project.milestone_status[index] === 'in-progress') ? 'selected' : '' %>>In Progress</option>
+                                                <option value="completed" <%= (project.milestone_status && project.milestone_status[index] === 'completed') ? 'selected' : '' %>>Completed</option>
+                                            </select>
+                                            <button type="button" class="btn btn-outline-danger remove-milestone"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                                <button type="button" id="add-milestone" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-plus"></i> Add Milestone
+                                </button>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="/projects" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> <%= isNew ? 'Create Project' : 'Update Project' %>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <%- include('partials/footer') %>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2-multi').select2();
+            
+            // Add milestone functionality
+            $('#add-milestone').click(function() {
+                const newMilestone = `
+                    <div class="milestone-item input-group mb-2">
+                        <input type="text" class="form-control" name="milestones[]" placeholder="Milestone name">
+                        <select class="form-control" name="milestone_status[]">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-danger remove-milestone"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+                $('#milestones-container').append(newMilestone);
+            });
+            
+            // Remove milestone functionality
+            $(document).on('click', '.remove-milestone', function() {
+                $(this).closest('.milestone-item').remove();
+            });
+        });
+    </script>
+</body>
+</html>

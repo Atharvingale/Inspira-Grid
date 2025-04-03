@@ -1,6 +1,8 @@
 /* public/css/error.css */
 body {
-    background-color: #f8f9fa;
+    background-color: #f5f7fa;
+    font-family: 'Poppins', sans-serif;
+    color: #2d3748;
 }
 
 .container {
@@ -10,19 +12,46 @@ body {
 h1 {
     font-size: 4rem;
     margin-bottom: 20px;
+    color: #e74c3c;
 }
 
 h2 {
     font-size: 2rem;
     margin-bottom: 20px;
+    color: #4a5568;
 }
 
 .lead {
     font-size: 1.25rem;
     margin-bottom: 30px;
+    color: #2d3748;
 }
 
 .btn-primary {
-    padding: 10px 20px;
-    font-size: 1.1rem;
+    background: linear-gradient(135deg, #4e54c8, #8f94fb);
+    border: none;
+    border-radius: 50px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    box-shadow: 0 4px 8px rgba(78, 84, 200, 0.25);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #3a40a5, #7a80e8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(78, 84, 200, 0.35);
+}
+
+.error-container {
+    border-radius: 16px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+    background-color: white;
+    padding: 3rem;
+    transition: transform 0.3s ease;
+}
+
+.error-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
 }

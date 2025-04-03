@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspira Grid Messages</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/messages.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <div class="logo-container">
+                <img src="/images/logo.png" alt="Inspira Grid" class="logo-img" />
+                <span class="logo-text">Inspira Grid</span>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/projects"><i class="fas fa-project-diagram me-1"></i> Projects</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/teams"><i class="fas fa-users me-1"></i> Teams</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/messages"><i class="fas fa-comment-dots me-1"></i> Messages</a></li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
+                            <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
+                            <span><%= user.name %></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="messaging-container">
+            <div class="row g-0">
+                <!-- Contacts Sidebar -->
+                <div class="col-md-4 col-lg-3 contacts-sidebar">
+                    <div class="contacts-header">
+                        <h5 class="mb-0">Messages</h5>
+                        <button class="btn btn-sm action-btn action-btn-primary">
+                            <i class="fas fa-plus"></i> New Message
+                        </button>
+                    </div>
+                    <div class="search-box mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search contacts...">
+                        </div>
+                    </div>
+                    <div class="contacts-list">
+                        <% contacts.forEach(function(contact, index) { %>
+                        <div class="contact-item <%= contact.isActive ? 'active' : '' %> <%= contact.unreadCount > 0 ? 'unread' : '' %>">
+                            <div class="d-flex align-items-center">
+                                <div class="position-relative">
+                                    <img src="<%= contact.profile_pic %>" class="rounded-circle" width="48" height="48">
+                                    <% if (contact.isOnline) { %>
+                                    <span class="online-indicator"></span>
+                                    <% } %>
+                                </div>
+                                <div class="ms-3 flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0"><%= contact.name %></h6>
+                                        <small class="text-muted"><%= contact.lastMessageTime %></small>
+                                    </div>
+                                    <p class="text-truncate mb-0 small">
+                                        <%= contact.lastMessage %>
+                                    </p>
+                                </div>
+                                <% if (contact.unreadCount > 0) { %>
+                                <div class="ms-2">
+                                    <span class="badge rounded-pill bg-primary"><%= contact.unreadCount %></span>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+                
+                <!-- Chat Area -->
+                <div class="col-md-8 col-lg-9 chat-area">
+                    <% if (activeContact) { %>
+                    <div class="chat-header">
+                        <div class="d-flex align-items-center">
+                            <div class="position-relative">
+                                <img src="<%= activeContact.profile_pic %>" class="rounded-circle" width="48" height="48">
+                                <% if (activeContact.isOnline) { %>
+                                <span class="online-indicator"></span>
+                                <% } %>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-0"><%= activeContact.name %></h5>
+                                <small class="text-muted">
+                                    <%= activeContact.isOnline ? 'Online' : 'Last seen ' + activeContact.lastSeen %>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="btn btn-sm btn-light rounded-circle" title="Voice Call">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="btn btn-sm btn-light rounded-circle" title="Video Call">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="btn btn-sm btn-light rounded-circle" title="More Options">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-messages">
+                        <% messages.forEach(function(message) { %>
+                        <div class="message <%= message.isFromMe ? 'message-out' : 'message-in' %>">
+                            <div class="message-content">
+                                <p><%= message.text %></p>
+                                <div class="message-meta">
+                                    <small class="text-muted"><%= message.time %></small>
+                                    <% if (message.isFromMe) { %>
+                                    <i class="fas fa-check-double <%= message.isRead ? 'text-primary' : 'text-muted' %>"></i>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                    
+                    <div class="chat-input">
+                        <div class="input-group">
+                            <button class="btn btn-light" type="button">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <input type="text" class="form-control" placeholder="Type a message...">
+                            <button class="btn action-btn action-btn-primary" type="button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <% } else { %>
+                    <div class="no-chat-selected">
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <i class="fas fa-comment-dots fa-4x text-muted"></i>
+                            </div>
+                            <h4>Select a conversation</h4>
+                            <p class="text-muted">Choose from your existing conversations or start a new one</p>
+                            <button class="btn action-btn action-btn-primary mt-3">
+                                <i class="fas fa-plus me-2"></i> New Message
+                            </button>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/messages.js"></script>
+</body>
+</html>

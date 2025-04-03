@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects | Inspira Grid</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/projects.css">
+</head>
+<body>
+    <%- include('./partials/header', { 
+        title: 'Dashboard', 
+        currentPage: 'dashboard',
+        cssFiles: ['dashboard']
+    }) %>
+
+    <div class="container py-4">
+        <!-- Project Filters -->
+        <div class="project-filters mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="projectSearch" placeholder="Search projects...">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex flex-wrap justify-content-md-end">
+                        <!-- Category Filter -->
+                        <div class="dropdown me-2 mb-2 mb-md-0">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="categoryFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-folder me-1"></i> Category
+                            </button>
+                            <ul class="dropdown-menu shadow" aria-labelledby="categoryFilterBtn">
+                                <li><a class="dropdown-item active" href="#" data-category="all">All Categories</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-category="Web Development">Web Development</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Mobile App">Mobile App</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Machine Learning">Machine Learning</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Data Science">Data Science</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="UI/UX Design">UI/UX Design</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Game Development">Game Development</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="DevOps">DevOps</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Blockchain">Blockchain</a></li>
+                                <li><a class="dropdown-item" href="#" data-category="Other">Other</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="dropdown me-2 mb-2 mb-md-0">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="statusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-tasks me-1"></i> Status
+                            </button>
+                            <ul class="dropdown-menu shadow" aria-labelledby="statusFilterBtn">
+                                <li><a class="dropdown-item active" href="#" data-status="all">All Statuses</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-status="Open">Open</a></li>
+                                <li><a class="dropdown-item" href="#" data-status="In Progress">In Progress</a></li>
+                                <li><a class="dropdown-item" href="#" data-status="Completed">Completed</a></li>
+                                <li><a class="dropdown-item" href="#" data-status="On Hold">On Hold</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Skills Filter -->
+                        <div class="dropdown mb-2 mb-md-0">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="skillsFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-code me-1"></i> Skills
+                            </button>
+                            <div class="dropdown-menu skills-filter-menu p-3" style="width: 250px;">
+                                <h6 class="dropdown-header">Filter by skills</h6>
+                                <select class="form-select select2-skills-filter" id="skillsFilter" multiple>
+                                    <option value="JavaScript">JavaScript</option>
+                                    <option value="Python">Python</option>
+                                    <option value="Java">Java</option>
+                                    <option value="React">React</option>
+                                    <option value="Node.js">Node.js</option>
+                                    <option value="UI/UX Design">UI/UX Design</option>
+                                    <option value="Machine Learning">Machine Learning</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Mobile Development">Mobile Development</option>
+                                    <option value="DevOps">DevOps</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Active Filters -->
+            <div id="activeFilters" class="mt-3 d-none">
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-2">Active filters:</span>
+                    <div id="filterBadges" class="d-flex flex-wrap"></div>
+                    <button id="clearAllFilters" class="btn btn-sm btn-link text-decoration-none">
+                        <i class="fas fa-times-circle me-1"></i>Clear all
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="projectsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="my-projects-tab" data-bs-toggle="tab" href="#my-projects" role="tab">
+                    My Projects <span class="badge bg-primary rounded-pill ms-2"><%= myProjects ? myProjects.length : 0 %></span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="team-projects-tab" data-bs-toggle="tab" href="#team-projects" role="tab">
+                    Team Projects <span class="badge bg-primary rounded-pill ms-2"><%= teamProjects ? teamProjects.length : 0 %></span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="discover-tab" data-bs-toggle="tab" href="#discover" role="tab">
+                    Discover <span class="badge bg-primary rounded-pill ms-2"><%= discoverProjects ? discoverProjects.length : 0 %></span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="applications-tab" data-bs-toggle="tab" href="#applications" role="tab">
+                    Applications <span class="badge bg-primary rounded-pill ms-2"><%= applications ? applications.length : 0 %></span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- In the My Projects tab -->
+            <div class="tab-pane fade show active" id="my-projects">
+                <div class="row">
+                    <% myProjects.forEach(function(project) { %>
+                        <div class="col-md-6 col-lg-4 mb-4 project-card-wrapper" 
+                            data-title="<%= project.title.toLowerCase() %>"
+                            data-category="<%= project.category %>"
+                            data-status="<%= project.status %>"
+                            data-skills="<%= project.required_skills %>">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <h5 class="card-title"><%= project.title || project.name %></h5>
+                                        <span class="badge bg-<%= project.status === 'Open' ? 'success' : project.status === 'In Progress' ? 'warning' : 'secondary' %>">
+                                            <%= project.status %>
+                                        </span>
+                                    </div>
+                                    <p class="card-text"><%= project.description ? project.description.substring(0, 100) + '...' : 'No description available' %></p>
+                                    <div class="project-meta mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                            <span>Created: <%= project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A' %></span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-users me-2 text-muted"></i>
+                                            <span><%= project.team_size || 1 %> team members</span>
+                                        </div>
+                                    </div>
+                                    <div class="project-skills">
+                                        <% 
+                                        let skills = [];
+                                        if (project.required_skills) {
+                                            if (typeof project.required_skills === 'string') {
+                                                try {
+                                                    skills = JSON.parse(project.required_skills);
+                                                } catch(e) {
+                                                    skills = project.required_skills.split(',');
+                                                }
+                                            } else if (Array.isArray(project.required_skills)) {
+                                                skills = project.required_skills;
+                                            }
+                                        }
+                                        %>
+                                        <% if (skills && skills.length > 0) { %>
+                                            <% skills.slice(0, 3).forEach(function(skill) { %>
+                                                <span class="badge bg-light text-dark me-1 mb-1"><%= skill %></span>
+                                            <% }) %>
+                                            <% if (skills.length > 3) { %>
+                                                <span class="badge bg-light text-dark">+<%= skills.length - 3 %> more</span>
+                                            <% } %>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-top-0 d-flex justify-content-between">
+                                    <a href="/projects/<%= project.project_id %>" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <div class="btn-group">
+                                        <a href="/projects/<%= project.project_id %>/edit" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteProject('<%= project.project_id %>')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+            
+            <!-- Team Projects Tab -->
+            <div class="tab-pane fade" id="team-projects" role="tabpanel">
+                <% if (!teamProjects || teamProjects.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>No team projects yet</h3>
+                        <p>Join a team or invite team members to your projects</p>
+                        <a href="/teams" class="btn btn-primary">
+                            <i class="fas fa-users me-2"></i>Explore Teams
+                        </a>
+                    </div>
+                <% } else { %>
+                    <div class="row project-cards-container">
+                        <% teamProjects.forEach(function(project) { %>
+                            <div class="col-md-6 col-lg-4 mb-4 project-card-wrapper" 
+                                 data-title="<%= project.title ? project.title.toLowerCase() : (project.name ? project.name.toLowerCase() : '') %>"
+                                 data-status="<%= project.status %>"
+                                 data-category="<%= project.category %>"
+                                 data-skills="<%= project.required_skills ? (Array.isArray(project.required_skills) ? project.required_skills.join(',') : project.required_skills) : '' %>">
+                                <div class="card project-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <h5 class="card-title"><%= project.title || project.name %></h5>
+                                            <span class="badge bg-<%= project.status === 'Open' ? 'success' : project.status === 'In Progress' ? 'warning' : 'secondary' %>">
+                                                <%= project.status %>
+                                            </span>
+                                        </div>
+                                        <p class="card-text"><%= project.description ? project.description.substring(0, 100) + '...' : 'No description available' %></p>
+                                        <div class="project-meta mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-users-cog me-2 text-muted"></i>
+                                                <span>Team: <%= project.team_name || 'Unnamed Team' %></span>
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                                <span>Deadline: <%= project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline' %></span>
+                                            </div>
+                                        </div>
+                                        <div class="project-skills">
+                                            <% 
+                                            let skills = [];
+                                            if (project.required_skills) {
+                                                if (typeof project.required_skills === 'string') {
+                                                    try {
+                                                        skills = JSON.parse(project.required_skills);
+                                                    } catch(e) {
+                                                        skills = project.required_skills.split(',');
+                                                    }
+                                                } else if (Array.isArray(project.required_skills)) {
+                                                    skills = project.required_skills;
+                                                }
+                                            }
+                                            %>
+                                            <% if (skills && skills.length > 0) { %>
+                                                <% skills.slice(0, 3).forEach(function(skill) { %>
+                                                    <span class="badge bg-light text-dark me-1 mb-1"><%= skill %></span>
+                                                <% }) %>
+                                                <% if (skills.length > 3) { %>
+                                                    <span class="badge bg-light text-dark">+<%= skills.length - 3 %> more</span>
+                                                <% } %>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white border-top-0 d-flex">
+                                        <a href="/projects/<%= project.project_id %>" class="btn btn-outline-primary flex-grow-1">
+                                            <i class="fas fa-eye me-2"></i>View
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+            
+            <!-- Discover Tab -->
+            <div class="tab-pane fade" id="discover" role="tabpanel">
+                <% if (!discoverProjects || discoverProjects.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>No projects to discover</h3>
+                        <p>Check back later for new opportunities</p>
+                    </div>
+                <% } else { %>
+                    <div class="row project-cards-container">
+                        <% discoverProjects.forEach(function(project) { %>
+                            <div class="col-md-6 col-lg-4 mb-4 project-card-wrapper" 
+                                 data-title="<%= project.title ? project.title.toLowerCase() : (project.name ? project.name.toLowerCase() : '') %>"
+                                 data-status="<%= project.status %>"
+                                 data-category="<%= project.category %>"
+                                 data-skills="<%= project.required_skills ? (Array.isArray(project.required_skills) ? project.required_skills.join(',') : project.required_skills) : '' %>">
+                                <div class="card project-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <h5 class="card-title"><%= project.title || project.name %></h5>
+                                            <span class="badge bg-<%= project.status === 'Open' ? 'success' : project.status === 'In Progress' ? 'warning' : 'secondary' %>">
+                                                <%= project.status %>
+                                            </span>
+                                        </div>
+                                        <p class="card-text"><%= project.description ? project.description.substring(0, 100) + '...' : 'No description available' %></p>
+                                        <div class="project-meta mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-user me-2 text-muted"></i>
+                                                <span>Created by: <%= project.creator_name || project.owner_name || 'Unknown' %></span>
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-users me-2 text-muted"></i>
+                                                <span><%= project.open_positions || project.team_size || 1 %> open positions</span>
+                                            </div>
+                                        </div>
+                                        <div class="project-skills">
+                                            <% 
+                                            let skills = [];
+                                            if (project.required_skills) {
+                                                if (typeof project.required_skills === 'string') {
+                                                    try {
+                                                        skills = JSON.parse(project.required_skills);
+                                                    } catch(e) {
+                                                        skills = project.required_skills.split(',');
+                                                    }
+                                                } else if (Array.isArray(project.required_skills)) {
+                                                    skills = project.required_skills;
+                                                }
+                                            }
+                                            %>
+                                            <% if (skills && skills.length > 0) { %>
+                                                <% skills.slice(0, 3).forEach(function(skill) { %>
+                                                    <span class="badge bg-light text-dark me-1 mb-1"><%= skill %></span>
+                                                <% }) %>
+                                                <% if (skills.length > 3) { %>
+                                                    <span class="badge bg-light text-dark">+<%= skills.length - 3 %> more</span>
+                                                <% } %>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white border-top-0 d-flex">
+                                        <a href="/projects/<%= project.project_id %>" class="btn btn-outline-primary flex-grow-1 me-2">
+                                            <i class="fas fa-eye me-2"></i>View
+                                        </a>
+                                        <button class="btn btn-primary apply-btn" data-project-id="<%= project.project_id %>">
+                                            <i class="fas fa-paper-plane me-2"></i>Apply
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+            
+            <!-- Applications Tab -->
+            <div class="tab-pane fade" id="applications" role="tabpanel">
+                <% if (!applications || applications.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <h3>No applications yet</h3>
+                        <p>Apply to projects to see your applications here</p>
+                        <a href="#discover" class="btn btn-primary" data-bs-toggle="tab" role="tab" aria-controls="discover">
+                            <i class="fas fa-search me-2"></i>Discover Projects
+                        </a>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Applied On</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% applications.forEach(function(application) { %>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="application-project-icon me-3">
+                                                    <i class="fas fa-folder"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0"><%= application.project_name %></h6>
+                                                    <small class="text-muted"><%= application.project_category %></small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><%= application.applied_date %></td>
+                                        <td>
+                                            <span class="badge bg-<%= application.status === 'Pending' ? 'warning' : application.status === 'Accepted' ? 'success' : 'danger' %>">
+                                                <%= application.status %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="/projects/<%= application.project_id %>" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <% if (application.status === 'Pending') { %>
+                                                    <button class="btn btn-sm btn-outline-danger withdraw-application" data-application-id="<%= application.application_id %>">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container mt-4 d-flex justify-content-center">
+            <% if (typeof pagination !== 'undefined' && pagination && pagination.totalPages > 1) { %>
+                <nav aria-label="Project pagination">
+                    <ul class="pagination">
+                        <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                            <a class="page-link" href="<%= pagination.currentPage === 1 ? '#' : `/projects?page=${pagination.currentPage - 1}${pagination.queryString || ''}` %>" 
+                               <%= pagination.currentPage === 1 ? 'tabindex="-1" aria-disabled="true"' : '' %>>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                            <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                                <a class="page-link" href="<%= pagination.currentPage === i ? '#' : `/projects?page=${i}${pagination.queryString || ''}` %>">
+                                    <%= i %>
+                                </a>
+                            </li>
+                        <% } %>
+                        
+                        <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                            <a class="page-link" href="<%= pagination.currentPage === pagination.totalPages ? '#' : `/projects?page=${pagination.currentPage + 1}${pagination.queryString || ''}` %>"
+                               <%= pagination.currentPage === pagination.totalPages ? 'tabindex="-1" aria-disabled="true"' : '' %>>
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createProjectModalLabel">Create New Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/projects/create" method="POST" id="createProjectForm">
+                        <div class="mb-3">
+                            <label for="projectName" class="form-label">Project Name</label>
+                            <input type="text" class="form-control" id="projectName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="projectDescription" name="description" rows="4" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="projectCategory" class="form-label">Category</label>
+                                <select class="form-select" id="projectCategory" name="category" required>
+                                    <option value="" selected disabled>Select a category</option>
+                                    <option value="Web Development">Web Development</option>
+                                    <option value="Mobile App">Mobile App</option>
+                                    <option value="Machine Learning">Machine Learning</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="UI/UX Design">UI/UX Design</option>
+                                    <option value="Game Development">Game Development</option>
+                                    <option value="DevOps">DevOps</option>
+                                    <option value="Blockchain">Blockchain</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="projectDeadline" class="form-label">Deadline</label>
+                                <input type="date" class="form-control" id="projectDeadline" name="deadline">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectSkills" class="form-label">Required Skills</label>
+                            <select class="form-select select2-skills" id="projectSkills" name="required_skills[]" multiple>
+                                <option value="JavaScript">JavaScript</option>
+                                <option value="Python">Python</option>
+                                <option value="Java">Java</option>
+                                <option value="React">React</option>
+                                <option value="Node.js">Node.js</option>
+                                <option value="UI/UX Design">UI/UX Design</option>
+                                <option value="Machine Learning">Machine Learning</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Mobile Development">Mobile Development</option>
+                                <option value="DevOps">DevOps</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="teamSize" class="form-label">Team Size</label>
+                            <input type="number" class="form-control" id="teamSize" name="team_size" min="1" value="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="createProjectForm" class="btn btn-primary">Create Project</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Application Confirmation Modal -->
+    <div class="modal fade" id="withdrawApplicationModal" tabindex="-1" aria-labelledby="withdrawApplicationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="withdrawApplicationModalLabel">Withdraw Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to withdraw your application? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmWithdrawBtn">Withdraw Application</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apply Project Modal -->
+    <div class="modal fade" id="applyProjectModal" tabindex="-1" aria-labelledby="applyProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="applyProjectModalLabel">Apply to Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="projectApplicationForm">
+                        <input type="hidden" id="projectIdInput" name="project_id">
+                        <div class="mb-3">
+                            <label for="coverLetter" class="form-label">Why are you interested in this project?</label>
+                            <textarea class="form-control" id="coverLetter" name="cover_letter" rows="4" placeholder="Describe your interest and how your skills match the project requirements..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="relevantSkills" class="form-label">Relevant Skills</label>
+                            <select class="form-select select2-skills" id="relevantSkills" name="relevant_skills[]" multiple>
+                                <option value="JavaScript">JavaScript</option>
+                                <option value="Python">Python</option>
+                                <option value="Java">Java</option>
+                                <option value="React">React</option>
+                                <option value="Node.js">Node.js</option>
+                                <option value="UI/UX Design">UI/UX Design</option>
+                                <option value="Machine Learning">Machine Learning</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Mobile Development">Mobile Development</option>
+                                <option value="DevOps">DevOps</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="availability" class="form-label">Availability</label>
+                            <select class="form-select" id="availability" name="availability" required>
+                                <option value="" selected disabled>Select your availability</option>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Weekends">Weekends only</option>
+                                <option value="Evenings">Evenings only</option>
+                                <option value="Flexible">Flexible</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitApplicationBtn">Submit Application</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Keep only the necessary scripts -->
+    <!-- jQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 for skills
+            if ($.fn.select2) {
+                $('.select2-skills').select2({
+                    tags: true,
+                    placeholder: "Select skills",
+                    allowClear: true
+                });
+                
+                $('.select2-skills-filter').select2({
+                    dropdownParent: $('.skills-filter-menu'),
+                    placeholder: "Filter by skills",
+                    allowClear: true
+                });
+            }
+            
+            // Handle Apply button click
+            $('.apply-btn').on('click', function() {
+                const projectId = $(this).data('project-id');
+                $('#projectIdInput').val(projectId);
+                $('#applyProjectModal').modal('show');
+            });
+            
+            // Handle application submission
+            $('#submitApplicationBtn').on('click', function() {
+                const projectId = $('#projectIdInput').val();
+                const coverLetter = $('#coverLetter').val();
+                const relevantSkills = $('#relevantSkills').val();
+                const availability = $('#availability').val();
+                
+                if (!coverLetter || !availability) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                $.ajax({
+                    url: `/projects/${projectId}/apply`,
+                    method: 'POST',
+                    data: {
+                        cover_letter: coverLetter,
+                        relevant_skills: JSON.stringify(relevantSkills),
+                        availability: availability
+                    },
+                    success: function(response) {
+                        $('#applyProjectModal').modal('hide');
+                        
+                        // Show success message
+                        showAlert('success', response.message);
+                        
+                        // Refresh the page after a short delay
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Failed to submit application';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showAlert('danger', errorMessage);
+                    }
+                });
+            });
+            
+            // Handle withdraw application
+            $('.withdraw-application').on('click', function() {
+                const applicationId = $(this).data('application-id');
+                $('#withdrawApplicationModal').modal('show');
+                
+                $('#confirmWithdrawBtn').data('application-id', applicationId);
+            });
+            
+            $('#confirmWithdrawBtn').on('click', function() {
+                const applicationId = $(this).data('application-id');
+                
+                $.ajax({
+                    url: `/applications/${applicationId}/withdraw`,
+                    method: 'POST',
+                    success: function(response) {
+                        $('#withdrawApplicationModal').modal('hide');
+                        
+                        // Show success message
+                        showAlert('success', response.message);
+                        
+                        // Refresh the page after a short delay
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Failed to withdraw application';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showAlert('danger', errorMessage);
+                    }
+                });
+            });
+            
+            // Project filtering functionality
+            let activeFilters = {
+                search: '',
+                category: 'all',
+                status: 'all',
+                skills: []
+            };
+            
+            // Search filter
+            $('#projectSearch').on('input', function() {
+                activeFilters.search = $(this).val().toLowerCase();
+                applyFilters();
+            });
+            
+            // Category filter
+            $('.dropdown-item[data-category]').on('click', function(e) {
+                e.preventDefault();
+                const category = $(this).data('category');
+                
+                // Update active state in dropdown
+                $('.dropdown-item[data-category]').removeClass('active');
+                $(this).addClass('active');
+                
+                // Update button text
+                $('#categoryFilterBtn').html(`<i class="fas fa-folder me-1"></i> ${category === 'all' ? 'All Categories' : category}`);
+                
+                activeFilters.category = category;
+                applyFilters();
+                updateFilterBadges();
+            });
+            
+            // Status filter
+            $('.dropdown-item[data-status]').on('click', function(e) {
+                e.preventDefault();
+                const status = $(this).data('status');
+                
+                // Update active state in dropdown
+                $('.dropdown-item[data-status]').removeClass('active');
+                $(this).addClass('active');
+                
+                // Update button text
+                $('#statusFilterBtn').html(`<i class="fas fa-tasks me-1"></i> ${status === 'all' ? 'All Statuses' : status}`);
+                
+                activeFilters.status = status;
+                applyFilters();
+                updateFilterBadges();
+            });
+            
+            // Skills filter
+            $('#skillsFilter').on('change', function() {
+                activeFilters.skills = $(this).val() || [];
+                applyFilters();
+                updateFilterBadges();
+            });
+            
+            // Clear all filters
+            $('#clearAllFilters').on('click', function() {
+                // Reset all filters
+                activeFilters = {
+                    search: '',
+                    category: 'all',
+                    status: 'all',
+                    skills: []
+                };
+                
+                // Reset UI
+                $('#projectSearch').val('');
+                $('.dropdown-item[data-category]').removeClass('active');
+                $('.dropdown-item[data-category="all"]').addClass('active');
+                $('#categoryFilterBtn').html('<i class="fas fa-folder me-1"></i> All Categories');
+                
+                $('.dropdown-item[data-status]').removeClass('active');
+                $('.dropdown-item[data-status="all"]').addClass('active');
+                $('#statusFilterBtn').html('<i class="fas fa-tasks me-1"></i> All Statuses');
+                
+                $('#skillsFilter').val(null).trigger('change');
+                
+                // Hide active filters section
+                $('#activeFilters').addClass('d-none');
+                $('#filterBadges').empty();
+                
+                applyFilters();
+            });
+            
+            // Apply filters to project cards
+            function applyFilters() {
+                $('.project-card-wrapper').each(function() {
+                    const $card = $(this);
+                    const title = $card.data('title') || '';
+                    const category = $card.data('category') || '';
+                    const status = $card.data('status') || '';
+                    const skills = ($card.data('skills') || '').toString().toLowerCase();
+                    
+                    let visible = true;
+                    
+                    // Search filter
+                    if (activeFilters.search && !title.includes(activeFilters.search)) {
+                        visible = false;
+                    }
+                    
+                    // Category filter
+                    if (activeFilters.category !== 'all' && category !== activeFilters.category) {
+                        visible = false;
+                    }
+                    
+                    // Status filter
+                    if (activeFilters.status !== 'all' && status !== activeFilters.status) {
+                        visible = false;
+                    }
+                    
+                    // Skills filter
+                    if (activeFilters.skills.length > 0) {
+                        let hasSkill = false;
+                        for (const skill of activeFilters.skills) {
+                            if (skills.includes(skill.toLowerCase())) {
+                                hasSkill = true;
+                                break;
+                            }
+                        }
+                        if (!hasSkill) {
+                            visible = false;
+                        }
+                    }
+                    
+                    $card.toggle(visible);
+                });
+                
+                // Check if any filters are active
+                const hasActiveFilters = activeFilters.search || 
+                                        activeFilters.category !== 'all' || 
+                                        activeFilters.status !== 'all' || 
+                                        activeFilters.skills.length > 0;
+                
+                $('#activeFilters').toggleClass('d-none', !hasActiveFilters);
+            }
+            
+            // Update filter badges
+            function updateFilterBadges() {
+                const $badgesContainer = $('#filterBadges');
+                $badgesContainer.empty();
+                
+                if (activeFilters.category !== 'all') {
+                    addFilterBadge('Category: ' + activeFilters.category, function() {
+                        activeFilters.category = 'all';
+                        $('.dropdown-item[data-category]').removeClass('active');
+                        $('.dropdown-item[data-category="all"]').addClass('active');
+                        $('#categoryFilterBtn').html('<i class="fas fa-folder me-1"></i> All Categories');
+                        applyFilters();
+                        updateFilterBadges();
+                    });
+                }
+                
+                if (activeFilters.status !== 'all') {
+                    addFilterBadge('Status: ' + activeFilters.status, function() {
+                        activeFilters.status = 'all';
+                        $('.dropdown-item[data-status]').removeClass('active');
+                        $('.dropdown-item[data-status="all"]').addClass('active');
+                        $('#statusFilterBtn').html('<i class="fas fa-tasks me-1"></i> All Statuses');
+                        applyFilters();
+                        updateFilterBadges();
+                    });
+                }
+                
+                if (activeFilters.skills.length > 0) {
+                    activeFilters.skills.forEach(function(skill) {
+                        addFilterBadge('Skill: ' + skill, function() {
+                            activeFilters.skills = activeFilters.skills.filter(s => s !== skill);
+                            $('#skillsFilter').val(activeFilters.skills).trigger('change');
+                            applyFilters();
+                            updateFilterBadges();
+                        });
+                    });
+                }
+            }
+            
+            function addFilterBadge(text, removeCallback) {
+                const $badge = $(`
+                    <div class="badge bg-light text-dark d-flex align-items-center me-2 mb-2">
+                        <span>${text}</span>
+                        <button type="button" class="btn-close btn-close-sm ms-2" aria-label="Remove filter"></button>
+                    </div>
+                `);
+                
+                $badge.find('.btn-close').on('click', removeCallback);
+                $('#filterBadges').append($badge);
+            }
+            
+            // Helper function to show alerts
+            function showAlert(type, message) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                // Add alert to the top of the page
+                $('.container').prepend(alertHtml);
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(function() {
+                    $('.alert').alert('close');
+                }, 5000);
+            }
+            
+            // Handle delete project
+            window.deleteProject = function(projectId) {
+                if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                    $.ajax({
+                        url: `/projects/${projectId}/delete`,
+                        method: 'POST',
+                        success: function(response) {
+                            showAlert('success', 'Project deleted successfully');
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
+                        },
+                        error: function() {
+                            showAlert('danger', 'Failed to delete project');
+                        }
+                    });
+                }
+            };
+        });
+    </script>
+</body>
+</html>
