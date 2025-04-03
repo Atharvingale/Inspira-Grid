@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Inspira Grid</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Inspira Grid</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/teams">Teams</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/messages">Messages</a></li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
+                            <img src="<%= user.profile_pic || '/images/user.jpeg' %>" class="rounded-circle me-2" width="30" height="30">
+                            <%= user.name %>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                            <li><a class="dropdown-item active" href="/profile/edit">Edit Profile</a></li>
+                            <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Profile</h3>
+                    </div>
+                    <div class="card-body">
+                        <% if (error) { %>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        <% } %>
+                        
+                        <% if (success) { %>
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <%= success %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        <% } %>
+
+                        <form action="/profile/update" method="POST">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="<%= user.name %>" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" value="<%= user.email %>" disabled>
+                                <div class="form-text text-muted">Email cannot be changed. Contact support if needed.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">Bio</label>
+                                <textarea class="form-control" id="bio" name="bio" rows="4" placeholder="Tell others about yourself, your experience, and what you're looking for"><%= user.bio || '' %></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="skills" class="form-label">Skills (comma-separated)</label>
+                                <input type="text" class="form-control" id="skills" name="skills" value="<%= user.skills ? (Array.isArray(user.skills) ? user.skills.join(', ') : user.skills) : '' %>" placeholder="e.g. JavaScript, React, UX Design">
+                                <div class="form-text">List your skills separated by commas. These will help you match with projects.</div>
+                            </div>
+                            
+                            <hr class="my-4">
+                            <h5>Contact Information</h5>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="<%= user.phone || '' %>" placeholder="Optional">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="location" name="location" value="<%= user.location || '' %>" placeholder="City, Country">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="website" class="form-label">Website/Portfolio</label>
+                                <input type="url" class="form-control" id="website" name="website" value="<%= user.website || '' %>" placeholder="https://yourportfolio.com">
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <a href="/profile" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-lock me-2"></i>Change Password</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="/profile/change-password" method="POST">
+                                <div class="mb-3">
+                                    <label for="currentPassword" class="form-label">Current Password</label>
+                                    <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newPassword" class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="newPassword" name="newPassword" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-warning">Update Password</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">© 2025 Inspira Grid. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/support" class="text-decoration-none me-3">Contact Support</a>
+                    <a href="/privacy" class="text-decoration-none me-3">Privacy Policy</a>
+                    <a href="/terms" class="text-decoration-none">Terms & Conditions</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

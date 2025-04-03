@@ -2,6 +2,8 @@ import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 import session from "express-session";
+import multer from 'multer';
+
 
 const port = 3000;
 const app = express();
@@ -20,6 +22,19 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads/'); // Save files in the 'public/uploads' directory
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'profile-' + uniqueSuffix + '-' + file.originalname); // Unique filename
+  },
+});
+
+// Initialize Multer
+const upload = multer({ storage: storage });
 // Setup session
 app.use(
   session({
@@ -32,145 +47,79 @@ app.use(
 // Home Route
 app.get("/", (req, res) => {
   if(req.session.user){
-    res.render("dashboard");
+    res.render("dashboard", { user, userStats, userProjects, userTeams, recentMessages, applications, notifications, recommendedProjects });
+
   } else {
     res.render("index", { user: req.session.user });
   }
 });
 
 app.get("/dashboard", async (req, res) => {
-  // Check if user is logged in
-  if (!req.session.user) {
-    return res.redirect("/signin");
-  }
+  if (!req.session.user) return res.redirect("/signin");
 
   try {
-    // Get user data
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE user_id = $1",
-      [req.session.user_id]
-    );
-    
-    if (userResult.rows.length === 0) {
-      return res.redirect("/signin");
-    }
-    
-    const user = userResult.rows[0];
+    // 1. Get user data
+    const user = (await db.query("SELECT * FROM users WHERE user_id = $1", [req.session.user_id])).rows[0];
 
-    // Get user stats
-    const activeProjectsResult = await db.query(
-      "SELECT COUNT(*) AS count FROM projects WHERE owner_id = $1 AND status != 'Completed'",
-      [user.user_id]
-    );
-    
-    const activeTeamsResult = await db.query(
-      "SELECT COUNT(*) AS count FROM team_members WHERE user_id = $1",
-      [user.user_id]
-    );
-
+    // 2. Get user stats
     const userStats = {
-      activeProjects: activeProjectsResult.rows[0].count,
-      activeTeams: activeTeamsResult.rows[0].count
+      activeProjects: (await db.query(
+        "SELECT COUNT(*) FROM projects WHERE owner_id = $1 AND status != 'Completed'", 
+        [user.user_id]
+      )).rows[0].count,
+      teamCount: (await db.query(
+        "SELECT COUNT(*) FROM team_members WHERE user_id = $1",
+        [user.user_id]
+      )).rows[0].count,
+      pendingTasks: 0 // Add actual task logic later
     };
 
-    // Get user's projects
-    const userProjectsResult = await db.query(
+    // 3. Get other data
+    const userProjects = (await db.query(
       "SELECT * FROM projects WHERE owner_id = $1 ORDER BY created_at DESC LIMIT 5",
       [user.user_id]
-    );
-    
-    const userProjects = userProjectsResult.rows;
+    )).rows;
 
-    // Get user's teams
-    const userTeamsResult = await db.query(
-      `SELECT t.*, p.title AS project_title,
-        (SELECT COUNT(*) FROM team_members WHERE team_id = t.team_id) AS member_count
-       FROM teams t
-       JOIN projects p ON t.project_id = p.project_id
-       JOIN team_members tm ON t.team_id = tm.team_id
-       WHERE tm.user_id = $1
-       ORDER BY t.created_at DESC
+    const teamMembers = (await db.query(
+      `SELECT u.* FROM team_members tm
+       JOIN users u ON tm.user_id = u.user_id
+       WHERE tm.team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
        LIMIT 5`,
       [user.user_id]
-    );
-    
-    const userTeams = userTeamsResult.rows;
+    )).rows;
 
-    // Get recent messages
-    const recentMessagesResult = await db.query(
-      `SELECT c.*, u.name AS sender_name, 
-        CASE
-          WHEN NOW() - c.sent_at < INTERVAL '1 hour' THEN EXTRACT(MINUTE FROM (NOW() - c.sent_at)) || ' mins ago'
-          WHEN NOW() - c.sent_at < INTERVAL '1 day' THEN EXTRACT(HOUR FROM (NOW() - c.sent_at)) || ' hrs ago'
-          ELSE EXTRACT(DAY FROM (NOW() - c.sent_at)) || ' days ago'
-        END AS time_ago
-       FROM chats c
-       JOIN users u ON c.sender_id = u.user_id
-       WHERE c.receiver_id = $1
-       ORDER BY c.sent_at DESC
-       LIMIT 3`,
+    const upcomingDeadlines = (await db.query(
+      `SELECT p.title, p.deadline, p.project_id AS link
+       FROM projects p
+       WHERE (p.owner_id = $1 OR p.project_id IN (
+         SELECT project_id FROM team_members WHERE user_id = $1
+       ))
+       AND p.deadline BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+       ORDER BY p.deadline ASC
+       LIMIT 5`,
       [user.user_id]
-    );
-    
-    const recentMessages = recentMessagesResult.rows;
+    )).rows.map(deadline => ({
+      ...deadline,
+      date: new Date(deadline.deadline).toLocaleDateString(),
+      isUrgent: new Date(deadline.deadline) - Date.now() < 3 * 24 * 60 * 60 * 1000 // 3 days
+    }));
 
-    // Get applications
-    const applicationsResult = await db.query(
-      `SELECT a.*, p.title AS project_title
-       FROM applications a
-       JOIN projects p ON a.project_id = p.project_id
-       WHERE a.user_id = $1
-       ORDER BY a.applied_at DESC
-       LIMIT 3`,
-      [user.user_id]
-    );
-    
-    const applications = applicationsResult.rows;
-
-    // Simulate notifications (would be more complex in a real app)
-    const notifications = [
-      {
-        icon: "fas fa-comment",
-        message: "You have a new message from " + (recentMessages[0] ? recentMessages[0].sender_name : "a team member"),
-        link: "/messages",
-        time_ago: "Just now"
-      },
-      {
-        icon: "fas fa-clipboard-check",
-        message: "Your application for " + (applications[0] ? applications[0].project_title : "a project") + " was accepted!",
-        link: "/applications",
-        time_ago: "2 hours ago"
-      }
-    ];
-
-    // Get recommended projects (based on user skills)
-    const recommendedProjectsResult = await db.query(
-      `SELECT p.*, u.name AS owner_name FROM projects p
-       JOIN users u ON p.owner_id = u.user_id
-       WHERE p.status = 'Open'
-       AND p.required_skills LIKE $1
-       AND p.owner_id != $2
-       LIMIT 3`,
-      ['%' + (user.skills || '') + '%', user.user_id]
-    );
-    
-    const recommendedProjects = recommendedProjectsResult.rows;
-
-    // Render dashboard with all data
+    // Render with all data
     res.render("dashboard", {
       user,
       userStats,
       userProjects,
-      userTeams,
-      recentMessages,
-      applications,
-      notifications,
-      recommendedProjects
+      teamMembers,
+      activities: [], // Add actual data
+      applications: [],
+      notifications: [],
+      topProjects: [],
+      upcomingDeadlines // Add this line to pass deadlines to template
     });
-    
+
   } catch (err) {
     console.error("Database error:", err);
-    res.redirect("/signin?error=An error occurred. Please try again.");
+    res.redirect("/signin?error=An error occurred");
   }
 });
 
@@ -207,6 +156,7 @@ app.post("/signin", async (req, res) => {
       const user = result.rows[0];
       req.session.user = user.name; // Store user name in session
       req.session.user_id = user.user_id; // Store user_id in session
+ // Store user_id in session
       res.redirect("/dashboard");
     } else {
       res.redirect("/signin?error=Invalid email or password");
@@ -220,6 +170,7 @@ app.post("/signin", async (req, res) => {
 // Handle Sign-Up Request
 app.post("/signup", async (req, res) => {
   const { name, email, password, bio, skills } = req.body;
+  const skillsArray = skills ? skills.split(',').map(skill => skill.trim()) : [];
 
   try {
     // Check if email already exists
@@ -236,8 +187,8 @@ app.post("/signup", async (req, res) => {
 
     // Insert new user into database with all required fields
     const result = await db.query(
-      "INSERT INTO users (name, email, password, bio, skills) VALUES ($1, $2, $3, $4, $5) RETURNING user_id", 
-      [name, email, password, bio || '', skills || '']
+      "INSERT INTO users (name, email, password, bio, skills, profile_pic) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id", 
+      [name, email, password, bio || '', skillsArray, '/images/user.jpg'] // Add default here
     );
 
     const newUserId = result.rows[0].user_id;
@@ -391,10 +342,458 @@ app.post("/applications/update", async (req, res) => {
   }
 });
 
+
+app.get("/profile", async (req, res) => {
+  // Check if user is logged in
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+
+  try {
+    // Get user data
+    const userResult = await db.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [req.session.user_id]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.redirect("/signin");
+    }
+    
+    const user = userResult.rows[0];
+
+    // Get user stats
+    const activeProjectsResult = await db.query(
+      "SELECT COUNT(*) AS count FROM projects WHERE owner_id = $1 AND status != 'Completed'",
+      [user.user_id]
+    );
+    
+    const projectsCreatedResult = await db.query(
+      "SELECT COUNT(*) AS count FROM projects WHERE owner_id = $1",
+      [user.user_id]
+    );
+    
+    const activeTeamsResult = await db.query(
+      "SELECT COUNT(*) AS count FROM team_members WHERE user_id = $1",
+      [user.user_id]
+    );
+    
+    const applicationsSubmittedResult = await db.query(
+      "SELECT COUNT(*) AS count FROM applications WHERE user_id = $1",
+      [user.user_id]
+    );
+    
+    const messagesSentResult = await db.query(
+      "SELECT COUNT(*) AS count FROM chats WHERE sender_id = $1",
+      [user.user_id]
+    );
+
+    const userStats = {
+      activeProjects: activeProjectsResult.rows[0].count,
+      projectsCreated: projectsCreatedResult.rows[0].count,
+      activeTeams: activeTeamsResult.rows[0].count,
+      applicationsSubmitted: applicationsSubmittedResult.rows[0].count,
+      messagesSent: messagesSentResult.rows[0].count
+    };
+
+    // Get user's projects
+    const userProjectsResult = await db.query(
+      "SELECT * FROM projects WHERE owner_id = $1 ORDER BY created_at DESC",
+      [user.user_id]
+    );
+    
+    const userProjects = userProjectsResult.rows;
+
+    // Get user's teams
+    const userTeamsResult = await db.query(
+      `SELECT t.*, p.title AS project_title,
+        (SELECT COUNT(*) FROM team_members WHERE team_id = t.team_id) AS member_count
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN team_members tm ON t.team_id = tm.team_id
+       WHERE tm.user_id = $1
+       ORDER BY t.created_at DESC`,
+      [user.user_id]
+    );
+    
+    const userTeams = userTeamsResult.rows;
+
+    // Get applications
+    const applicationsResult = await db.query(
+      `SELECT a.*, p.title AS project_title
+       FROM applications a
+       JOIN projects p ON a.project_id = p.project_id
+       WHERE a.user_id = $1
+       ORDER BY a.applied_at DESC`,
+      [user.user_id]
+    );
+    
+    const applications = applicationsResult.rows;
+
+    // Get activity log
+    const activityLogResult = await db.query(
+      `SELECT 
+        CASE 
+          WHEN type = 'project_created' THEN 'Created a new project'
+          WHEN type = 'team_joined' THEN 'Joined a team'
+          WHEN type = 'project_applied' THEN 'Applied to a project'
+          WHEN type = 'message_sent' THEN 'Sent a message'
+          ELSE 'Activity'
+        END AS action,
+        description,
+        CASE
+          WHEN type = 'project_created' THEN 'fas fa-folder-plus'
+          WHEN type = 'team_joined' THEN 'fas fa-users'
+          WHEN type = 'project_applied' THEN 'fas fa-clipboard-list'
+          WHEN type = 'message_sent' THEN 'fas fa-comment'
+          ELSE 'fas fa-check-circle'
+        END AS icon,
+        CASE
+          WHEN NOW() - created_at < INTERVAL '1 hour' THEN EXTRACT(MINUTE FROM (NOW() - created_at)) || ' mins ago'
+          WHEN NOW() - created_at < INTERVAL '1 day' THEN EXTRACT(HOUR FROM (NOW() - created_at)) || ' hrs ago'
+          ELSE EXTRACT(DAY FROM (NOW() - created_at)) || ' days ago'
+        END AS time_ago
+       FROM activity_log
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [user.user_id]
+    );
+    
+    let activityLog = [];
+    
+    // If activity_log table exists, use the result
+    if (activityLogResult.rows) {
+      activityLog = activityLogResult.rows;
+    } else {
+      // Generate mock activity log if table doesn't exist
+      activityLog = [
+        {
+          action: "Created a new project",
+          description: "You created a new project: " + (userProjects[0]?.title || "Project"),
+          icon: "fas fa-folder-plus",
+          time_ago: "2 days ago"
+        },
+        {
+          action: "Joined a team",
+          description: "You joined the team: " + (userTeams[0]?.team_name || "Team"),
+          icon: "fas fa-users",
+          time_ago: "3 days ago"
+        },
+        {
+          action: "Updated profile",
+          description: "You updated your profile information",
+          icon: "fas fa-user-edit",
+          time_ago: "5 days ago"
+        }
+      ];
+    }
+
+    // Render profile with all data
+    res.render("profile", {
+      user,
+      userStats,
+      userProjects,
+      userTeams,
+      applications,
+      activityLog
+    });
+    
+  } catch (err) {
+    console.error("Database error:", err);
+    res.redirect("/dashboard?error=An error occurred. Please try again.");
+  }
+});
+
+// Profile Edit Page
+app.get("/profile/edit", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+
+  try {
+    const userResult = await db.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [req.session.user_id]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.redirect("/signin");
+    }
+    
+    const user = userResult.rows[0];
+    
+    res.render("profile-edit", { 
+      user,
+      error: req.query.error || null,
+      success: req.query.success || null
+    });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.redirect("/profile?error=An error occurred. Please try again.");
+  }
+});
+
+// Handle Profile Update
+app.post("/profile/update", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+
+  const { name, bio, skills, phone, location, website } = req.body;
+
+  try {
+    await db.query(
+      "UPDATE users SET name = $1, bio = $2, skills = $3, phone = $4, location = $5, website = $6 WHERE user_id = $7",
+      [name, bio || '', skills || '', phone || '', location || '', website || '', req.session.user_id]
+    );
+    
+    // Update session user name if changed
+    if (name !== req.session.user) {
+      req.session.user = name;
+    }
+    
+    res.redirect("/profile?success=Profile updated successfully");
+  } catch (err) {
+    console.error("Database error:", err);
+    res.redirect("/profile/edit?error=Error updating profile. Please try again.");
+  }
+});
+
+// Handle Profile Photo Update
+app.post('/profile/update-photo', upload.single('profilePhoto'), async (req, res) => {
+  if (!req.session.user_id) {
+    return res.redirect('/signin');
+  }
+
+  try {
+    // Check if a file was uploaded
+    if (!req.file) {
+      return res.redirect('/profile?error=No file uploaded');
+    }
+
+    // Construct the file path
+    const profilePicPath = '/uploads/' + req.file.filename;
+
+    // Update the user's profile picture in the database
+    await db.query(
+      'UPDATE users SET profile_pic = $1 WHERE user_id = $2',
+      [profilePicPath, req.session.user_id]
+    );
+
+    // Redirect with success message
+    res.redirect('/profile?success=Profile photo updated successfully');
+  } catch (err) {
+    console.error('Error updating profile photo:', err);
+    res.redirect('/profile?error=Failed to update profile photo');
+  }
+});
+// Handle Password Change
+app.post("/profile/change-password", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  // Validate passwords
+  if (newPassword !== confirmPassword) {
+    return res.redirect("/profile/edit?error=New passwords do not match");
+  }
+
+  try {
+    // Check if current password is correct
+    const userResult = await db.query(
+      "SELECT * FROM users WHERE user_id = $1 AND password = $2",
+      [req.session.user_id, currentPassword]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.redirect("/profile/edit?error=Current password is incorrect");
+    }
+    
+    // Update password
+    await db.query(
+      "UPDATE users SET password = $1 WHERE user_id = $2",
+      [newPassword, req.session.user_id]
+    );
+    
+    // Log the activity
+    try {
+      await db.query(
+        "INSERT INTO activity_log (user_id, type, description) VALUES ($1, $2, $3)",
+        [req.session.user_id, "password_changed", "You changed your password"]
+      );
+    } catch (logErr) {
+      // If activity log fails, just continue - it's not critical
+      console.error("Failed to log activity:", logErr);
+    }
+    
+    res.redirect("/profile/edit?success=Password updated successfully");
+  } catch (err) {
+    console.error("Database error:", err);
+    res.redirect("/profile/edit?error=Error updating password. Please try again.");
+  }
+});
+
 // Logout Route
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/signin");
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).render("error", {
+    error: err.message || "An unexpected error occurred"
+  });
+});
+// Add this after all routes in server.js
+
+// Add these routes to your server.js file, just before the app.listen section
+
+// Resources Route
+app.get("/resources", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Resources",
+    pageIcon: "fas fa-book",
+    activePage: "resources"
+  });
+});
+
+// Calendar Route
+app.get("/calendar", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Calendar",
+    pageIcon: "fas fa-calendar-alt",
+    activePage: "calendar"
+  });
+});
+
+// Reports Route
+app.get("/reports", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Reports & Analytics",
+    pageIcon: "fas fa-chart-bar",
+    activePage: "reports"
+  });
+});
+
+// Help Center Route
+app.get("/help", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Help Center",
+    pageIcon: "fas fa-question-circle",
+    activePage: "help"
+  });
+});
+
+// For custom content pages, you can add these routes as well:
+
+// Documentation subpage route
+app.get("/resources/documentation", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  const content = [
+    {
+      title: "Getting Started Guide",
+      icon: "fas fa-play-circle",
+      description: "Learn the basics of using InspiraGrid with our comprehensive getting started guide.",
+      link: "#",
+      colSize: 6
+    },
+    {
+      title: "Project Management",
+      icon: "fas fa-tasks",
+      description: "Detailed documentation on creating and managing projects effectively.",
+      link: "#",
+      colSize: 6
+    },
+    {
+      title: "Team Collaboration",
+      icon: "fas fa-users",
+      description: "Learn how to collaborate efficiently with your team members.",
+      link: "#",
+      colSize: 6
+    },
+    {
+      title: "Advanced Features",
+      icon: "fas fa-star",
+      description: "Explore advanced features to maximize your productivity.",
+      link: "#",
+      colSize: 6
+    }
+  ];
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Documentation",
+    pageIcon: "fas fa-book",
+    activePage: "resources",
+    content: content
+  });
+});
+
+// Project Reports subpage route example
+app.get("/reports/projects", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/signin");
+  }
+  
+  // In a real app, you would fetch this data from the database
+  const content = [
+    {
+      title: "Active Projects",
+      icon: "fas fa-project-diagram",
+      description: "Overview of all your active projects with progress metrics and deadlines.",
+      link: "#",
+      colSize: 12
+    },
+    {
+      title: "Project Timeline Analysis",
+      icon: "fas fa-chart-line",
+      description: "Analyze project timelines and identify potential delays or bottlenecks.",
+      link: "#",
+      colSize: 6
+    },
+    {
+      title: "Resource Allocation",
+      icon: "fas fa-people-carry",
+      description: "Review how resources are allocated across your projects.",
+      link: "#",
+      colSize: 6
+    }
+  ];
+  
+  res.render("quick-links", {
+    user: req.session.user,
+    pageTitle: "Project Reports",
+    pageIcon: "fas fa-chart-bar",
+    activePage: "reports",
+    content: content
   });
 });
 
