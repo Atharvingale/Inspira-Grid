@@ -1,0 +1,186 @@
+<%- include('partials/header') %>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Edit Project</h3>
+                </div>
+                <div class="card-body">
+                    <% if (error) { %>
+                        <div class="alert alert-danger"><%= error %></div>
+                    <% } %>
+                    <% if (success) { %>
+                        <div class="alert alert-success"><%= success %></div>
+                    <% } %>
+                    
+                    <form action="/projects/<%= project.project_id %>/update" method="POST">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Project Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="<%= project.title %>" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required><%= project.description %></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="Web Development" <%= project.category === 'Web Development' ? 'selected' : '' %>>Web Development</option>
+                                <option value="Mobile App" <%= project.category === 'Mobile App' ? 'selected' : '' %>>Mobile App</option>
+                                <option value="UI/UX Design" <%= project.category === 'UI/UX Design' ? 'selected' : '' %>>UI/UX Design</option>
+                                <option value="Data Science" <%= project.category === 'Data Science' ? 'selected' : '' %>>Data Science</option>
+                                <option value="Machine Learning" <%= project.category === 'Machine Learning' ? 'selected' : '' %>>Machine Learning</option>
+                                <option value="Blockchain" <%= project.category === 'Blockchain' ? 'selected' : '' %>>Blockchain</option>
+                                <option value="Other" <%= project.category === 'Other' ? 'selected' : '' %>>Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Open" <%= project.status === 'Open' ? 'selected' : '' %>>Open</option>
+                                <option value="In Progress" <%= project.status === 'In Progress' ? 'selected' : '' %>>In Progress</option>
+                                <option value="Completed" <%= project.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                <option value="On Hold" <%= project.status === 'On Hold' ? 'selected' : '' %>>On Hold</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Required Skills</label>
+                            <div class="skills-input-container">
+                                <% if (project.required_skills && project.required_skills.length > 0) { %>
+                                    <% project.required_skills.forEach(function(skill, index) { %>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" name="required_skills" value="<%= skill %>" placeholder="Enter a skill">
+                                            <button type="button" class="btn btn-outline-danger remove-skill">Remove</button>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="required_skills" placeholder="Enter a skill">
+                                        <button type="button" class="btn btn-outline-danger remove-skill">Remove</button>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-skill">+ Add Skill</button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Milestones</label>
+                            <div class="milestones-container">
+                                <% if (project.milestones && project.milestones.length > 0) { %>
+                                    <% project.milestones.forEach(function(milestone, index) { %>
+                                        <div class="milestone-item card mb-2">
+                                            <div class="card-body">
+                                                <div class="input-group mb-2">
+                                                    <input type="text" class="form-control" name="milestones[]" value="<%= milestone %>" placeholder="Milestone description">
+                                                    <select class="form-select" name="milestone_status[]" style="max-width: 150px;">
+                                                        <option value="pending" <%= (project.milestone_status && project.milestone_status[index] === 'pending') ? 'selected' : '' %>>Pending</option>
+                                                        <option value="in-progress" <%= (project.milestone_status && project.milestone_status[index] === 'in-progress') ? 'selected' : '' %>>In Progress</option>
+                                                        <option value="completed" <%= (project.milestone_status && project.milestone_status[index] === 'completed') ? 'selected' : '' %>>Completed</option>
+                                                    </select>
+                                                    <button type="button" class="btn btn-outline-danger remove-milestone">Remove</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="milestone-item card mb-2">
+                                        <div class="card-body">
+                                            <div class="input-group mb-2">
+                                                <input type="text" class="form-control" name="milestones[]" placeholder="Milestone description">
+                                                <select class="form-select" name="milestone_status[]" style="max-width: 150px;">
+                                                    <option value="pending">Pending</option>
+                                                    <option value="in-progress">In Progress</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                                <button type="button" class="btn btn-outline-danger remove-milestone">Remove</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-milestone">+ Add Milestone</button>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/projects/<%= project.project_id %>" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add skill functionality
+        document.querySelector('.add-skill').addEventListener('click', function() {
+            const container = document.querySelector('.skills-input-container');
+            const newSkill = document.createElement('div');
+            newSkill.className = 'input-group mb-2';
+            newSkill.innerHTML = `
+                <input type="text" class="form-control" name="required_skills" placeholder="Enter a skill">
+                <button type="button" class="btn btn-outline-danger remove-skill">Remove</button>
+            `;
+            container.appendChild(newSkill);
+        });
+        
+        // Remove skill functionality
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-skill')) {
+                const skillsContainer = document.querySelector('.skills-input-container');
+                if (skillsContainer.children.length > 1) {
+                    e.target.closest('.input-group').remove();
+                } else {
+                    e.target.previousElementSibling.value = '';
+                }
+            }
+        });
+        
+        // Add milestone functionality
+        document.querySelector('.add-milestone').addEventListener('click', function() {
+            const container = document.querySelector('.milestones-container');
+            const newMilestone = document.createElement('div');
+            newMilestone.className = 'milestone-item card mb-2';
+            newMilestone.innerHTML = `
+                <div class="card-body">
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" name="milestones[]" placeholder="Milestone description">
+                        <select class="form-select" name="milestone_status[]" style="max-width: 150px;">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-danger remove-milestone">Remove</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newMilestone);
+        });
+        
+        // Remove milestone functionality
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-milestone')) {
+                const milestonesContainer = document.querySelector('.milestones-container');
+                if (milestonesContainer.children.length > 1) {
+                    e.target.closest('.milestone-item').remove();
+                } else {
+                    const inputs = e.target.closest('.milestone-item').querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        if (input.tagName === 'INPUT') input.value = '';
+                        if (input.tagName === 'SELECT') input.selectedIndex = 0;
+                    });
+                }
+            }
+        });
+    });
+</script>
+
+<%- include('partials/footer') %>

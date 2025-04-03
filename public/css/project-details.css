@@ -1,0 +1,660 @@
+/* Project Details CSS */
+
+/* General Styles */
+:root {
+    --primary-color: #4a6bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --white: #ffffff;
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    color: var(--gray-800);
+    background-color: var(--gray-100);
+}
+
+/* Navbar Styles */
+.navbar {
+    background-color: var(--primary-color);
+    padding: 0.75rem 0;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    margin-right: 2rem;
+}
+
+.logo-img {
+    height: 32px;
+    margin-right: 0.5rem;
+}
+
+.logo-text {
+    color: var(--white);
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link.active {
+    color: var(--white);
+}
+
+.dropdown-toggle {
+    background: transparent;
+    border: none;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-toggle::after {
+    margin-left: 0.5rem;
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    padding: 0.5rem 0;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1.5rem;
+}
+
+.dropdown-item.active, 
+.dropdown-item:active {
+    background-color: var(--primary-color);
+}
+
+/* Container and other styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.card {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.btn {
+    display: inline-block;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn-primary {
+    color: var(--white);
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #3a5bef;
+    border-color: #3a5bef;
+}
+
+.btn-secondary {
+    color: var(--white);
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+}
+
+.btn-large {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    width: 100%;
+}
+
+.btn-edit {
+    color: var(--info-color);
+    background-color: transparent;
+    border-color: var(--info-color);
+}
+
+.btn-edit:hover {
+    color: var(--white);
+    background-color: var(--info-color);
+}
+
+.btn-delete {
+    color: var(--danger-color);
+    background-color: transparent;
+    border-color: var(--danger-color);
+}
+
+.btn-delete:hover {
+    color: var(--white);
+    background-color: var(--danger-color);
+}
+
+.btn-share {
+    color: var(--success-color);
+    background-color: transparent;
+    border-color: var(--success-color);
+}
+
+.btn-share:hover {
+    color: var(--white);
+    background-color: var(--success-color);
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #4a6bff 0%, #6a8eff 100%);
+    color: var(--white);
+    padding: 60px 0 40px;
+    margin-bottom: 30px;
+}
+
+.project-header {
+    text-align: center;
+}
+
+#project-title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.project-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 15px;
+}
+
+.owner-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.owner-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--white);
+}
+
+.owner-name {
+    font-weight: 600;
+}
+
+.owner-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-badge.open {
+    background-color: var(--success-color);
+}
+
+.status-badge.in-progress {
+    background-color: var(--info-color);
+}
+
+.status-badge.completed {
+    background-color: var(--secondary-color);
+}
+
+.project-dates {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Main Content Layout */
+.content-wrapper {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.main-column {
+    flex: 2;
+}
+
+.sidebar {
+    flex: 1;
+}
+
+/* Project Description */
+.project-description h2 {
+    margin-bottom: 15px;
+    color: var(--gray-800);
+}
+
+.project-description p {
+    margin-bottom: 20px;
+    color: var(--gray-700);
+}
+
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.skill-tag {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.project-category {
+    margin-top: 20px;
+}
+
+.project-category h3 {
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
+
+/* Project Updates */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--gray-300);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-date {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 5px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -34px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    border: 2px solid var(--white);
+}
+
+.timeline-content h4 {
+    margin-bottom: 5px;
+    color: var(--gray-800);
+}
+
+/* Team Members */
+.team-list {
+    list-style: none;
+    margin-bottom: 20px;
+}
+
+.team-member {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.team-member:last-child {
+    border-bottom: none;
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-name {
+    font-weight: 600;
+}
+
+.member-role {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+}
+
+/* Join Project */
+.join-project {
+    text-align: center;
+}
+
+.join-project p {
+    margin-bottom: 20px;
+}
+
+.application-pending {
+    background-color: var(--warning-color);
+    color: var(--white);
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.already-member {
+    background-color: var(--success-color);
+    color: var(--white);
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Project Actions */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Project Progress */
+.progress-bar {
+    height: 20px;
+    background-color: var(--gray-200);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background-color: var(--primary-color);
+    color: var(--white);
+    text-align: center;
+    line-height: 20px;
+    font-size: 0.8rem;
+}
+
+.milestone-tracker {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.milestone {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.milestone-dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: var(--gray-300);
+    position: relative;
+}
+
+.milestone.completed .milestone-dot {
+    background-color: var(--success-color);
+}
+
+.milestone.in-progress .milestone-dot {
+    background-color: var(--primary-color);
+}
+
+.milestone.completed .milestone-text {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.milestone.in-progress .milestone-text {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Discussions & Comments */
+.comments-section {
+    margin-bottom: 30px;
+}
+
+.comment {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.comment:last-child {
+    border-bottom: none;
+}
+
+.comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-content {
+    flex: 1;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.comment-author {
+    font-weight: 600;
+}
+
+.comment-date {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+}
+
+.comment-text {
+    color: var(--gray-700);
+}
+
+.comment-form h3 {
+    margin-bottom: 15px;
+}
+
+.comment-form textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 5px;
+    margin-bottom: 15px;
+    resize: vertical;
+    font-family: var(--font-family);
+}
+
+/* Related Projects */
+.related-projects {
+    margin-bottom: 50px;
+}
+
+.related-projects h2 {
+    margin-bottom: 20px;
+}
+
+.projects-carousel {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.project-card {
+    min-width: 250px;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.project-card h3 {
+    margin-bottom: 15px;
+}
+
+.project-card-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.project-card .skill-tag {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        order: -1;
+    }
+    
+    .project-meta {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 40px 0 30px;
+    }
+    
+    #project-title {
+        font-size: 2rem;
+    }
+    
+    .projects-carousel {
+        flex-direction: column;
+    }
+    
+    .project-card {
+        min-width: auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .comment {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .comment-avatar {
+        margin-bottom: 10px;
+    }
+}

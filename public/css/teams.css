@@ -1,0 +1,109 @@
+/* Teams page specific styles */
+.page-title {
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 0;
+}
+
+.team-card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.team-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-hover);
+}
+
+.team-header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 1.5rem;
+}
+
+.team-header h4 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.team-body {
+    padding: 1.5rem;
+}
+
+.team-member {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    transition: var(--transition);
+}
+
+.team-member:hover {
+    background-color: rgba(78, 84, 200, 0.05);
+    transform: translateX(5px);
+}
+
+.team-member img {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    border: 2px solid var(--primary);
+    transition: var(--transition);
+}
+
+.team-member:hover img {
+    transform: scale(1.1);
+}
+
+.team-member h6 {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--dark);
+}
+
+.team-member p {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.team-stat-box {
+    background-color: rgba(67, 97, 238, 0.05);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem 0.5rem;
+}
+
+.team-stat-box h6 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.team-stat-box small {
+    color: var(--gray);
+    font-size: 0.75rem;
+}
+
+.team-members-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.team-members-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.team-members-list::-webkit-scrollbar-track {
+    background: var(--gray-light);
+    border-radius: 10px;
+}
+
+.team-members-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}

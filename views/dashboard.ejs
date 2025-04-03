@@ -7,308 +7,289 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
     <link rel="stylesheet" href="/css/dashboard.css">
-    <style>
-        /* Custom button styling */
-        .action-btn {
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .action-btn-primary {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            border: none;
-            color: white;
-        }
-        
-        .action-btn-primary:hover {
-            background: linear-gradient(135deg, #3a0ca3, #4361ee);
-            color: aliceblue;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .action-btn-outline {
-            border: 2px solid #4361ee;
-            background-color: transparent;
-            color: #4361ee;
-        }
-        
-        .action-btn-outline:hover {
-            background-color: #4361ee;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .action-btn i {
-            margin-right: 8px;
-        }
-    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <div class="logo-container">
-                <img src="/images/logo.png" alt="Inspira Grid" class="logo-img" />
-                <span class="logo-text">Inspira Grid</span>
-            </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/projects"><i class="fas fa-project-diagram me-1"></i> Projects</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/teams"><i class="fas fa-users me-1"></i> Teams</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/messages"><i class="fas fa-comment-dots me-1"></i> Messages</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
-                            <span><%= user.name %></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                        </ul>
-                    </div>
+    <%- include('./partials/header', { 
+        title: 'Dashboard', 
+        currentPage: 'dashboard',
+        cssFiles: ['dashboard']
+    }) %>
+
+        <div class="container py-4">
+            <!-- 1. Welcome Section -->
+            <div class="card mb-4 welcome-card">
+                <div class="card-body">
+                    <h2 class="card-title">Welcome back, <%= user.name %>! 👋</h2>
+                    <p class="card-text">Ready to collaborate and innovate? Explore projects and connect with teams.</p>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <div class="container py-4">
-        <!-- 1. Welcome Section -->
-        <div class="card mb-4 welcome-card">
-            <div class="card-body">
-                <h2 class="card-title">Welcome back, <%= user.name %>! 👋</h2>
-                <p class="card-text">Ready to collaborate and innovate? Explore projects and connect with teams.</p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
-                <!-- 2. User Stats & Quick Actions -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Overview & Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-3">
-                            <div class="stat-box">
-                                <h5><i class="fas fa-folder me-2"></i> Your Projects</h5>
-                                <p><%= userStats.activeProjects %> Active</p>
-                            </div>
-                            <a href="/projects/new" class="btn action-btn action-btn-primary">
-                                <i class="fas fa-plus"></i> Create New Project
-                            </a>
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- 2. User Stats & Quick Actions -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Overview & Quick Actions</h5>
                         </div>
-                        <div class="d-flex justify-content-between mb-3">
-                            <div class="stat-box">
-                                <h5><i class="fas fa-users me-2"></i> Your Teams</h5>
-                                <p><%= userStats.teamCount %> Teams</p>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="stat-box">
+                                    <h5><i class="fas fa-folder me-2"></i> Your Projects</h5>
+                                    <p><%= userStats.activeProjects %> Active</p>
+                                </div>
+                                <a href="/projects/new" class="btn action-btn action-btn-primary">
+                                    <i class="fas fa-plus"></i> Create New Project
+                                </a>
                             </div>
-                            <a href="/teams/join" class="btn action-btn action-btn-outline">
-                                <i class="fas fa-user-plus"></i> Join Team
-                            </a>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <div class="stat-box">
-                                <h5><i class="fas fa-tasks me-2"></i> Your Tasks</h5>
-                                <p><%= userStats.pendingTasks %> Pending</p>
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="stat-box">
+                                    <h5><i class="fas fa-users me-2"></i> Your Teams</h5>
+                                    <p><%= userStats.teamCount %> Teams</p>
+                                </div>
+                                <a href="/teams/join" class="btn action-btn action-btn-outline">
+                                    <i class="fas fa-user-plus"></i> Join Team
+                                </a>
                             </div>
-                            <a href="/tasks" class="btn action-btn action-btn-outline">
-                                <i class="fas fa-list-check"></i> View All Tasks
-                            </a>
+                            <div class="d-flex justify-content-between">
+                                <div class="stat-box">
+                                    <h5><i class="fas fa-tasks me-2"></i> Your Tasks</h5>
+                                    <p><%= userStats.pendingTasks %> Pending</p>
+                                </div>
+                                <a href="/tasks" class="btn action-btn action-btn-outline">
+                                    <i class="fas fa-list-check"></i> View All Tasks
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 3. Recent Activity -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-history me-2"></i> Recent Activity</h5>
-                        <a href="/activity" class="btn btn-sm btn-link">
-                            <i class="fas fa-arrow-right me-1"></i> View All
-                        </a>
+                    <!-- 3. Recent Activity -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-history me-2"></i> Recent Activity</h5>
+                            <a href="/activity" class="btn btn-sm btn-link">
+                                <i class="fas fa-arrow-right me-1"></i> View All
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <% if (activities && activities.length > 0) { %>
+                                    <% activities.forEach(function(activity) { %>
+                                        <li class="list-group-item">
+                                            <div class="d-flex align-items-center">
+                                                <div class="activity-icon me-3">
+                                                    <i class="<%= activity.icon %>"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-0 fw-medium"><%= activity.description %></p>
+                                                    <small class="text-muted"><i class="far fa-clock me-1"></i> <%= activity.time_ago %></small>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                <% } else { %>
+                                    <li class="list-group-item text-center py-4">
+                                        <p class="text-muted mb-0">No recent activity to display</p>
+                                    </li>
+                                <% } %>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <% activities.forEach(function(activity) { %>
-                                <li class="list-group-item">
-                                    <div class="d-flex align-items-center">
-                                        <div class="activity-icon me-3">
-                                            <i class="<%= activity.icon %>"></i>
+
+                    <!-- 4. Project Progress -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Project Progress</h5>
+                        </div>
+                        <div class="card-body">
+                            <% if (topProjects && topProjects.length > 0) { %>
+                                <% topProjects.forEach(function(project) { %>
+                                    <div class="project-progress">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <h6 class="mb-0 fw-semibold"><%= project.name %></h6>
+                                            <span class="badge bg-<%= project.status === 'On Track' ? 'success' : project.status === 'At Risk' ? 'warning' : 'danger' %>">
+                                                <i class="fas fa-<%= project.status === 'On Track' ? 'check-circle' : project.status === 'At Risk' ? 'exclamation-triangle' : 'times-circle' %> me-1"></i>
+                                                <%= project.status %>
+                                            </span>
                                         </div>
-                                        <div>
-                                            <p class="mb-0 fw-medium"><%= activity.description %></p>
-                                            <small class="text-muted"><i class="far fa-clock me-1"></i> <%= activity.time_ago %></small>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: <%= project.progress %>%;" 
+                                                aria-valuenow="<%= project.progress %>" aria-valuemin="0" aria-valuemax="100">
+                                                <%= project.progress %>%
+                                            </div>
                                         </div>
+                                        <small class="text-muted"><i class="far fa-calendar-alt me-1"></i> Deadline: <%= project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline' %></small>
                                     </div>
-                                </li>
-                            <% }); %>
-                        </ul>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center py-4">
+                                    <p class="text-muted mb-3">No active projects to display</p>
+                                    <a href="/projects/new" class="btn btn-sm btn-primary">Create a Project</a>
+                                </div>
+                            <% } %>
+                            <% if (topProjects && topProjects.length > 0) { %>
+                                <div class="text-center mt-3">
+                                    <a href="/projects" class="btn action-btn action-btn-outline">
+                                        <i class="fas fa-eye"></i> View All Projects
+                                    </a>
+                                </div>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 4. Project Progress -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Project Progress</h5>
+                <div class="col-lg-4">
+                    <!-- 5. Upcoming Deadlines -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-hourglass-half me-2"></i> Upcoming Deadlines</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <% if (upcomingDeadlines && upcomingDeadlines.length > 0) { %>
+                                <ul class="list-group list-group-flush">
+                                    <% upcomingDeadlines.forEach(function(deadline) { %>
+                                        <li class="list-group-item">
+                                            <h6 class="mb-1 fw-semibold"><%= deadline.title %></h6>
+                                            <p class="mb-1 small"><%= deadline.description %></p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-<%= deadline.isUrgent ? 'danger' : 'muted' %> fw-medium">
+                                                    <i class="far fa-calendar-alt me-1"></i> <%= deadline.date ? new Date(deadline.date).toLocaleDateString() : 'No date' %>
+                                                    <% if(deadline.isUrgent) { %>
+                                                        <span class="ms-1"><i class="fas fa-exclamation-circle"></i></span>
+                                                    <% } %>
+                                                </small>
+                                                <a href="<%= deadline.link %>" class="btn btn-sm btn-outline-primary">View</a>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                </ul>
+                            <% } else { %>
+                                <div class="text-center py-4">
+                                    <p class="text-muted mb-0">No upcoming deadlines</p>
+                                </div>
+                            <% } %>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <% topProjects.forEach(function(project) { %>
-                        <div class="project-progress">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <h6 class="mb-0 fw-semibold"><%= project.name %></h6>
-                                <span class="badge bg-<%= project.status === 'On Track' ? 'success' : project.status === 'At Risk' ? 'warning' : 'danger' %>">
-                                    <i class="fas fa-<%= project.status === 'On Track' ? 'check-circle' : project.status === 'At Risk' ? 'exclamation-triangle' : 'times-circle' %> me-1"></i>
-                                    <%= project.status %>
-                                </span>
+
+                    <!-- 6. Team Members -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i> Team Members</h5>
+                            <a href="/teams" class="btn btn-sm btn-link">
+                                <i class="fas fa-arrow-right me-1"></i> View All
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <% if (teamMembers && teamMembers.length > 0) { %>
+                                <div class="team-members">
+                                    <% teamMembers.forEach(function(member) { %>
+                                        <div class="d-flex align-items-center mb-3">
+                                            <img src="<%= member.profile_pic || '/images/default-avatar.png' %>" class="rounded-circle me-3" width="42" height="42">
+                                            <div>
+                                                <h6 class="mb-0"><%= member.name %></h6>
+                                                <small class="text-muted"><%= member.role %></small>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <a href="/messages/user/<%= member.user_id %>" class="btn btn-sm btn-outline-primary rounded-circle">
+                                                    <i class="fas fa-comment-dots"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            <% } else { %>
+                                <div class="text-center py-3">
+                                    <p class="text-muted mb-3">You're not part of any team yet</p>
+                                    <a href="/teams/join" class="btn btn-sm btn-primary">Join a Team</a>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- 7. Notifications -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-bell me-2"></i> Notifications</h5>
+                            <span class="badge bg-danger rounded-pill"><%= notifications ? notifications.length : 0 %></span>
+                        </div>
+                        <div class="card-body p-0">
+                            <% if (notifications && notifications.length > 0) { %>
+                                <ul class="list-group list-group-flush">
+                                    <% notifications.forEach(function(notification) { %>
+                                        <li class="list-group-item <%= notification.isRead ? '' : 'unread' %>">
+                                            <div class="d-flex">
+                                                <div class="notification-icon me-3">
+                                                    <% if (notification.type === 'project_application') { %>
+                                                        <i class="fas fa-user-plus text-primary"></i>
+                                                    <% } else { %>
+                                                        <i class="<%= notification.icon %>"></i>
+                                                    <% } %>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-0 fw-medium"><%= notification.message || notification.content %></p>
+                                                    <small class="text-muted"><i class="far fa-clock me-1"></i> <%= notification.timeAgo || (new Date(notification.created_at).toLocaleString()) %></small>
+                                                </div>
+                                                <% if (notification.type === 'project_application') { %>
+                                                    <div class="ms-2">
+                                                        <a href="/projects/<%= notification.related_id %>" class="btn btn-sm btn-outline-primary">
+                                                            View
+                                                        </a>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                </ul>
+                                <div class="text-center p-3">
+                                    <a href="/notifications" class="btn action-btn action-btn-outline btn-sm">
+                                        <i class="fas fa-bell"></i> See All Notifications
+                                    </a>
+                                </div>
+                            <% } else { %>
+                                <div class="text-center py-4">
+                                    <p class="text-muted mb-0">No new notifications</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- 8. Quick Links -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-link me-2"></i> Quick Links</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="quick-links">
+                                <a href="/resources" class="btn mb-2 w-100 text-start">
+                                    <i class="fas fa-book me-2"></i> Resources
+                                </a>
+                                <a href="/calendar" class="btn mb-2 w-100 text-start">
+                                    <i class="fas fa-calendar me-2"></i> Calendar
+                                </a>
+                                <a href="/reports" class="btn mb-2 w-100 text-start">
+                                    <i class="fas fa-chart-bar me-2"></i> Reports
+                                </a>
+                                <a href="/help" class="btn w-100 text-start">
+                                    <i class="fas fa-question-circle me-2"></i> Help Center
+                                </a>
                             </div>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: <%= project.progress %>%;" 
-                                    aria-valuenow="<%= project.progress %>" aria-valuemin="0" aria-valuemax="100">
-                                    <%= project.progress %>%
-                                </div>
-                            </div>
-                            <small class="text-muted"><i class="far fa-calendar-alt me-1"></i> Deadline: <%= project.deadline %></small>
-                        </div>
-                        <% }); %>
-                        <div class="text-center mt-3">
-                            <a href="/projects" class="btn action-btn action-btn-outline">
-                                <i class="fas fa-eye"></i> View All Projects
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <!-- 5. Upcoming Deadlines -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-hourglass-half me-2"></i> Upcoming Deadlines</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <% upcomingDeadlines.forEach(function(deadline) { %>
-                            <li class="list-group-item">
-                                <h6 class="mb-1 fw-semibold"><%= deadline.title %></h6>
-                                <p class="mb-1 small"><%= deadline.description %></p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-<%= deadline.isUrgent ? 'danger' : 'muted' %> fw-medium">
-                                        <i class="far fa-calendar-alt me-1"></i> <%= deadline.date %>
-                                        <% if(deadline.isUrgent) { %>
-                                            <span class="ms-1"><i class="fas fa-exclamation-circle"></i></span>
-                                        <% } %>
-                                    </small>
-                                    <a href="<%= deadline.link %>" class="btn btn-sm btn-outline-primary">View</a>
-                                </div>
-                            </li>
-                            <% }); %>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- 6. Team Members -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i> Team Members</h5>
-                        <a href="/teams" class="btn btn-sm btn-link">
-                            <i class="fas fa-arrow-right me-1"></i> View All
-                        </a>
-                    </div>
-                    <div class="card-body">
-                        <div class="team-members">
-                            <% teamMembers.forEach(function(member) { %>
-                            <div class="d-flex align-items-center mb-3">
-                                <img src="<%= member.profile_pic %>" class="rounded-circle me-3" width="42" height="42">
-                                <div>
-                                    <h6 class="mb-0"><%= member.name %></h6>
-                                    <small class="text-muted"><%= member.role %></small>
-                                </div>
-                                <div class="ms-auto">
-                                    <button class="btn btn-sm btn-outline-primary rounded-circle">
-                                        <i class="fas fa-comment-dots"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <% }); %>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 7. Notifications -->
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-bell me-2"></i> Notifications</h5>
-                        <span class="badge bg-danger rounded-pill"><%= notifications.length %></span>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <% notifications.forEach(function(notification) { %>
-                            <li class="list-group-item <%= notification.isRead ? '' : 'unread' %>">
-                                <div class="d-flex">
-                                    <div class="notification-icon me-3">
-                                        <i class="<%= notification.icon %>"></i>
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-medium"><%= notification.message %></p>
-                                        <small class="text-muted"><i class="far fa-clock me-1"></i> <%= notification.timeAgo %></small>
-                                    </div>
-                                </div>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <div class="text-center p-3">
-                            <a href="/notifications" class="btn action-btn action-btn-outline btn-sm">
-                                <i class="fas fa-bell"></i> See All Notifications
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 8. Quick Links -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-link me-2"></i> Quick Links</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="quick-links">
-                            <a href="/resources" class="btn mb-2 w-100 text-start">
-                                <i class="fas fa-book me-2"></i> Resources
-                            </a>
-                            <a href="/calendar" class="btn mb-2 w-100 text-start">
-                                <i class="fas fa-calendar me-2"></i> Calendar
-                            </a>
-                            <a href="/reports" class="btn mb-2 w-100 text-start">
-                                <i class="fas fa-chart-bar me-2"></i> Reports
-                            </a>
-                            <a href="/help" class="btn w-100 text-start">
-                                <i class="fas fa-question-circle me-2"></i> Help Center
-                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <footer class="bg-light py-3 mt-5">
-        <div class="container text-center">
-            <p class="mb-0 text-muted">© 2025 Inspira Grid. All rights reserved.</p>
-        </div>
-    </footer>
+        <%- include('./partials/footer', { 
+            jsFiles: ['dashboard']
+        }) %>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/dashboard.js"></script>
+        <!-- Remove this duplicate footer -->
+        <!-- <footer class="bg-light py-3 mt-5">
+            <div class="container text-center">
+                <p class="mb-0 text-muted">© 2025 Inspira Grid. All rights reserved.</p>
+            </div>
+        </footer> -->
+
 </body>
 </html>
