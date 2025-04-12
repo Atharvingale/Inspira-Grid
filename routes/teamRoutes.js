@@ -13,9 +13,11 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Get all teams
+// Fix the userId reference in the teams route
 router.get("/teams", isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.user_id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
 
     // Get user information
     const userResult = await db.query(
@@ -24,7 +26,6 @@ router.get("/teams", isAuthenticated, async (req, res) => {
     );
     const user = userResult.rows[0];
 
-    // Get teams where user is a member
     // Get teams where user is a member
     const teamsResult = await db.query(
       `SELECT t.*, p.title as project_title, p.description as project_description, 
@@ -35,7 +36,7 @@ router.get("/teams", isAuthenticated, async (req, res) => {
        JOIN users u ON p.owner_id = u.user_id
        JOIN team_members tm ON t.team_id = tm.team_id
        WHERE tm.user_id = $1
-       ORDER BY t.created_at DESC`,
+       ORDER BY t.created_at DESC`,  // Changed from tm.created_at to t.created_at
       [userId]
     );
 
@@ -79,15 +80,57 @@ router.get("/teams", isAuthenticated, async (req, res) => {
       return processedTeams;
     };
 
+    // In the GET /teams route, modify the render call to include allTeams
     const myTeams = await processTeams(teamsResult.rows);
     const ownedTeams = await processTeams(ownedTeamsResult.rows);
-
+    
+    // Add this section to get all teams
+    const allTeamsResult = await db.query(
+      `SELECT t.*, p.title as project_title, p.description as project_description,
+        u.name as owner_name, u.profile_pic as owner_pic,
+        (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) as member_count,
+        (SELECT u.name FROM users u JOIN team_members tm ON u.user_id = tm.user_id 
+         WHERE tm.team_id = t.team_id AND tm.role = 'Leader' LIMIT 1) as leader_name,
+        (SELECT u.user_id FROM users u JOIN team_members tm ON u.user_id = tm.user_id 
+         WHERE tm.team_id = t.team_id AND tm.role = 'Leader' LIMIT 1) as leader_id,
+        CASE WHEN EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = t.team_id AND tm.user_id = $1) 
+             THEN true ELSE false END as is_member
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN users u ON p.owner_id = u.user_id
+       ORDER BY t.created_at DESC
+       LIMIT 12`,
+      [userId]
+    );
+    
+    const allTeams = await processTeams(allTeamsResult.rows);
+    
+    // Add featuredTeams as well since it's used in the template
+    const featuredTeamsResult = await db.query(
+      `SELECT t.*, p.title as project_title, p.description as project_description,
+        u.name as owner_name, u.profile_pic as owner_pic,
+        (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) as member_count,
+        (SELECT u.name FROM users u JOIN team_members tm ON u.user_id = tm.user_id 
+         WHERE tm.team_id = t.team_id AND tm.role = 'Leader' LIMIT 1) as leader_name,
+        (SELECT u.user_id FROM users u JOIN team_members tm ON u.user_id = tm.user_id 
+         WHERE tm.team_id = t.team_id AND tm.role = 'Leader' LIMIT 1) as leader_id
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN users u ON p.owner_id = u.user_id
+       ORDER BY (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) DESC
+       LIMIT 6`
+    );
+    
+    const featuredTeams = await processTeams(featuredTeamsResult.rows);
+    
     res.render("teams", {
       title: "My Teams",
       currentPage: "teams",
       user,
       myTeams,
       ownedTeams,
+      allTeams,     // Add this line to include allTeams
+      featuredTeams, // Add this line to include featuredTeams
       error: req.query.error || null,
       success: req.query.success || null
     });
@@ -106,121 +149,81 @@ router.get("/teams", isAuthenticated, async (req, res) => {
 router.get("/teams/:id", isAuthenticated, async (req, res) => {
   try {
     const teamId = req.params.id;
-    const userId = req.session.user_id;
-
-    // Check if user is a member of this team
-    const memberCheckResult = await db.query(
-      `SELECT * FROM team_members tm
-       WHERE tm.team_id = $1 AND tm.user_id = $2
-       UNION
-       SELECT tm.* FROM team_members tm
-       JOIN teams t ON tm.team_id = t.team_id
-       JOIN projects p ON t.project_id = p.project_id
-       WHERE t.team_id = $1 AND p.owner_id = $2`,
-      [teamId, userId]
-    );
-
-    if (memberCheckResult.rows.length === 0) {
-      return res.status(403).render("error", {
-        user: req.session.user,
-        error: "You don't have permission to view this team",
-        title: "Access Denied",
-        currentPage: 'teams'
-      });
-    }
-
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
+    
     // Get team details
     const teamResult = await db.query(
-      `SELECT t.*, p.title as project_title, p.description as project_description, 
-        p.status as project_status, p.deadline as project_deadline,
-        u.name as owner_name, u.profile_pic as owner_pic, u.user_id as owner_id
+      `SELECT t.*, p.title as project_name, p.description as project_description,
+        u.name as owner_name, u.profile_pic as owner_pic
        FROM teams t
        JOIN projects p ON t.project_id = p.project_id
        JOIN users u ON p.owner_id = u.user_id
        WHERE t.team_id = $1`,
       [teamId]
     );
-
+    
     if (teamResult.rows.length === 0) {
       return res.status(404).render("error", {
         user: req.session.user,
         error: "Team not found",
-        title: "Not Found",
-        currentPage: 'teams'
+        title: "Error",
+        currentPage: "teams"
       });
     }
-
+    
     const team = teamResult.rows[0];
-
+    
+    // Check if user is a member of this team
+    const memberResult = await db.query(
+      `SELECT tm.*, r.role_name
+       FROM team_members tm
+       LEFT JOIN roles r ON tm.role = r.role_id
+       WHERE tm.team_id = $1 AND tm.user_id = $2`,
+      [teamId, userId]
+    );
+    
+    team.isMember = memberResult.rows.length > 0;
+    team.userRole = team.isMember ? memberResult.rows[0].role_name : null;
+    
     // Get team members
     const membersResult = await db.query(
-      `SELECT tm.*, u.name, u.profile_pic, u.email, u.skills, u.bio
+      `SELECT tm.*, u.name, u.profile_pic, u.title, r.role_name
        FROM team_members tm
        JOIN users u ON tm.user_id = u.user_id
+       LEFT JOIN roles r ON tm.role = r.role_id
        WHERE tm.team_id = $1
-       ORDER BY tm.role = 'Leader' DESC, tm.joined_at ASC`,
+       ORDER BY tm.joined_at ASC`,
       [teamId]
     );
-
-    // Get team activities
-    const activitiesResult = await db.query(
-      `SELECT a.*, u.name as user_name, u.profile_pic as user_pic
-       FROM team_activities a
-       JOIN users u ON a.user_id = u.user_id
-       WHERE a.team_id = $1
-       ORDER BY a.created_at DESC
-       LIMIT 20`,
+    
+    team.members = membersResult.rows;
+    
+    // Get team skills
+    const skillsResult = await db.query(
+      `SELECT s.*
+       FROM team_skills ts
+       JOIN skills s ON ts.skill_id = s.skill_id
+       WHERE ts.team_id = $1`,
       [teamId]
     );
-
-    // Format dates
-    team.created_at_formatted = new Date(team.created_at).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    if (team.project_deadline) {
-      team.deadline_formatted = new Date(team.project_deadline).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    }
-
-    // Format activities
-    const activities = activitiesResult.rows.map(activity => ({
-      ...activity,
-      created_at_formatted: new Date(activity.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }));
-
-    // Check if user is the project owner
-    const isOwner = team.owner_id === userId;
-
+    
+    team.skills = skillsResult.rows;
+    
+    // Render team details page
     res.render("team-details", {
-      title: team.team_name,
-      currentPage: "teams",
       user: req.session.user,
       team,
-      members: membersResult.rows,
-      activities,
-      isOwner,
-      error: req.query.error || null,
-      success: req.query.success || null
+      title: `Team: ${team.team_name}`,
+      currentPage: "teams"
     });
   } catch (error) {
-    console.error("Error fetching team details:", error);
+    console.error("Error in team details route:", error);
     res.status(500).render("error", {
       user: req.session.user,
-      error: "Failed to load team details. Please try again later.",
+      error: "An error occurred while loading team details",
       title: "Error",
-      currentPage: 'teams'
+      currentPage: "teams"
     });
   }
 });
@@ -308,6 +311,263 @@ router.post("/teams/:teamId/remove-member/:userId", isAuthenticated, async (req,
     return res.status(500).json({
       success: false,
       message: "Failed to remove team member"
+    });
+  }
+});
+
+// Create team
+router.post("/teams/create", isAuthenticated, async (req, res) => {
+  try {
+    const { projectId, teamName, description, skills } = req.body;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
+    
+    // Get user information
+    const userResult = await db.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [userId]
+    );
+    const user = userResult.rows[0];
+
+    // Get teams where user is a member
+    const teamsResult = await db.query(
+      `SELECT t.*, p.title as project_title, p.description as project_description, 
+        u.name as owner_name, u.profile_pic as owner_pic,
+        (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) as member_count
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN users u ON p.owner_id = u.user_id
+       JOIN team_members tm ON t.team_id = tm.team_id
+       WHERE tm.user_id = $1
+       ORDER BY t.created_at DESC`,
+      [userId]
+    );
+
+    // Get teams where user is the owner
+    const ownedTeamsResult = await db.query(
+      `SELECT t.*, p.title as project_title, p.description as project_description,
+        (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) as member_count
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       WHERE p.owner_id = $1
+       ORDER BY t.created_at DESC`,
+      [userId]
+    );
+
+    // Process teams
+    const processTeams = async (teams) => {
+      const processedTeams = [];
+      
+      for (const team of teams) {
+        // Get team members
+        const membersResult = await db.query(
+          `SELECT tm.*, u.name, u.profile_pic, u.email, u.skills
+           FROM team_members tm
+           JOIN users u ON tm.user_id = u.user_id
+           WHERE tm.team_id = $1
+           ORDER BY tm.joined_at ASC`,
+          [team.team_id]
+        );
+        
+        processedTeams.push({
+          ...team,
+          members: membersResult.rows,
+          created_at_formatted: new Date(team.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        });
+      }
+      
+      return processedTeams;
+    };
+
+    const myTeams = await processTeams(teamsResult.rows);
+    const ownedTeams = await processTeams(ownedTeamsResult.rows);
+
+    res.render("teams", {
+      title: "My Teams",
+      currentPage: "teams",
+      user,
+      myTeams,
+      ownedTeams,
+      error: req.query.error || null,
+      success: req.query.success || null
+    });
+  } catch (error) {
+    console.error("Error fetching teams:", error);
+    res.status(500).render("error", {
+      user: req.session.user,
+      error: "Failed to load teams. Please try again later.",
+      title: "Error",
+      currentPage: 'teams'
+    });
+  }
+});
+
+// Join team
+router.post("/teams/:id/join", isAuthenticated, async (req, res) => {
+  try {
+    const teamId = req.params.id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
+    
+    // Get team details
+    const teamResult = await db.query(
+      `SELECT t.*, p.title as project_name, p.description as project_description,
+        u.name as owner_name, u.profile_pic as owner_pic
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN users u ON p.owner_id = u.user_id
+       WHERE t.team_id = $1`,
+      [teamId]
+    );
+    
+    if (teamResult.rows.length === 0) {
+      return res.status(404).render("error", {
+        user: req.session.user,
+        error: "Team not found",
+        title: "Error",
+        currentPage: "teams"
+      });
+    }
+    
+    const team = teamResult.rows[0];
+    
+    // Check if user is a member of this team
+    const memberResult = await db.query(
+      `SELECT tm.*, r.role_name
+       FROM team_members tm
+       LEFT JOIN roles r ON tm.role = r.role_id
+       WHERE tm.team_id = $1 AND tm.user_id = $2`,
+      [teamId, userId]
+    );
+    
+    team.isMember = memberResult.rows.length > 0;
+    team.userRole = team.isMember ? memberResult.rows[0].role_name : null;
+    
+    // Get team members
+    const membersResult = await db.query(
+      `SELECT tm.*, u.name, u.profile_pic, u.title, r.role_name
+       FROM team_members tm
+       JOIN users u ON tm.user_id = u.user_id
+       LEFT JOIN roles r ON tm.role = r.role_id
+       WHERE tm.team_id = $1
+       ORDER BY tm.joined_at ASC`,
+      [teamId]
+    );
+    
+    team.members = membersResult.rows;
+    
+    // Get team skills
+    const skillsResult = await db.query(
+      `SELECT s.*
+       FROM team_skills ts
+       JOIN skills s ON ts.skill_id = s.skill_id
+       WHERE ts.team_id = $1`,
+      [teamId]
+    );
+    
+    team.skills = skillsResult.rows;
+    
+    // Render team details page
+    res.render("team-details", {
+      user: req.session.user,
+      team,
+      title: `Team: ${team.team_name}`,
+      currentPage: "teams"
+    });
+  } catch (error) {
+    console.error("Error in team details route:", error);
+    res.status(500).render("error", {
+      user: req.session.user,
+      error: "An error occurred while loading team details",
+      title: "Error",
+      currentPage: "teams"
+    });
+  }
+});
+
+// Leave team
+router.post("/teams/:id/leave", isAuthenticated, async (req, res) => {
+  try {
+    const teamId = req.params.id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
+    
+    // Get team details
+    const teamResult = await db.query(
+      `SELECT t.*, p.title as project_name, p.description as project_description,
+        u.name as owner_name, u.profile_pic as owner_pic
+       FROM teams t
+       JOIN projects p ON t.project_id = p.project_id
+       JOIN users u ON p.owner_id = u.user_id
+       WHERE t.team_id = $1`,
+      [teamId]
+    );
+    
+    if (teamResult.rows.length === 0) {
+      return res.status(404).render("error", {
+        user: req.session.user,
+        error: "Team not found",
+        title: "Error",
+        currentPage: "teams"
+      });
+    }
+    
+    const team = teamResult.rows[0];
+    
+    // Check if user is a member of this team
+    const memberResult = await db.query(
+      `SELECT tm.*, r.role_name
+       FROM team_members tm
+       LEFT JOIN roles r ON tm.role = r.role_id
+       WHERE tm.team_id = $1 AND tm.user_id = $2`,
+      [teamId, userId]
+    );
+    
+    team.isMember = memberResult.rows.length > 0;
+    team.userRole = team.isMember ? memberResult.rows[0].role_name : null;
+    
+    // Get team members
+    const membersResult = await db.query(
+      `SELECT tm.*, u.name, u.profile_pic, u.title, r.role_name
+       FROM team_members tm
+       JOIN users u ON tm.user_id = u.user_id
+       LEFT JOIN roles r ON tm.role = r.role_id
+       WHERE tm.team_id = $1
+       ORDER BY tm.joined_at ASC`,
+      [teamId]
+    );
+    
+    team.members = membersResult.rows;
+    
+    // Get team skills
+    const skillsResult = await db.query(
+      `SELECT s.*
+       FROM team_skills ts
+       JOIN skills s ON ts.skill_id = s.skill_id
+       WHERE ts.team_id = $1`,
+      [teamId]
+    );
+    
+    team.skills = skillsResult.rows;
+    
+    // Render team details page
+    res.render("team-details", {
+      user: req.session.user,
+      team,
+      title: `Team: ${team.team_name}`,
+      currentPage: "teams"
+    });
+  } catch (error) {
+    console.error("Error in team details route:", error);
+    res.status(500).render("error", {
+      user: req.session.user,
+      error: "An error occurred while loading team details",
+      title: "Error",
+      currentPage: "teams"
     });
   }
 });

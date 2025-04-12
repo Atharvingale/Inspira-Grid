@@ -77,7 +77,7 @@ router.post("/signup", async (req, res) => {
       name: newUser.name,
       email: newUser.email,
       profile_complete: false,
-      profile_pic: newUser.profile_pic || '/images/default-profile.png'
+      profile_pic: newUser.profile_pic || '/images/user.jpg'
     };
     
     // Redirect to profile completion
@@ -155,7 +155,7 @@ router.post("/signin", async (req, res) => {
       name: user.name,
       email: user.email,
       profile_complete: isComplete,
-      profile_pic: user.profile_pic || '/images/default-profile.png'
+      profile_pic: user.profile_pic || '/images/user.jpg'
     };
     
     // Save session before redirect

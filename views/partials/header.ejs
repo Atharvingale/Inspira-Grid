@@ -27,31 +27,16 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
-                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= currentPage === 'projects' ? 'active' : '' %>" href="/projects">
-                            <i class="fas fa-project-diagram me-1"></i> Projects
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= currentPage === 'teams' ? 'active' : '' %>" href="/teams">
-                            <i class="fas fa-users me-1"></i> Teams
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= currentPage === 'messages' ? 'active' : '' %>" href="/messages">
-                            <i class="fas fa-comment-dots me-1"></i> Messages
-                        </a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link <%= currentPage === 'projects' ? 'active' : '' %>" href="/projects">Projects</a></li>
+                    <li class="nav-item"><a class="nav-link <%= currentPage === 'teams' ? 'active' : '' %>" href="/teams">Teams</a></li>
+                    <li class="nav-item"><a class="nav-link <%= currentPage === 'messages' ? 'active' : '' %>" href="/messages">Messages</a></li>
+                    <!-- Removed profile nav item as it's already in the dropdown menu -->
                 </ul>
                 <div class="d-flex align-items-center">
                     <div class="dropdown">
                         <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/images/default-profile.png' %>" class="rounded-circle me-2" width="32" height="32">
+                            <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
                             <span><%= user.name %></span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">

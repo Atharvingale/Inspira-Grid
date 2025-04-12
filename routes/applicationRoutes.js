@@ -13,10 +13,12 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Apply to project
+// Fix the userId reference in the application routes
 router.post("/projects/apply", isAuthenticated, async (req, res) => {
   try {
     const { projectId, message, skills, coverLetter } = req.body;
-    const userId = req.session.user_id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
 
     // Check if user already applied to this project
     const existingApplication = await db.query(
@@ -74,7 +76,8 @@ router.post("/projects/apply", isAuthenticated, async (req, res) => {
 router.post("/applications/update", isAuthenticated, async (req, res) => {
   try {
     const { applicationId, status } = req.body;
-    const userId = req.session.user_id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
 
     // Get application details
     const applicationResult = await db.query(
@@ -168,7 +171,8 @@ router.post("/applications/update", isAuthenticated, async (req, res) => {
 router.post("/applications/:id/withdraw", isAuthenticated, async (req, res) => {
   try {
     const applicationId = req.params.id;
-    const userId = req.session.user_id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
 
     // Check if user is the applicant
     const applicationResult = await db.query(
@@ -221,7 +225,8 @@ router.post("/projects/:id/applications/:appId/respond", isAuthenticated, async 
     const projectId = req.params.id;
     const applicationId = req.params.appId;
     const { status, message } = req.body;
-    const userId = req.session.user_id;
+    // Change this line from req.session.user_id to req.session.user.user_id
+    const userId = req.session.user.user_id;
 
     // Check if user is the project owner
     const projectResult = await db.query(

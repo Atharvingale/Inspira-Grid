@@ -14,7 +14,24 @@ const isAuthenticated = (req, res, next) => {
 
 // Projects route
 // In your projects route handler, make sure to pass the user object:
+// Find the query causing the error and fix the column name
+const projectsQuery = `
+    SELECT 
+        p.*,
+        u.name as owner_name,
+        u.profile_pic as owner_pic,
+        t.team_id,  /* Fixed: Changed from team__id to team_id */
+        t.team_name,
+        COUNT(DISTINCT tm.user_id) as team_size
+    FROM projects p
+    LEFT JOIN users u ON p.owner_id = u.user_id
+    LEFT JOIN teams t ON p.project_id = t.project_id
+    LEFT JOIN team_members tm ON t.team_id = tm.team_id
+    GROUP BY p.project_id, u.name, u.profile_pic, t.team_id, t.team_name
+    ORDER BY p.created_at DESC
+`;
 
+const projectsResult = await db.query(projectsQuery);
 // Remove this comment line that was added as a suggestion
 router.get("/projects", isAuthenticated, async (req, res) => {
   try {
@@ -29,10 +46,11 @@ router.get("/projects", isAuthenticated, async (req, res) => {
     const userInfo = userResult.rows[0];
     
     // Fetch different types of projects
+    // Fix the query in the myProjects query
     const myProjects = await db.query(
       `SELECT p.*, 
         (SELECT COUNT(*) FROM team_members tm 
-         JOIN teams t ON tm.team_id = t.team_id 
+         JOIN teams t ON tm.team_id = t.team_id  /* Fixed: Changed from team__id to team_id */
          WHERE t.project_id = p.project_id) as team_size
        FROM projects p 
        WHERE owner_id = $1 
@@ -200,18 +218,109 @@ router.get("/projects", isAuthenticated, async (req, res) => {
     });
   }
 });
+// Add these routes for creating new projects
 
-// Add a route for the project creation form
-router.get("/projects/new", isAuthenticated, (req, res) => {
-  res.render("project-form", {
-    user: req.session.user,
-    isNew: true,
-    project: {},
-    error: null,
-    success: null,
-    title: "Create Project",
-    currentPage: 'projects'
-  });
+// GET route to display the new project form
+router.get("/projects/new", isAuthenticated, async (req, res) => {
+  try {
+    // Get user info for the header
+    const userId = req.session.user.user_id;
+    const userResult = await db.query(
+      "SELECT user_id, name, email, profile_pic FROM users WHERE user_id = $1",
+      [userId]
+    );
+    const user = userResult.rows[0];
+    
+    // Render the project form with empty project data
+    res.render("project-form", {
+      user,
+      project: {},
+      isNew: true,
+      error: null,
+      success: null,
+      currentPage: 'projects', // Add this line to fix the error
+      title: 'Create New Project' // Also add a title for the page
+    });
+  } catch (error) {
+    console.error("Error displaying new project form:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+router.post("/projects/new", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { title, description, category, status, required_skills, milestones, milestone_status } = req.body;
+    
+    // Validate required fields
+    if (!title || !description) {
+      return res.render("project-form", {
+        user: req.session.user,
+        project: req.body,
+        isNew: true,
+        error: "Project title and description are required",
+        success: null,
+        currentPage: 'projects', // Add this line
+        title: 'Create New Project' // Add this line
+      });
+    }
+    
+    // Process skills if provided
+    let skillsArray = [];
+    if (required_skills) {
+      // Handle both array and single value
+      skillsArray = Array.isArray(required_skills) ? required_skills : [required_skills];
+    }
+    
+    // Process milestones if provided
+    let milestonesArray = [];
+    let milestoneStatusArray = [];
+    
+    if (milestones) {
+      // Handle both array and single value
+      milestonesArray = Array.isArray(milestones) ? milestones : [milestones];
+      
+      if (milestone_status) {
+        milestoneStatusArray = Array.isArray(milestone_status) ? milestone_status : [milestone_status];
+      } else {
+        // Default all milestones to pending if no status provided
+        milestoneStatusArray = milestonesArray.map(() => 'pending');
+      }
+    }
+    
+    // Insert the new project
+    const result = await db.query(
+      `INSERT INTO projects 
+       (title, description, category, status, owner_id, required_skills, milestones, milestone_status, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) 
+       RETURNING project_id`,
+      [
+        title, 
+        description, 
+        category || 'Other', 
+        status || 'Open', 
+        userId,
+        JSON.stringify(skillsArray),
+        JSON.stringify(milestonesArray),
+        JSON.stringify(milestoneStatusArray)
+      ]
+    );
+    
+    const projectId = result.rows[0].project_id;
+    
+    // Redirect to the newly created project
+    res.redirect(`/projects/${projectId}`);
+    
+  } catch (error) {
+    console.error("Error creating new project:", error);
+    res.render("project-form", {
+      user: req.session.user,
+      project: req.body,
+      isNew: true,
+      error: "An error occurred while creating the project. Please try again.",
+      success: null
+    });
+  }
 });
 
 // Project Details Route
@@ -312,9 +421,10 @@ router.get("/projects/:id", async (req, res) => {
     const isMember = isMemberResult.rows.length > 0;
 
     // Check if user has a pending application
+    // In the project details route, fix this line:
     const applicationResult = await db.query(
       "SELECT * FROM project_applications WHERE project_id = $1 AND user_id = $2 AND status = 'pending'",
-      [projectId, req.session.user_id]
+      [projectId, userId] // Change req.session.user_id to userId
     );
 
     const hasPendingApplication = applicationResult.rows.length > 0;
@@ -378,12 +488,10 @@ router.get("/projects/:id", async (req, res) => {
   }
 });
 
-// Add Comment to Project
-router.post("/projects/:id/comment", async (req, res) => {
-  if (!req.session.user) return res.redirect("/signin");
-
+router.post("/projects/:id/comment", isAuthenticated, async (req, res) => {
   try {
     const projectId = req.params.id;
+    const userId = req.session.user.user_id; // Fix this line
     const { comment } = req.body;
 
     if (!comment || comment.trim() === "") {
@@ -394,7 +502,7 @@ router.post("/projects/:id/comment", async (req, res) => {
 
     await db.query(
       "INSERT INTO comments (project_id, user_id, content, created_at) VALUES ($1, $2, $3, NOW())",
-      [projectId, req.session.user_id, comment]
+      [projectId, userId, comment]
     );
 
     res.redirect(`/projects/${projectId}#comments`);
@@ -405,11 +513,12 @@ router.post("/projects/:id/comment", async (req, res) => {
 });
 
 // Apply to project
+// Add this route to handle project applications
 router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
   try {
     const projectId = req.params.id;
-    const userId = req.session.user_id;
-    const { cover_letter, relevant_skills, availability } = req.body;
+    const userId = req.session.user.user_id; // Fix this line
+    const { message } = req.body;
 
     // Check if user already applied to this project
     const existingApplication = await db.query(
@@ -427,7 +536,7 @@ router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
     // Insert the application
     await db.query(
       "INSERT INTO project_applications (project_id, user_id, message, status, created_at) VALUES ($1, $2, $3, $4, NOW())",
-      [projectId, userId, cover_letter, "pending"]
+      [projectId, userId, message || '', "pending"]
     );
 
     // Get project owner to send notification
@@ -447,16 +556,10 @@ router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
       );
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Application submitted successfully" 
-    });
+    res.redirect(`/projects/${projectId}?success=Application submitted successfully`);
   } catch (err) {
     console.error("Error submitting application:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to submit application" 
-    });
+    res.redirect(`/projects/${req.params.id}?error=Failed to submit application`);
   }
 });
 
@@ -480,79 +583,107 @@ router.post("/projects/add", async (req, res) => {
     res.redirect("/dashboard?error=Error creating project");
   }
 });
-
+router.get("/projects/:id/edit", isAuthenticated, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.session.user.user_id;
+    
+    // Get project details
+    const projectResult = await db.query(
+      "SELECT * FROM projects WHERE project_id = $1",
+      [projectId]
+    );
+    
+    if (projectResult.rows.length === 0) {
+      return res.status(404).render("error", {
+        user: req.session.user,
+        error: "Project not found",
+        currentPage: 'projects',
+        title: 'Error'
+      });
+    }
+    
+    const project = projectResult.rows[0];
+    
+    // Check if user is the project owner
+    if (project.owner_id !== userId) {
+      return res.status(403).render("error", {
+        user: req.session.user,
+        error: "You don't have permission to edit this project",
+        currentPage: 'projects',
+        title: 'Error'
+      });
+    }
+    
+    // Process project data for the template
+    try {
+      if (typeof project.required_skills === 'string') {
+        project.required_skills = JSON.parse(project.required_skills);
+      }
+      
+      if (typeof project.milestones === 'string') {
+        project.milestones = JSON.parse(project.milestones);
+      }
+      
+      if (typeof project.milestone_status === 'string') {
+        project.milestone_status = JSON.parse(project.milestone_status);
+      }
+    } catch (e) {
+      console.error("Error parsing project JSON fields:", e);
+    }
+    
+    // Render the edit project form
+    res.render("edit-project", {
+      user: req.session.user,
+      project,
+      error: null,
+      success: null,
+      currentPage: 'projects',
+      title: 'Edit Project'
+    });
+  } catch (error) {
+    console.error("Error displaying edit project form:", error);
+    res.status(500).render("error", {
+      user: req.session.user,
+      error: "An error occurred while loading the project. Please try again.",
+      currentPage: 'projects',
+      title: 'Error'
+    });
+  }
+});
 // Delete project
 router.post("/projects/:id/delete", isAuthenticated, async (req, res) => {
   try {
     const projectId = req.params.id;
-    const userId = req.session.user_id;
-
+    const userId = req.session.user.user_id;
+    
     // Check if user is the project owner
     const projectResult = await db.query(
       "SELECT * FROM projects WHERE project_id = $1 AND owner_id = $2",
       [projectId, userId]
     );
-
+    
     if (projectResult.rows.length === 0) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "You don't have permission to delete this project" 
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to delete this project"
       });
     }
-
-    // Start transaction
-    await db.query("BEGIN");
-
-    // Delete project applications
-    await db.query(
-      "DELETE FROM project_applications WHERE project_id = $1",
-      [projectId]
-    );
-
-    // Delete project updates
-    await db.query(
-      "DELETE FROM project_updates WHERE project_id = $1",
-      [projectId]
-    );
-
-    // Delete team members
-    await db.query(
-      "DELETE FROM team_members WHERE team_id IN (SELECT team_id FROM teams WHERE project_id = $1)",
-      [projectId]
-    );
-
-    // Delete teams
-    await db.query(
-      "DELETE FROM teams WHERE project_id = $1",
-      [projectId]
-    );
-
-    // Delete notifications related to this project
-    await db.query(
-      "DELETE FROM notifications WHERE related_id = $1",
-      [projectId]
-    );
-
-    // Finally delete the project
+    
+    // Delete the project
     await db.query(
       "DELETE FROM projects WHERE project_id = $1",
       [projectId]
     );
-
-    // Commit transaction
-    await db.query("COMMIT");
-
-    return res.status(200).json({
-      success: true,
-      message: "Project deleted successfully"
-    });
-  } catch (err) {
-    // Rollback in case of error
-    await db.query("ROLLBACK");
-    console.error("Error deleting project:", err);
-    return res.status(500).json({
+    
+    // Redirect to projects page
+    res.redirect("/projects?success=Project deleted successfully");
+    
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({
       success: false,
-      message: "Failed to delete project"
+      message: "An error occurred while deleting the project"
     });
   }
 });
@@ -779,6 +910,89 @@ router.post("/projects/:id/team/remove", isAuthenticated, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to remove team member"
+    });
+  }
+});
+
+
+// Update project route
+// Add this route to handle project updates
+router.post("/projects/:id/update", isAuthenticated, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.session.user.user_id;
+    const { title, description, category, status, required_skills, milestones, milestone_status } = req.body;
+    
+    // Check if user is the project owner
+    const projectResult = await db.query(
+      "SELECT * FROM projects WHERE project_id = $1 AND owner_id = $2",
+      [projectId, userId]
+    );
+    
+    if (projectResult.rows.length === 0) {
+      return res.status(403).render("edit-project", {
+        user: req.session.user,
+        project: req.body,
+        error: "You don't have permission to edit this project",
+        success: null,
+        currentPage: 'projects',
+        title: 'Edit Project'
+      });
+    }
+    
+    // Process skills if provided
+    let skillsArray = [];
+    if (required_skills) {
+      // Handle both array and single value
+      skillsArray = Array.isArray(required_skills) ? required_skills : [required_skills];
+    }
+    
+    // Process milestones if provided
+    let milestonesArray = [];
+    let milestoneStatusArray = [];
+    
+    if (milestones) {
+      // Handle both array and single value
+      milestonesArray = Array.isArray(milestones) ? milestones : [milestones];
+      
+      if (milestone_status) {
+        milestoneStatusArray = Array.isArray(milestone_status) ? milestone_status : [milestone_status];
+      } else {
+        // Default all milestones to pending if no status provided
+        milestoneStatusArray = milestonesArray.map(() => 'pending');
+      }
+    }
+    
+    // Update the project
+    await db.query(
+      `UPDATE projects 
+       SET title = $1, description = $2, category = $3, status = $4, 
+           required_skills = $5, milestones = $6, milestone_status = $7, updated_at = NOW()
+       WHERE project_id = $8`,
+      [
+        title, 
+        description, 
+        category || 'Other', 
+        status || 'Open', 
+        JSON.stringify(skillsArray),
+        JSON.stringify(milestonesArray),
+        JSON.stringify(milestoneStatusArray),
+        projectId
+      ]
+    );
+    
+    // Redirect to the project details page
+    res.redirect(`/projects/${projectId}?success=Project updated successfully`);
+    
+  } catch (error) {
+    console.error("Error updating project:", error);
+    res.status(500).render("edit-project", {
+      user: req.session.user,
+      project: {...req.body, project_id: req.params.id},
+      error: "An error occurred while updating the project. Please try again.",
+      success: null,
+      currentPage: 'projects',
+      title: 'Edit Project'
     });
   }
 });
