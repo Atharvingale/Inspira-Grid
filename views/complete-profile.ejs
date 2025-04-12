@@ -1,0 +1,234 @@
+<!-- Add this to ensure the form includes the header and footer properly -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Your Profile - Inspira Grid</title>
+  <link rel="stylesheet" href="/css/login.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      overflow-y: auto; /* Enable vertical scrolling */
+      min-height: 100vh;
+      padding: 2rem 0;
+    }
+    
+    .profile-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      overflow-y: visible; /* Ensure content can overflow */
+    }
+    
+    .welcome-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .welcome-header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+    
+    .welcome-header p {
+      color: #64748b;
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    /* Add these new styles for better scrolling */
+    .background-pattern {
+      position: fixed; /* Change from absolute to fixed */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    
+    .profile-form {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem; /* Add margin at the bottom */
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .profile-container {
+        padding: 1rem;
+      }
+      
+      .profile-form {
+        padding: 1.5rem;
+      }
+      
+      .form-row {
+        flex-direction: column;
+      }
+      
+      .form-group {
+        width: 100%;
+      }
+    }
+    
+    /* Add a back to top button */
+    .back-to-top {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+    
+    .back-to-top.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-pattern"></div>
+  
+  <div class="container profile-container">
+    <div class="welcome-header">
+      <h1>Welcome, <%= user.name %>!</h1>
+      <p>Let's complete your profile to help you connect with the perfect teams and projects. This information will make your profile stand out and improve your matching opportunities.</p>
+    </div>
+    
+    <% if (error) { %>
+      <div class="auth-error" style="background-color: #fee2e2; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+        <%= error %>
+      </div>
+    <% } %>
+    
+    <form class="profile-form" action="/profile/complete" method="POST" id="profileForm">
+      <div class="form-section">
+        <h3><i class="fas fa-user-circle"></i> Basic Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="title" class="required-field">Professional Title</label>
+            <input type="text" id="title" name="title" class="form-control" placeholder="e.g., Full Stack Developer" required>
+            <div class="help-text">Your professional title or role</div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="bio" class="required-field">Bio</label>
+            <textarea id="bio" name="bio" class="form-control" placeholder="Tell us about yourself, your experience, and what you're passionate about..." required></textarea>
+            <div class="help-text">A brief description about yourself (150-300 characters recommended)</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3><i class="fas fa-tools"></i> Skills & Expertise</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="skills">Skills</label>
+            <input type="text" id="skills" name="skills" class="form-control" placeholder="e.g., JavaScript, React, Node.js, UI/UX Design">
+            <div class="help-text">Comma-separated list of your skills</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3><i class="fas fa-address-card"></i> Contact Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g., +1 (555) 123-4567">
+          </div>
+          
+          <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" id="location" name="location" class="form-control" placeholder="e.g., New York, USA">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="website">Website/Portfolio</label>
+            <input type="url" id="website" name="website" class="form-control" placeholder="e.g., https://yourportfolio.com">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Make sure the submit button has proper handling -->
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span id="submitSpinner" style="display: none;">
+          <i class="fas fa-spinner fa-spin"></i>
+        </span>
+        <span id="submitText">Complete Profile</span>
+      </button>
+    </form>
+    
+    <!-- Script for form submission -->
+    <script>
+      document.getElementById('profileForm').addEventListener('submit', function(e) {
+        // Show spinner
+        document.getElementById('submitSpinner').style.display = 'inline-block';
+        document.getElementById('submitText').style.display = 'none';
+        
+        // Don't disable the form submission - that could be causing issues
+        // Just show the spinner to indicate processing
+      });
+    </script>
+    
+    <!-- Add a back to top button -->
+    <div class="back-to-top" id="backToTop">
+      <i class="fas fa-arrow-up"></i>
+    </div>
+  </div>
+  
+  <!-- Add this script at the end of the body -->
+  <script>
+    // Back to top button functionality
+    const backToTopButton = document.getElementById('backToTop');
+    
+    // Show button when user scrolls down 300px
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTopButton.classList.add('visible');
+      } else {
+        backToTopButton.classList.remove('visible');
+      }
+    });
+    
+    // Scroll to top when button is clicked
+    backToTopButton.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+    
+    // Ensure form is scrollable on all devices
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if form is taller than viewport
+      const form = document.querySelector('.profile-form');
+      const windowHeight = window.innerHeight;
+      
+      if (form && form.offsetHeight > windowHeight) {
+        // Add a class to body to ensure scrolling
+        document.body.classList.add('scrollable-form');
+      }
+    });
+  </script>
+</body>
+</html>

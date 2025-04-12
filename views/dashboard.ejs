@@ -72,9 +72,10 @@
                                 <i class="fas fa-arrow-right me-1"></i> View All
                             </a>
                         </div>
+                      
                         <div class="card-body p-0">
                             <ul class="list-group list-group-flush">
-                                <% if (activities && activities.length > 0) { %>
+                                <% if (typeof activities !== 'undefined' && activities.length > 0) { %>
                                     <% activities.forEach(function(activity) { %>
                                         <li class="list-group-item">
                                             <div class="d-flex align-items-center">
@@ -91,6 +92,35 @@
                                 <% } else { %>
                                     <li class="list-group-item text-center py-4">
                                         <p class="text-muted mb-0">No recent activity to display</p>
+                                    </li>
+                                <% } %>
+                            </ul>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <% if (typeof activities !== 'undefined' && activities.length > 0) { %>
+                                    <% activities.forEach(function(activity) { %>
+                                        <li class="list-group-item">
+                                            <div class="d-flex align-items-center">
+                                                <!-- Activity content -->
+                                                <div class="activity-icon me-3">
+                                                    <i class="fas fa-<%= activity.activity_type === 'project_update' ? 'project-diagram' : 'bell' %>"></i>
+                                                </div>
+                                                <div class="activity-content">
+                                                    <div class="activity-title"><%= activity.content %></div>
+                                                    <div class="activity-meta text-muted">
+                                                        <small><%= activity.time_ago %> • <%= activity.project_title %></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                <% } else { %>
+                                    <li class="list-group-item text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            No recent activities to display
+                                        </div>
                                     </li>
                                 <% } %>
                             </ul>

@@ -35,7 +35,7 @@
                             </div>
                         <% } %>
                         
-                        <form action="<%= isNew ? '/projects/create' : '/projects/' + project.project_id + '/update' %>" method="POST">
+                        <form action="<%= isNew ? '/projects/new' : '/projects/' + project.project_id + '/update' %>" method="POST">
                             <div class="mb-3">
                                 <label for="title" class="form-label">Project Title*</label>
                                 <input type="text" class="form-control" id="title" name="title" value="<%= project.title || '' %>" required>
