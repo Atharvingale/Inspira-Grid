@@ -512,12 +512,10 @@ router.post("/projects/:id/comment", isAuthenticated, async (req, res) => {
   }
 });
 
-// Apply to project
-// Add this route to handle project applications
 router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
   try {
     const projectId = req.params.id;
-    const userId = req.session.user.user_id; // Fix this line
+    const userId = req.session.user.user_id;
     const { message } = req.body;
 
     // Check if user already applied to this project
@@ -527,16 +525,13 @@ router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
     );
 
     if (existingApplication.rows.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "You have already applied to this project" 
-      });
+      return res.redirect(`/projects/${projectId}?error=You have already applied to this project`);
     }
 
     // Insert the application
     await db.query(
       "INSERT INTO project_applications (project_id, user_id, message, status, created_at) VALUES ($1, $2, $3, $4, NOW())",
-      [projectId, userId, message || '', "pending"]
+      [projectId, userId, message || '', "Pending"]
     );
 
     // Get project owner to send notification
