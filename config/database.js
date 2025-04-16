@@ -1,44 +1,121 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
+import { db } from './firebase.js';
+import { 
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+  query as firestoreQuery, where, orderBy, limit, startAfter, serverTimestamp 
+} from 'firebase/firestore';
 
-// Load environment variables
-dotenv.config();
+// Helper function to convert Firestore document to a more usable format
+const convertDoc = (doc) => {
+  return {
+    id: doc.id,
+    ...doc.data()
+  };
+};
 
-// Create a database pool that can be shared across the application
-const pool = new pg.Pool({
-  user: process.env.DB_USER || "postgres",
-  host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "inspira_grid",
-  password: process.env.DB_PASSWORD || "123456789",
-  port: process.env.DB_PORT || 5432,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000 // Timeout after 10 seconds when connecting
-});
-
-// Event listener for errors on the pool
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  // Don't exit the process, just log the error
-  // process.exit(-1);
-});
-
-// Simple query method that handles connection management
-const query = async (text, params) => {
-  const client = await pool.connect();
+// Query function that mimics the PostgreSQL query interface
+const query = async (collectionName, options = {}) => {
   try {
-    const result = await client.query(text, params);
-    return result;
+    const collectionRef = collection(db, collectionName);
+    
+    // Build query based on options
+    let q = collectionRef;
+    
+    if (options.where) {
+      options.where.forEach(condition => {
+        q = firestoreQuery(q, where(condition.field, condition.operator, condition.value));
+      });
+    }
+    
+    if (options.orderBy) {
+      options.orderBy.forEach(order => {
+        q = firestoreQuery(q, orderBy(order.field, order.direction || 'asc'));
+      });
+    }
+    
+    if (options.limit) {
+      q = firestoreQuery(q, limit(options.limit));
+    }
+    
+    // Execute query
+    const querySnapshot = await getDocs(q);
+    
+    // Format results to match PostgreSQL response format
+    const rows = [];
+    querySnapshot.forEach(doc => {
+      rows.push(convertDoc(doc));
+    });
+    
+    return { rows };
   } catch (error) {
     console.error('Database query error:', error);
     throw error;
-  } finally {
-    client.release();
   }
 };
 
-// Export both the pool and the query function
+// Add a document to a collection
+const add = async (collectionName, data) => {
+  try {
+    // Add timestamp
+    data.created_at = serverTimestamp();
+    data.updated_at = serverTimestamp();
+    
+    const docRef = await addDoc(collection(db, collectionName), data);
+    return { id: docRef.id, ...data };
+  } catch (error) {
+    console.error('Database add error:', error);
+    throw error;
+  }
+};
+
+// Get a document by ID
+const get = async (collectionName, id) => {
+  try {
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return convertDoc(docSnap);
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Database get error:', error);
+    throw error;
+  }
+};
+
+// Update a document
+const update = async (collectionName, id, data) => {
+  try {
+    // Add updated timestamp
+    data.updated_at = serverTimestamp();
+    
+    const docRef = doc(db, collectionName, id);
+    await updateDoc(docRef, data);
+    return { id, ...data };
+  } catch (error) {
+    console.error('Database update error:', error);
+    throw error;
+  }
+};
+
+// Delete a document
+const remove = async (collectionName, id) => {
+  try {
+    const docRef = doc(db, collectionName, id);
+    await deleteDoc(docRef);
+    return { id };
+  } catch (error) {
+    console.error('Database delete error:', error);
+    throw error;
+  }
+};
+
+// Export functions
 export default {
-  pool,
-  query
+  query,
+  add,
+  get,
+  update,
+  remove
 };

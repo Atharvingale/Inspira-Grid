@@ -1,3 +1,6 @@
+import { auth, db } from '../config/firebase.js';
+import { doc, getDoc } from 'firebase/firestore';
+
 // Middleware to check if user is authenticated
 export const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
@@ -21,23 +24,19 @@ export const checkProfileComplete = async (req, res, next) => {
       return next();
     }
     
-    // Otherwise, check the database
-    const db = req.app.locals.db;
-    const result = await db.query(
-      "SELECT profile_complete, title, bio FROM users WHERE user_id = $1",
-      [userId]
-    );
+    // Otherwise, check Firestore
+    const userDoc = await getDoc(doc(db, 'users', userId));
     
-    if (result.rows.length === 0) {
+    if (!userDoc.exists()) {
       // User not found in database, clear session and redirect to signin
       req.session.destroy();
       return res.redirect('/signin?error=Authentication error. Please sign in again.');
     }
     
-    const user = result.rows[0];
+    const userData = userDoc.data();
     
     // Check if profile is complete either by the flag or by having title and bio
-    const isComplete = user.profile_complete || (user.title && user.bio);
+    const isComplete = userData.profile_complete || (userData.title && userData.bio);
     
     // Update the session with the current profile_complete status
     req.session.user.profile_complete = isComplete;

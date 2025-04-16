@@ -1,233 +1,249 @@
 import express from 'express';
 const router = express.Router();
+import { 
+  collection, doc, getDoc, getDocs, query as firestoreQuery, where, 
+  orderBy, limit, serverTimestamp 
+} from 'firebase/firestore';
 
-// Import database configuration
-import db from '../config/database.js';
+import { db } from '../config/firebase.js';
 
-// Import middleware
-import { isAuthenticated, checkProfileComplete } from '../middleware/auth.js';
-
-// Dashboard route
-router.get("/dashboard", isAuthenticated, async (req, res) => {
+router.get("/dashboard", async (req, res) => {
   try {
-    // Get user data
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE user_id = $1",
-      [req.session.user.user_id]
-    );
-    
-    if (userResult.rows.length === 0) {
-      req.session.destroy();
-      return res.redirect("/signin?error=User not found");
-    }
-    
-    const user = userResult.rows[0];
+    const userId = req.session.user.user_id;
 
-    // Get user stats with error handling for missing tables
+    // Get project count
+    const projectsRef = collection(db, 'projects');
+    const projectQuery = firestoreQuery(projectsRef, where('owner_id', '==', userId));
+    const projectSnapshot = await getDocs(projectQuery);
+    const projectCount = projectSnapshot.size;
+
+    // Get application count
+    const applicationsRef = collection(db, 'applications');
+    const applicationQuery = firestoreQuery(applicationsRef, where('user_id', '==', userId));
+    const applicationSnapshot = await getDocs(applicationQuery);
+    const applicationCount = applicationSnapshot.size;
+
+    // Initialize empty arrays for data that might fail due to missing indexes
+    let recentProjects = [];
+    let activities = [];
+    let topProjects = [];
+    let upcomingDeadlines = [];
+    let teamMembers = []; // Add this to fix the undefined error
+    let notifications = []; // Add this to avoid potential undefined errors
+
+    try {
+      // Get recent projects
+      const recentProjectsQuery = firestoreQuery(projectsRef, 
+        where('owner_id', '==', userId),
+        orderBy('created_at', 'desc'),
+        limit(5)
+      );
+      const recentProjectsSnapshot = await getDocs(recentProjectsQuery);
+      recentProjects = recentProjectsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate()
+      }));
+    } catch (indexError) {
+      console.warn("Index not ready for recent projects query:", indexError.message);
+      // Continue execution with empty recentProjects array
+    }
+
+    try {
+      // Get activities
+      const activitiesRef = collection(db, 'activities');
+      const activitiesQuery = firestoreQuery(activitiesRef,
+        where('user_id', '==', userId),
+        orderBy('created_at', 'desc'),
+        limit(10)
+      );
+      const activitiesSnapshot = await getDocs(activitiesQuery);
+      activities = activitiesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate(),
+        time_ago: doc.data().created_at ? 
+          new Date(doc.data().created_at.toDate()).toLocaleDateString() : 
+          'Recently'
+      }));
+    } catch (indexError) {
+      console.warn("Index not ready for activities query:", indexError.message);
+      // Continue execution with empty activities array
+    }
+
+    try {
+      // Get top projects
+      const topProjectsQuery = firestoreQuery(projectsRef,
+        where('owner_id', '==', userId),
+        orderBy('views', 'desc'),
+        limit(5)
+      );
+      const topProjectsSnapshot = await getDocs(topProjectsQuery);
+      topProjects = topProjectsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Add default values for properties used in the template
+        name: doc.data().name || doc.data().title || 'Untitled Project',
+        status: doc.data().status || 'On Track',
+        progress: doc.data().progress || 0,
+        deadline: doc.data().deadline || null
+      }));
+    } catch (indexError) {
+      console.warn("Index not ready for top projects query:", indexError.message);
+      // Continue execution with empty topProjects array
+    }
+
+    try {
+      // Get upcoming deadlines
+      const deadlinesRef = collection(db, 'deadlines');
+      const now = new Date();
+      const deadlinesQuery = firestoreQuery(deadlinesRef,
+        where('user_id', '==', userId),
+        where('due_date', '>=', now),
+        orderBy('due_date', 'asc'),
+        limit(5)
+      );
+      const deadlinesSnapshot = await getDocs(deadlinesQuery);
+      upcomingDeadlines = deadlinesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        due_date: doc.data().due_date?.toDate(),
+        date: doc.data().due_date?.toDate(),
+        title: doc.data().title || 'Untitled Deadline',
+        description: doc.data().description || '',
+        isUrgent: doc.data().isUrgent || false,
+        link: `/deadlines/${doc.id}` // Add a default link
+      }));
+    } catch (indexError) {
+      console.warn("Index not ready for deadlines query:", indexError.message);
+      // Continue execution with empty upcomingDeadlines array
+    }
+
+    // Try to get team members
+    try {
+      const teamMembersRef = collection(db, 'team_members');
+      const teamMembersQuery = firestoreQuery(
+        teamMembersRef, 
+        where('team_id', 'in', ['team1', 'team2']), // Replace with actual team IDs
+        limit(5)
+      );
+      const teamMembersSnapshot = await getDocs(teamMembersQuery);
+      teamMembers = teamMembersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        name: doc.data().name || 'Team Member',
+        role: doc.data().role || 'Member',
+        profile_pic: doc.data().profile_pic || null,
+        user_id: doc.data().user_id || doc.id
+      }));
+    } catch (error) {
+      console.warn("Error getting team members:", error.message);
+      // Keep default empty array
+    }
+
+    // Try to get notifications
+    try {
+      const notificationsRef = collection(db, 'notifications');
+      const notificationsQuery = firestoreQuery(
+        notificationsRef,
+        where('user_id', '==', userId),
+        orderBy('created_at', 'desc'),
+        limit(5)
+      );
+      const notificationsSnapshot = await getDocs(notificationsQuery);
+      notifications = notificationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate(),
+        timeAgo: doc.data().created_at ? 
+          new Date(doc.data().created_at.toDate()).toLocaleDateString() : 
+          'Recently',
+        isRead: doc.data().isRead || false,
+        type: doc.data().type || 'general',
+        icon: doc.data().icon || 'fas fa-bell text-primary',
+        message: doc.data().message || doc.data().content || 'New notification',
+        related_id: doc.data().related_id || ''
+      }));
+    } catch (error) {
+      console.warn("Error getting notifications:", error.message);
+      // Keep default empty array
+    }
+
+    // Create userStats object for the dashboard template
     const userStats = {
-      totalProjects: 0,
-      totalApplications: 0,
-      // Add other stats as needed
+      activeProjects: projectCount,
+      pendingApplications: applicationCount,
+      completedProjects: 0, // You might want to query for completed projects
+      totalTeams: 0, // You might want to query for teams count
+      pendingTasks: 0 // Add this for the tasks section
     };
 
+    // Get teams count if needed
     try {
-      // Get project count
-      const projectCountResult = await db.query(
-        "SELECT COUNT(*) FROM projects WHERE owner_id = $1",
-        [req.session.user.user_id]
-      );
-      userStats.totalProjects = parseInt(projectCountResult.rows[0].count) || 0;
+      const teamMembersRef = collection(db, 'team_members');
+      const teamMembersQuery = firestoreQuery(teamMembersRef, where('user_id', '==', userId));
+      const teamMembersSnapshot = await getDocs(teamMembersQuery);
+      userStats.totalTeams = teamMembersSnapshot.size;
     } catch (error) {
-      console.error("Error getting project count:", error.message);
-      // Continue execution even if this query fails
+      console.warn("Error getting team count:", error.message);
+      // Keep default value of 0
     }
 
+    // Get pending tasks count
     try {
-      // Get application count - handle case where table might not exist
-      const applicationCountResult = await db.query(
-        `SELECT COUNT(*) FROM information_schema.tables 
-         WHERE table_name = 'project_applications'`
+      const tasksRef = collection(db, 'tasks');
+      const tasksQuery = firestoreQuery(
+        tasksRef, 
+        where('assigned_to', '==', userId),
+        where('status', '==', 'pending')
       );
-      
-      if (parseInt(applicationCountResult.rows[0].count) > 0) {
-        const applicationsResult = await db.query(
-          "SELECT COUNT(*) FROM project_applications WHERE user_id = $1",
-          [req.session.user.user_id]
-        );
-        userStats.totalApplications = parseInt(applicationsResult.rows[0].count) || 0;
-      }
+      const tasksSnapshot = await getDocs(tasksQuery);
+      userStats.pendingTasks = tasksSnapshot.size;
     } catch (error) {
-      console.error("Error getting application count:", error.message);
-      // Continue execution even if this query fails
+      console.warn("Error getting pending tasks count:", error.message);
+      // Keep default value of 0
     }
 
-    // Get recent projects with error handling
-    let recentProjects = [];
-    try {
-      const recentProjectsResult = await db.query(
-        "SELECT * FROM projects ORDER BY created_at DESC LIMIT 5"
-      );
-      recentProjects = recentProjectsResult.rows;
-    } catch (error) {
-      console.error("Error getting recent projects:", error.message);
-      // Continue execution even if this query fails
-    }
-
-    // Get recent activities (missing in original code)
-    let activities = [];
-    try {
-      // Try to get project updates as activities
-      const projectUpdatesResult = await db.query(
-        `SELECT pu.*, p.title as project_title, 'project_update' as activity_type
-         FROM project_updates pu
-         JOIN projects p ON pu.project_id = p.project_id
-         WHERE p.owner_id = $1 OR pu.user_id = $1
-         ORDER BY pu.created_at DESC
-         LIMIT 10`,
-        [req.session.user.user_id]
-      );
-      
-      // Format the activities
-      activities = projectUpdatesResult.rows.map(update => ({
-        ...update,
-        created_at_formatted: new Date(update.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        time_ago: getTimeAgo(update.created_at)
-      }));
-    } catch (error) {
-      console.error("Error getting activities:", error.message);
-      // Continue with empty activities array
-    }
-
-    // Get top projects with progress information - with safer implementation
-    let topProjects = [];
-    try {
-      // First check if project_tasks table exists
-      const tableCheckResult = await db.query(
-        `SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'project_tasks'
-        ) as exists`
-      );
-      
-      const projectTasksExists = tableCheckResult.rows[0].exists;
-      
-      if (projectTasksExists) {
-        // If project_tasks table exists, use it for progress calculation
-        const topProjectsResult = await db.query(
-          `SELECT p.*, 
-            COALESCE(
-              (SELECT COUNT(*) FROM project_tasks pt WHERE pt.project_id = p.project_id AND pt.status = 'completed')::float / 
-              NULLIF((SELECT COUNT(*) FROM project_tasks pt WHERE pt.project_id = p.project_id), 0) * 100, 
-              0
-            ) as progress,
-            CASE 
-              WHEN p.deadline < NOW() THEN 'Delayed'
-              WHEN p.deadline < NOW() + INTERVAL '7 days' THEN 'At Risk'
-              ELSE 'On Track'
-            END as status
-          FROM projects p
-          WHERE p.owner_id = $1
-          ORDER BY p.deadline ASC NULLS LAST
-          LIMIT 3`,
-          [req.session.user.user_id]
-        );
-        topProjects = topProjectsResult.rows;
-      } else {
-        // If project_tasks table doesn't exist, get projects without progress calculation
-        const topProjectsResult = await db.query(
-          `SELECT p.*, 
-            0 as progress,
-            CASE 
-              WHEN p.deadline < NOW() THEN 'Delayed'
-              WHEN p.deadline < NOW() + INTERVAL '7 days' THEN 'At Risk'
-              ELSE 'On Track'
-            END as status
-          FROM projects p
-          WHERE p.owner_id = $1
-          ORDER BY p.deadline ASC NULLS LAST
-          LIMIT 3`,
-          [req.session.user.user_id]
-        );
-        topProjects = topProjectsResult.rows;
-      }
-      
-      // Format the projects for the template
-      topProjects = topProjects.map(project => ({
-        ...project,
-        progress: Math.round(parseFloat(project.progress) || 0),
-        name: project.title // Ensure name property exists for the template
-      }));
-    } catch (error) {
-      console.error("Error getting top projects:", error.message);
-      // Continue execution even if this query fails
-    }
-
-    // Render dashboard with data
     res.render("dashboard", {
+      title: "Dashboard",
+      currentPage: "dashboard",
       user: req.session.user,
-      userDetails: user,
-      userStats: {
-        ...userStats,
-        activeProjects: userStats.totalProjects || 0,
-        teamCount: 0, // You can update this when you implement teams
-        pendingTasks: 0 // You can update this when you implement tasks
-      },
+      projectCount,
+      applicationCount,
       recentProjects,
-      topProjects, // Add the topProjects array here
       activities,
-      upcomingDeadlines: [], // Add empty array for upcomingDeadlines
-      teamMembers: [], // Add empty array for teamMembers
-      notifications: [], // Add empty array for notifications
-      currentPage: 'dashboard',
-      error: req.query.error || null,
-      success: req.query.success || null
+      topProjects,
+      upcomingDeadlines,
+      teamMembers, // Add this to fix the undefined error
+      notifications, // Add this to avoid potential undefined errors
+      userStats,
+      error: null,
+      indexMessage: "Some dashboard components may be loading. Please create the required indexes by clicking the links in the server logs."
     });
   } catch (error) {
-    console.error("Error in dashboard route:", error);
-    res.render("error", {
+    console.error("Server error:", error);
+    res.status(500).render("dashboard", {
+      title: "Dashboard",
+      currentPage: "dashboard",
       user: req.session.user,
-      error: "An error occurred while loading the dashboard",
-      title: "Error"
+      projectCount: 0,
+      applicationCount: 0,
+      recentProjects: [],
+      activities: [],
+      topProjects: [],
+      upcomingDeadlines: [],
+      teamMembers: [], // Add this to fix the undefined error
+      notifications: [], // Add this to avoid potential undefined errors
+      userStats: {
+        activeProjects: 0,
+        pendingApplications: 0,
+        completedProjects: 0,
+        totalTeams: 0,
+        pendingTasks: 0 // Add this for the tasks section
+      },
+      error: "An error occurred while loading the dashboard"
     });
   }
 });
-
-// Helper function to format time ago
-function getTimeAgo(timestamp) {
-  const now = new Date();
-  const date = new Date(timestamp);
-  const seconds = Math.floor((now - date) / 1000);
-  
-  let interval = Math.floor(seconds / 31536000);
-  if (interval >= 1) {
-    return interval === 1 ? '1 year ago' : `${interval} years ago`;
-  }
-  
-  interval = Math.floor(seconds / 2592000);
-  if (interval >= 1) {
-    return interval === 1 ? '1 month ago' : `${interval} months ago`;
-  }
-  
-  interval = Math.floor(seconds / 86400);
-  if (interval >= 1) {
-    return interval === 1 ? '1 day ago' : `${interval} days ago`;
-  }
-  
-  interval = Math.floor(seconds / 3600);
-  if (interval >= 1) {
-    return interval === 1 ? '1 hour ago' : `${interval} hours ago`;
-  }
-  
-  interval = Math.floor(seconds / 60);
-  if (interval >= 1) {
-    return interval === 1 ? '1 minute ago' : `${interval} minutes ago`;
-  }
-  
-  return 'Just now';
-}
 
 export default router;

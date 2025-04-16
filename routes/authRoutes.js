@@ -2,12 +2,14 @@ import express from 'express';
 const router = express.Router();
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import { collection, query as firestoreQuery, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // Load environment variables
 dotenv.config();
 
-// Import database configuration
-import db from '../config/database.js';
+// Import Firebase configuration
+import { db, auth } from '../config/firebase.js';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 // Middleware for logging
 router.use((req, res, next) => {
@@ -59,25 +61,47 @@ router.post("/signup", async (req, res) => {
       });
     }
     
+    // Check if email already exists
+    const usersCollection = collection(db, 'users');
+    const emailQuery = firestoreQuery(usersCollection, where('email', '==', email));
+    const emailSnapshot = await getDocs(emailQuery);
+    
+    if (!emailSnapshot.empty) {
+      return res.render("signup", { 
+        user: null, 
+        error: "Email already in use",
+        success: null
+      });
+    }
+    
     // Process skills if provided
     const skillsArray = skills ? skills.split(',').map(skill => skill.trim()) : [];
     
-    // Insert new user with skills
-    const result = await db.query(
-      `INSERT INTO users (name, email, password, skills, created_at) 
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-      [name, email, await bcrypt.hash(password, 10), JSON.stringify(skillsArray)]
-    );
+    // Create user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
     
-    const newUser = result.rows[0];
+    // Insert new user with skills in Firestore
+    const newUser = {
+      uid: firebaseUser.uid,
+      name,
+      email,
+      skills: skillsArray,
+      created_at: serverTimestamp(),
+      profile_complete: false,
+      profile_pic: '/images/user.jpg'
+    };
+    
+    const userDocRef = await addDoc(collection(db, 'users'), newUser);
+    newUser.user_id = userDocRef.id;
     
     // Set session
     req.session.user = {
-      user_id: newUser.user_id,
+      user_id: userDocRef.id,
       name: newUser.name,
       email: newUser.email,
       profile_complete: false,
-      profile_pic: newUser.profile_pic || '/images/user.jpg'
+      profile_pic: newUser.profile_pic
     };
     
     // Redirect to profile completion
@@ -119,33 +143,29 @@ router.post("/signin", async (req, res) => {
       });
     }
     
-    // Check if user exists
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
+    // Sign in with Firebase Authentication
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
     
-    if (userResult.rows.length === 0) {
+    // Get user data from Firestore
+    const usersRef = collection(db, 'users');
+    const userQuery = firestoreQuery(usersRef, where('uid', '==', firebaseUser.uid));
+    const userSnapshot = await getDocs(userQuery);
+    
+    if (userSnapshot.empty) {
       return res.render("signin", {
         user: null,
-        error: "Invalid email or password",
+        error: "User not found in database",
         success: null
       });
     }
 
-    const user = userResult.rows[0];
+    const userDoc = userSnapshot.docs[0];
+    const user = {
+      user_id: userDoc.id,
+      ...userDoc.data()
+    };
     
-    // Compare password
-    const validPassword = await bcrypt.compare(password, user.password);
-    
-    if (!validPassword) {
-      return res.render("signin", {
-        user: null,
-        error: "Invalid email or password",
-        success: null
-      });
-    }
-
     // Check if profile is complete
     const isComplete = user.title && user.bio;
 
@@ -180,7 +200,7 @@ router.post("/signin", async (req, res) => {
     console.error("Error in signin:", error);
     res.render("signin", {
       user: null,
-      error: "An error occurred during sign in",
+      error: "Invalid email or password",
       success: null
     });
   }
@@ -188,10 +208,15 @@ router.post("/signin", async (req, res) => {
 
 // Signout route
 router.get("/signout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-    }
+  auth.signOut().then(() => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error destroying session:", err);
+      }
+      res.redirect("/");
+    });
+  }).catch((error) => {
+    console.error("Error signing out:", error);
     res.redirect("/");
   });
 });

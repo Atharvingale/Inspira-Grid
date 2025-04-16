@@ -12,20 +12,22 @@ dotenv.config();
 // Import database configuration
 import db from './config/database.js';
 
-// Import routes
-import {
-  authRoutes,
-  dashboardRoutes,
-  profileRoutes,
-  projectRoutes,
-  applicationRoutes,
-  teamRoutes,
-  resourceRoutes,
-  notificationRoutes
-} from './routes/index.js';
+// Import routes - update to import individual route files
+import indexRoutes from './routes/index.js';
+import authRoutes from './routes/authRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import applicationRoutes from './routes/applicationRoutes.js';
+import teamRoutes from './routes/teamRoutes.js';
+import resourceRoutes from './routes/resourceRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Import middleware
 import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
+
+// Add this import that was mentioned at the bottom of the file
+import initDatabase from './database/init.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -73,8 +75,7 @@ app.use((req, res, next) => {
 
 // Use routes
 app.use(authRoutes); // Auth routes should be applied before profile completion check
-
-// In your server.js file, update the middleware application:
+app.use(indexRoutes); // Add the index routes
 
 // Apply profile completion check to protected routes
 app.use('/dashboard', isAuthenticated, checkProfileComplete);
@@ -84,7 +85,6 @@ app.use('/resources', isAuthenticated, checkProfileComplete);
 app.use('/messages', isAuthenticated, checkProfileComplete);
 
 // Profile routes need special handling
-// Update the profile routes middleware
 app.use('/profile', (req, res, next) => {
   // Allow access to complete profile page if user is authenticated
   if (req.path === '/complete' && req.session.user) {
@@ -134,10 +134,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Add this near the top of your imports
-import initDatabase from './database/init.js';
-
-// Add this before starting the server
 // Initialize database tables
 initDatabase().then(() => {
   // Start the server
@@ -151,5 +147,3 @@ initDatabase().then(() => {
     console.log(`Server running on port ${port} (database initialization failed)`);
   });
 });
-
-// Remove or comment out the existing app.listen call

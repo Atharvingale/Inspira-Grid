@@ -1,8 +1,12 @@
 import express from 'express';
 const router = express.Router();
-import pg from 'pg';
+import { 
+  collection, doc, getDoc, getDocs, query as firestoreQuery, where, 
+  orderBy, limit, addDoc, updateDoc, deleteDoc, serverTimestamp 
+} from 'firebase/firestore';
 
-import db from '../config/database.js';
+import { db } from '../config/firebase.js';
+
 // Middleware to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
   if (req.session.user) {
@@ -11,47 +15,94 @@ const isAuthenticated = (req, res, next) => {
   res.redirect("/signin");
 };
 
+// Helper function to get event color
+const getEventColor = (type, status) => {
+  if (type === 'project') {
+    switch (status) {
+      case 'Open': return '#4CAF50';
+      case 'In Progress': return '#2196F3';
+      case 'Completed': return '#9E9E9E';
+      case 'On Hold': return '#FFC107';
+      default: return '#2196F3';
+    }
+  } else if (type === 'task') {
+    switch (status) {
+      case 'To Do': return '#FF5722';
+      case 'In Progress': return '#2196F3';
+      case 'Completed': return '#4CAF50';
+      default: return '#FF5722';
+    }
+  } else if (type === 'meeting') {
+    return '#9C27B0';
+  }
+  return '#2196F3';
+};
+
 // Resources route
 router.get("/resources", isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.user_id;
+    const userId = req.session.user.user_id;
 
     // Get user information
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE user_id = $1",
-      [userId]
-    );
-    const user = userResult.rows[0];
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      return res.redirect("/signin");
+    }
+    
+    const user = {
+      user_id: userSnap.id,
+      ...userSnap.data()
+    };
 
     // Get resources
-    const resourcesResult = await db.query(
-      `SELECT r.*, u.name as creator_name, u.profile_pic as creator_pic,
-        (SELECT COUNT(*) FROM resource_likes WHERE resource_id = r.resource_id) as like_count
-       FROM resources r
-       JOIN users u ON r.creator_id = u.user_id
-       ORDER BY r.created_at DESC`,
-      []
+    const resourcesRef = collection(db, 'resources');
+    const resourcesQuery = query(
+      resourcesRef,
+      orderBy('created_at', 'desc')
     );
+    const resourcesSnapshot = await getDocs(resourcesQuery);
 
     // Get user's bookmarked resources
-    const bookmarksResult = await db.query(
-      `SELECT resource_id FROM resource_bookmarks
-       WHERE user_id = $1`,
-      [userId]
+    const bookmarksRef = collection(db, 'resource_bookmarks');
+    const bookmarksQuery = query(
+      bookmarksRef,
+      where('user_id', '==', userId)
     );
+    const bookmarksSnapshot = await getDocs(bookmarksQuery);
 
-    const bookmarkedIds = bookmarksResult.rows.map(row => row.resource_id);
+    const bookmarkedIds = bookmarksSnapshot.docs.map(doc => doc.data().resource_id);
 
     // Process resources
-    const resources = resourcesResult.rows.map(resource => ({
-      ...resource,
-      created_at_formatted: new Date(resource.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      is_bookmarked: bookmarkedIds.includes(resource.resource_id)
-    }));
+    const resources = [];
+    for (const resourceDoc of resourcesSnapshot.docs) {
+      const resourceData = resourceDoc.data();
+      
+      // Get creator info
+      const creatorRef = doc(db, 'users', resourceData.creator_id);
+      const creatorSnap = await getDoc(creatorRef);
+      
+      // Get like count
+      const likesRef = collection(db, 'resource_likes');
+      const likesQuery = query(likesRef, where('resource_id', '==', resourceDoc.id));
+      const likesSnapshot = await getDocs(likesQuery);
+      
+      resources.push({
+        resource_id: resourceDoc.id,
+        ...resourceData,
+        creator_name: creatorSnap.exists() ? creatorSnap.data().name : 'Unknown',
+        creator_pic: creatorSnap.exists() ? creatorSnap.data().profile_pic : '/images/user.jpg',
+        like_count: likesSnapshot.size,
+        created_at_formatted: resourceData.created_at ? 
+          new Date(resourceData.created_at.toDate()).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'recently',
+        is_bookmarked: bookmarkedIds.includes(resourceDoc.id)
+      });
+    }
 
     // Group resources by category
     const resourcesByCategory = {};
@@ -85,34 +136,52 @@ router.get("/resources", isAuthenticated, async (req, res) => {
 // Documentation route
 router.get("/resources/documentation", isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.user_id;
+    const userId = req.session.user.user_id;
 
     // Get user information
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE user_id = $1",
-      [userId]
-    );
-    const user = userResult.rows[0];
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      return res.redirect("/signin");
+    }
+    
+    const user = {
+      user_id: userSnap.id,
+      ...userSnap.data()
+    };
 
     // Get documentation resources
-    const docsResult = await db.query(
-      `SELECT r.*, u.name as creator_name, u.profile_pic as creator_pic
-       FROM resources r
-       JOIN users u ON r.creator_id = u.user_id
-       WHERE r.category = 'Documentation'
-       ORDER BY r.created_at DESC`,
-      []
+    const resourcesRef = collection(db, 'resources');
+    const docsQuery = query(
+      resourcesRef,
+      where('category', '==', 'Documentation'),
+      orderBy('created_at', 'desc')
     );
+    const docsSnapshot = await getDocs(docsQuery);
 
     // Process documentation
-    const documentation = docsResult.rows.map(doc => ({
-      ...doc,
-      created_at_formatted: new Date(doc.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    }));
+    const documentation = [];
+    for (const docDoc of docsSnapshot.docs) {
+      const docData = docDoc.data();
+      
+      // Get creator info
+      const creatorRef = doc(db, 'users', docData.creator_id);
+      const creatorSnap = await getDoc(creatorRef);
+      
+      documentation.push({
+        resource_id: docDoc.id,
+        ...docData,
+        creator_name: creatorSnap.exists() ? creatorSnap.data().name : 'Unknown',
+        creator_pic: creatorSnap.exists() ? creatorSnap.data().profile_pic : '/images/user.jpg',
+        created_at_formatted: docData.created_at ? 
+          new Date(docData.created_at.toDate()).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'recently'
+      });
+    }
 
     res.render("documentation", {
       title: "Documentation",
@@ -136,76 +205,159 @@ router.get("/resources/documentation", isAuthenticated, async (req, res) => {
 // Calendar route
 router.get("/calendar", isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.user_id;
+    const userId = req.session.user.user_id;
 
     // Get user information
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE user_id = $1",
-      [userId]
-    );
-    const user = userResult.rows[0];
-
-    // Get user's projects with deadlines
-    const projectsResult = await db.query(
-      `SELECT p.project_id, p.title, p.deadline, p.status
-       FROM projects p
-       WHERE p.owner_id = $1 AND p.deadline IS NOT NULL
-       UNION
-       SELECT p.project_id, p.title, p.deadline, p.status
-       FROM projects p
-       JOIN teams t ON p.project_id = t.project_id
-       JOIN team_members tm ON t.team_id = tm.team_id
-       WHERE tm.user_id = $1 AND p.deadline IS NOT NULL`,
-      [userId]
-    );
-
-    // Get user's tasks with deadlines
-    const tasksResult = await db.query(
-      `SELECT t.task_id, t.title, t.due_date as deadline, t.status, p.title as project_title
-       FROM tasks t
-       JOIN projects p ON t.project_id = p.project_id
-       WHERE t.assigned_to = $1 AND t.due_date IS NOT NULL`,
-      [userId]
-    );
-
-    // Get user's meetings
-    const meetingsResult = await db.query(
-      `SELECT m.meeting_id, m.title, m.start_time as deadline, p.title as project_title
-       FROM meetings m
-       JOIN meeting_participants mp ON m.meeting_id = mp.meeting_id
-       LEFT JOIN projects p ON m.project_id = p.project_id
-       WHERE mp.user_id = $1 AND m.start_time > NOW()`,
-      [userId]
-    );
-
-    // Process events for calendar
-    const processEvents = (items, type) => {
-      return items.map(item => {
-        const deadline = new Date(item.deadline);
-        return {
-          id: `${type}-${item.task_id || item.project_id || item.meeting_id}`,
-          title: item.title,
-          start: deadline.toISOString(),
-          end: type === 'meeting' ? new Date(deadline.getTime() + 60*60*1000).toISOString() : deadline.toISOString(),
-          allDay: type !== 'meeting',
-          type: type,
-          status: item.status,
-          project: item.project_title,
-          color: getEventColor(type, item.status)
-        };
-      });
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      return res.redirect("/signin");
+    }
+    
+    const user = {
+      user_id: userSnap.id,
+      ...userSnap.data()
     };
 
-    const projectEvents = processEvents(projectsResult.rows, 'project');
-    const taskEvents = processEvents(tasksResult.rows, 'task');
-    const meetingEvents = processEvents(meetingsResult.rows, 'meeting');
-
-    // Combine all events
-    const events = [...projectEvents, ...taskEvents, ...meetingEvents];
+    // Get user's projects with deadlines
+    const events = [];
+    
+    // Get projects where user is owner
+    const projectsRef = collection(db, 'projects');
+    const ownerProjectsQuery = query(
+      projectsRef,
+      where('owner_id', '==', userId)
+    );
+    const ownerProjectsSnapshot = await getDocs(ownerProjectsQuery);
+    
+    // Process owner projects
+    for (const projectDoc of ownerProjectsSnapshot.docs) {
+      const projectData = projectDoc.data();
+      
+      if (projectData.deadline) {
+        const deadline = projectData.deadline.toDate ? 
+          projectData.deadline.toDate() : new Date(projectData.deadline);
+        
+        events.push({
+          id: `project-${projectDoc.id}`,
+          title: projectData.title,
+          start: deadline.toISOString(),
+          end: deadline.toISOString(),
+          allDay: true,
+          type: 'project',
+          status: projectData.status,
+          color: getEventColor('project', projectData.status)
+        });
+      }
+    }
+    
+    // Get team projects
+    const teamMembersRef = collection(db, 'team_members');
+    const teamMemberQuery = query(teamMembersRef, where('user_id', '==', userId));
+    const teamMemberSnapshot = await getDocs(teamMemberQuery);
+    
+    // For each team, get the project
+    for (const teamMemberDoc of teamMemberSnapshot.docs) {
+      const teamId = teamMemberDoc.data().team_id;
+      
+      // Get team details
+      const teamRef = doc(db, 'teams', teamId);
+      const teamSnap = await getDoc(teamRef);
+      
+      if (teamSnap.exists()) {
+        const teamData = teamSnap.data();
+        const projectId = teamData.project_id;
+        
+        // Get project details
+        const projectRef = doc(db, 'projects', projectId);
+        const projectSnap = await getDoc(projectRef);
+        
+        if (projectSnap.exists()) {
+          const projectData = projectSnap.data();
+          
+          if (projectData.deadline) {
+            const deadline = projectData.deadline.toDate ? 
+              projectData.deadline.toDate() : new Date(projectData.deadline);
+            
+            events.push({
+              id: `project-${projectSnap.id}`,
+              title: projectData.title,
+              start: deadline.toISOString(),
+              end: deadline.toISOString(),
+              allDay: true,
+              type: 'project',
+              status: projectData.status,
+              color: getEventColor('project', projectData.status)
+            });
+          }
+        }
+      }
+    }
+    
+    // Get user's tasks
+    const tasksRef = collection(db, 'tasks');
+    const tasksQuery = query(
+      tasksRef,
+      where('assigned_to', '==', userId)
+    );
+    const tasksSnapshot = await getDocs(tasksQuery);
+    
+    // Process tasks
+    for (const taskDoc of tasksSnapshot.docs) {
+      const taskData = taskDoc.data();
+      
+      if (taskData.due_date) {
+        const dueDate = taskData.due_date.toDate ? 
+          taskData.due_date.toDate() : new Date(taskData.due_date);
+        
+        events.push({
+          id: `task-${taskDoc.id}`,
+          title: taskData.title,
+          start: dueDate.toISOString(),
+          end: dueDate.toISOString(),
+          allDay: true,
+          type: 'task',
+          status: taskData.status,
+          color: getEventColor('task', taskData.status)
+        });
+      }
+    }
+    
+    // Get user's meetings
+    const meetingsRef = collection(db, 'meetings');
+    const meetingsQuery = query(
+      meetingsRef,
+      where('participants', 'array-contains', userId)
+    );
+    const meetingsSnapshot = await getDocs(meetingsQuery);
+    
+    // Process meetings
+    for (const meetingDoc of meetingsSnapshot.docs) {
+      const meetingData = meetingDoc.data();
+      
+      if (meetingData.start_time && meetingData.end_time) {
+        const startTime = meetingData.start_time.toDate ? 
+          meetingData.start_time.toDate() : new Date(meetingData.start_time);
+        
+        const endTime = meetingData.end_time.toDate ? 
+          meetingData.end_time.toDate() : new Date(meetingData.end_time);
+        
+        events.push({
+          id: `meeting-${meetingDoc.id}`,
+          title: meetingData.title,
+          start: startTime.toISOString(),
+          end: endTime.toISOString(),
+          allDay: false,
+          type: 'meeting',
+          color: getEventColor('meeting')
+        });
+      }
+    }
 
     res.render("calendar", {
       title: "Calendar",
-      currentPage: "calendar",
+      currentPage: "resources",
       user,
       events: JSON.stringify(events),
       error: req.query.error || null,
@@ -217,363 +369,209 @@ router.get("/calendar", isAuthenticated, async (req, res) => {
       user: req.session.user,
       error: "Failed to load calendar. Please try again later.",
       title: "Error",
-      currentPage: 'calendar'
+      currentPage: 'resources'
     });
   }
 });
 
-// Reports route
-router.get("/reports", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.session.user_id;
-  
-      // Get user information
-      const userResult = await db.query(
-        "SELECT * FROM users WHERE user_id = $1",
-        [userId]
-      );
-      const user = userResult.rows[0];
-  
-      // Get user's project statistics
-      const projectStatsResult = await db.query(
-        `SELECT 
-          COUNT(*) FILTER (WHERE status = 'Open') as open_projects,
-          COUNT(*) FILTER (WHERE status = 'In Progress') as in_progress_projects,
-          COUNT(*) FILTER (WHERE status = 'Completed') as completed_projects,
-          COUNT(*) as total_projects
-         FROM projects
-         WHERE owner_id = $1`,
-        [userId]
-      );
-  
-      const projectStats = projectStatsResult.rows[0];
-  
-      // Get task statistics
-      const taskStatsResult = await db.query(
-        `SELECT 
-          COUNT(*) FILTER (WHERE status = 'To Do') as todo_tasks,
-          COUNT(*) FILTER (WHERE status = 'In Progress') as in_progress_tasks,
-          COUNT(*) FILTER (WHERE status = 'Completed') as completed_tasks,
-          COUNT(*) as total_tasks
-         FROM tasks
-         WHERE assigned_to = $1`,
-        [userId]
-      );
-  
-      const taskStats = taskStatsResult.rows[0];
-  
-      // Get project completion over time
-      const projectTimelineResult = await db.query(
-        `SELECT 
-          DATE_TRUNC('month', completed_at) as month,
-          COUNT(*) as completed_count
-         FROM projects
-         WHERE owner_id = $1 AND status = 'Completed' AND completed_at IS NOT NULL
-         GROUP BY DATE_TRUNC('month', completed_at)
-         ORDER BY month ASC
-         LIMIT 12`,
-        [userId]
-      );
-  
-      const projectTimeline = projectTimelineResult.rows.map(row => ({
-        month: new Date(row.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        count: parseInt(row.completed_count)
-      }));
-  
-      // Get team collaboration stats
-      const teamStatsResult = await db.query(
-        `SELECT 
-          t.team_id,
-          t.team_name,
-          p.title as project_title,
-          COUNT(DISTINCT tm.user_id) as member_count,
-          COUNT(DISTINCT c.comment_id) as comment_count,
-          COUNT(DISTINCT pu.update_id) as update_count
-         FROM teams t
-         JOIN projects p ON t.project_id = p.project_id
-         JOIN team_members tm ON t.team_id = tm.team_id
-         LEFT JOIN comments c ON p.project_id = c.project_id
-         LEFT JOIN project_updates pu ON p.project_id = pu.project_id
-         WHERE p.owner_id = $1 OR tm.user_id = $1
-         GROUP BY t.team_id, t.team_name, p.title
-         ORDER BY member_count DESC
-         LIMIT 5`,
-        [userId]
-      );
-  
-      const teamStats = teamStatsResult.rows;
-  
-      res.render("reports", {
-        title: "Reports & Analytics",
-        currentPage: "reports",
-        user,
-        projectStats,
-        taskStats,
-        projectTimeline: JSON.stringify(projectTimeline),
-        teamStats,
-        error: req.query.error || null,
-        success: req.query.success || null
-      });
-    } catch (error) {
-      console.error("Error generating reports:", error);
-      res.status(500).render("error", {
-        user: req.session.user,
-        error: "Failed to generate reports. Please try again later.",
-        title: "Error",
-        currentPage: 'reports'
-      });
-    }
-  });
-  
-  // Add resource
-  router.post("/resources/add", isAuthenticated, async (req, res) => {
-    try {
-      const { title, description, category, link, tags } = req.body;
-      const userId = req.session.user_id;
-  
-      // Insert the resource
-      await db.query(
-        `INSERT INTO resources (title, description, category, link, tags, creator_id, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-        [title, description, category, link, tags, userId]
-      );
-  
-      res.redirect("/resources?success=Resource added successfully");
-    } catch (error) {
-      console.error("Error adding resource:", error);
-      res.redirect("/resources?error=Failed to add resource");
-    }
-  });
-  
-  // Bookmark resource
-  router.post("/resources/:id/bookmark", isAuthenticated, async (req, res) => {
-    try {
-      const resourceId = req.params.id;
-      const userId = req.session.user_id;
-  
-      // Check if already bookmarked
-      const existingBookmark = await db.query(
-        "SELECT * FROM resource_bookmarks WHERE resource_id = $1 AND user_id = $2",
-        [resourceId, userId]
-      );
-  
-      if (existingBookmark.rows.length > 0) {
-        // Remove bookmark
-        await db.query(
-          "DELETE FROM resource_bookmarks WHERE resource_id = $1 AND user_id = $2",
-          [resourceId, userId]
-        );
-        return res.status(200).json({
-          success: true,
-          bookmarked: false,
-          message: "Bookmark removed"
-        });
-      } else {
-        // Add bookmark
-        await db.query(
-          "INSERT INTO resource_bookmarks (resource_id, user_id, created_at) VALUES ($1, $2, NOW())",
-          [resourceId, userId]
-        );
-        return res.status(200).json({
-          success: true,
-          bookmarked: true,
-          message: "Resource bookmarked"
-        });
-      }
-    } catch (error) {
-      console.error("Error toggling bookmark:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to toggle bookmark"
-      });
-    }
-  });
-  
-  // Like resource
-  router.post("/resources/:id/like", isAuthenticated, async (req, res) => {
-    try {
-      const resourceId = req.params.id;
-      const userId = req.session.user_id;
-  
-      // Check if already liked
-      const existingLike = await db.query(
-        "SELECT * FROM resource_likes WHERE resource_id = $1 AND user_id = $2",
-        [resourceId, userId]
-      );
-  
-      if (existingLike.rows.length > 0) {
-        // Remove like
-        await db.query(
-          "DELETE FROM resource_likes WHERE resource_id = $1 AND user_id = $2",
-          [resourceId, userId]
-        );
-        
-        // Get updated like count
-        const likeCountResult = await db.query(
-          "SELECT COUNT(*) as count FROM resource_likes WHERE resource_id = $1",
-          [resourceId]
-        );
-        
-        return res.status(200).json({
-          success: true,
-          liked: false,
-          likeCount: parseInt(likeCountResult.rows[0].count),
-          message: "Like removed"
-        });
-      } else {
-        // Add like
-        await db.query(
-          "INSERT INTO resource_likes (resource_id, user_id, created_at) VALUES ($1, $2, NOW())",
-          [resourceId, userId]
-        );
-        
-        // Get updated like count
-        const likeCountResult = await db.query(
-          "SELECT COUNT(*) as count FROM resource_likes WHERE resource_id = $1",
-          [resourceId]
-        );
-        
-        return res.status(200).json({
-          success: true,
-          liked: true,
-          likeCount: parseInt(likeCountResult.rows[0].count),
-          message: "Resource liked"
-        });
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to toggle like"
-      });
-    }
-  });
-  
-  // Get resource details
-  router.get("/resources/:id", isAuthenticated, async (req, res) => {
-    try {
-      const resourceId = req.params.id;
-      const userId = req.session.user_id;
-  
-      // Get resource details
-      const resourceResult = await db.query(
-        `SELECT r.*, u.name as creator_name, u.profile_pic as creator_pic,
-          (SELECT COUNT(*) FROM resource_likes WHERE resource_id = r.resource_id) as like_count
-         FROM resources r
-         JOIN users u ON r.creator_id = u.user_id
-         WHERE r.resource_id = $1`,
-        [resourceId]
-      );
-  
-      if (resourceResult.rows.length === 0) {
-        return res.status(404).render("error", {
-          user: req.session.user,
-          error: "Resource not found",
-          title: "Not Found",
-          currentPage: 'resources'
-        });
-      }
-  
-      const resource = resourceResult.rows[0];
-  
-      // Check if user has bookmarked this resource
-      const bookmarkResult = await db.query(
-        "SELECT * FROM resource_bookmarks WHERE resource_id = $1 AND user_id = $2",
-        [resourceId, userId]
-      );
-  
-      resource.is_bookmarked = bookmarkResult.rows.length > 0;
-  
-      // Check if user has liked this resource
-      const likeResult = await db.query(
-        "SELECT * FROM resource_likes WHERE resource_id = $1 AND user_id = $2",
-        [resourceId, userId]
-      );
-  
-      resource.is_liked = likeResult.rows.length > 0;
-  
-      // Format dates
-      resource.created_at_formatted = new Date(resource.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-  
-      // Parse tags if they exist
-      if (resource.tags) {
-        try {
-          if (typeof resource.tags === 'string') {
-            resource.tags = JSON.parse(resource.tags);
-          }
-        } catch (e) {
-          resource.tags = resource.tags.split(',').map(tag => tag.trim());
-        }
-      } else {
-        resource.tags = [];
-      }
-  
-      // Get related resources
-      const relatedResult = await db.query(
-        `SELECT r.*, u.name as creator_name, u.profile_pic as creator_pic,
-          (SELECT COUNT(*) FROM resource_likes WHERE resource_id = r.resource_id) as like_count
-         FROM resources r
-         JOIN users u ON r.creator_id = u.user_id
-         WHERE r.category = $1 AND r.resource_id != $2
-         ORDER BY r.created_at DESC
-         LIMIT 3`,
-        [resource.category, resourceId]
-      );
-  
-      const relatedResources = relatedResult.rows.map(related => ({
-        ...related,
-        created_at_formatted: new Date(related.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      }));
-  
-      res.render("resource-details", {
-        title: resource.title,
+// Add resource route - GET
+router.get("/resources/add", isAuthenticated, async (req, res) => {
+  try {
+    res.render("resource-form", {
+      title: "Add Resource",
+      currentPage: "resources",
+      user: req.session.user,
+      resource: {},
+      isNew: true,
+      error: req.query.error || null,
+      success: req.query.success || null
+    });
+  } catch (error) {
+    console.error("Error loading resource form:", error);
+    res.status(500).render("error", {
+      user: req.session.user,
+      error: "Failed to load resource form. Please try again later.",
+      title: "Error",
+      currentPage: 'resources'
+    });
+  }
+});
+
+// Add resource route - POST
+router.post("/resources/add", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { title, description, category, url, tags } = req.body;
+    
+    // Validate required fields
+    if (!title || !description || !category) {
+      return res.render("resource-form", {
+        title: "Add Resource",
         currentPage: "resources",
         user: req.session.user,
-        resource,
-        relatedResources,
-        error: req.query.error || null,
-        success: req.query.success || null
-      });
-    } catch (error) {
-      console.error("Error fetching resource details:", error);
-      res.status(500).render("error", {
-        user: req.session.user,
-        error: "Failed to load resource details. Please try again later.",
-        title: "Error",
-        currentPage: 'resources'
+        resource: req.body,
+        isNew: true,
+        error: "Title, description, and category are required",
+        success: null
       });
     }
-  });
-  
-  // Helper function to get event color based on type and status
-  function getEventColor(type, status) {
-    const colors = {
-      project: {
-        'Open': '#4CAF50',
-        'In Progress': '#2196F3',
-        'Completed': '#9E9E9E',
-        'default': '#673AB7'
-      },
-      task: {
-        'To Do': '#FF9800',
-        'In Progress': '#03A9F4',
-        'Completed': '#8BC34A',
-        'default': '#FF5722'
-      },
-      meeting: {
-        'default': '#E91E63'
-      }
+    
+    // Process tags if provided
+    const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : [];
+    
+    // Insert the new resource
+    const resourceData = {
+      title,
+      description,
+      category,
+      url: url || null,
+      tags: tagsArray,
+      creator_id: userId,
+      created_at: serverTimestamp()
     };
-  
-    return colors[type][status] || colors[type]['default'];
+    
+    await addDoc(collection(db, 'resources'), resourceData);
+    
+    // Redirect to resources page
+    res.redirect("/resources?success=Resource added successfully");
+  } catch (error) {
+    console.error("Error adding resource:", error);
+    res.render("resource-form", {
+      title: "Add Resource",
+      currentPage: "resources",
+      user: req.session.user,
+      resource: req.body,
+      isNew: true,
+      error: "An error occurred while adding the resource. Please try again.",
+      success: null
+    });
   }
-  
+});
+
+// Bookmark resource route
+router.post("/resources/:id/bookmark", isAuthenticated, async (req, res) => {
+  try {
+    const resourceId = req.params.id;
+    const userId = req.session.user.user_id;
+    
+    // Check if resource exists
+    const resourceRef = doc(db, 'resources', resourceId);
+    const resourceSnap = await getDoc(resourceRef);
+    
+    if (!resourceSnap.exists()) {
+      return res.status(404).json({
+        success: false,
+        message: "Resource not found"
+      });
+    }
+    
+    // Check if already bookmarked
+    const bookmarksRef = collection(db, 'resource_bookmarks');
+    const bookmarkQuery = query(
+      bookmarksRef,
+      where('resource_id', '==', resourceId),
+      where('user_id', '==', userId)
+    );
+    const bookmarkSnapshot = await getDocs(bookmarkQuery);
+    
+    if (!bookmarkSnapshot.empty) {
+      // Already bookmarked, remove bookmark
+      await deleteDoc(bookmarkSnapshot.docs[0].ref);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Bookmark removed",
+        isBookmarked: false
+      });
+    }
+    
+    // Add bookmark
+    await addDoc(collection(db, 'resource_bookmarks'), {
+      resource_id: resourceId,
+      user_id: userId,
+      created_at: serverTimestamp()
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: "Resource bookmarked",
+      isBookmarked: true
+    });
+  } catch (error) {
+    console.error("Error bookmarking resource:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to bookmark resource"
+    });
+  }
+});
+
+// Like resource route
+router.post("/resources/:id/like", isAuthenticated, async (req, res) => {
+  try {
+    const resourceId = req.params.id;
+    const userId = req.session.user.user_id;
+    
+    // Check if resource exists
+    const resourceRef = doc(db, 'resources', resourceId);
+    const resourceSnap = await getDoc(resourceRef);
+    
+    if (!resourceSnap.exists()) {
+      return res.status(404).json({
+        success: false,
+        message: "Resource not found"
+      });
+    }
+    
+    // Check if already liked
+    const likesRef = collection(db, 'resource_likes');
+    const likeQuery = query(
+      likesRef,
+      where('resource_id', '==', resourceId),
+      where('user_id', '==', userId)
+    );
+    const likeSnapshot = await getDocs(likeQuery);
+    
+    if (!likeSnapshot.empty) {
+      // Already liked, remove like
+      await deleteDoc(likeSnapshot.docs[0].ref);
+      
+      // Get updated like count
+      const updatedLikeQuery = query(likesRef, where('resource_id', '==', resourceId));
+      const updatedLikeSnapshot = await getDocs(updatedLikeQuery);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Like removed",
+        isLiked: false,
+        likeCount: updatedLikeSnapshot.size
+      });
+    }
+    
+    // Add like
+    await addDoc(collection(db, 'resource_likes'), {
+      resource_id: resourceId,
+      user_id: userId,
+      created_at: serverTimestamp()
+    });
+    
+    // Get updated like count
+    const updatedLikeQuery = query(likesRef, where('resource_id', '==', resourceId));
+    const updatedLikeSnapshot = await getDocs(updatedLikeQuery);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Resource liked",
+      isLiked: true,
+      likeCount: updatedLikeSnapshot.size
+    });
+  } catch (error) {
+    console.error("Error liking resource:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to like resource"
+    });
+  }
+});
+
 export default router;
