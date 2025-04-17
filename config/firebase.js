@@ -3,16 +3,20 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import dotenv from 'dotenv'; // Import dotenv
 
-// Your web app's Firebase configuration
+// Load environment variables from .env file
+dotenv.config();
+
+// Your web app's Firebase configuration using environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCLdxGyWXPxNFwOvvWdUCpIKSWkpOjM0YA",
-  authDomain: "inspira-grid-23894.firebaseapp.com",
-  projectId: "inspira-grid-23894",
-  storageBucket: "inspira-grid-23894.firebasestorage.app",
-  messagingSenderId: "125420320679",
-  appId: "1:125420320679:web:5d79e5fa9dd80ec9912882",
-  measurementId: "G-YZGG27852P"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
