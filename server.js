@@ -118,21 +118,31 @@ app.get("/", (req, res) => {
 
 // 404 route
 app.use((req, res) => {
-  res.status(404).render("error", {
-    user: req.session.user || null,
-    error: "Page not found",
-    title: "404 Not Found"
-  });
+  try {
+    res.status(404).render("error", {
+      user: req.session.user || null,
+      error: "Page not found",
+      title: "404 Not Found"
+    });
+  } catch (err) {
+    console.error('Error rendering 404 page:', err);
+    res.status(404).send('Page not found. Please try again later.');
+  }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  res.status(500).render("error", {
-    user: req.session.user || null,
-    error: "An unexpected error occurred. Please try again later.",
-    title: "Server Error"
-  });
+  try {
+    res.status(500).render("error", {
+      user: req.session.user || null,
+      error: "An unexpected error occurred. Please try again later.",
+      title: "Server Error"
+    });
+  } catch (renderErr) {
+    console.error('Error rendering error page:', renderErr);
+    res.status(500).send('An unexpected error occurred. Please try again later.');
+  }
 });
 
 // Initialize database tables
