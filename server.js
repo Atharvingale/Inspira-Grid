@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 
 // Load environment variables
 dotenv.config();
@@ -158,3 +159,30 @@ initDatabase().then(() => {
     console.log(`Server running on port ${port} (database initialization failed)`);
   });
 });
+
+// Add this middleware after your session middleware but before your routes
+app.use((req, res, next) => {
+  // If session exists, proceed normally
+  if (req.session && req.session.user) {
+    res.locals.user = req.session.user;
+    return next();
+  }
+  
+  // If no session but backup cookie exists, restore minimal session
+  const userBasic = req.cookies && req.cookies.user_basic;
+  if (userBasic) {
+    try {
+      const userData = JSON.parse(userBasic);
+      req.session.user = userData;
+      res.locals.user = userData;
+      console.log("Session restored from backup cookie for user:", userData.id);
+    } catch (e) {
+      console.error("Error parsing backup cookie:", e);
+    }
+  }
+  
+  next();
+});
+
+// Add this before your session middleware
+app.use(cookieParser());
