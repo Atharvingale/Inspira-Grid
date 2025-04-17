@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-import { collection, query as firestoreQuery, where, getDocs, addDoc, serverTimestamp, doc, setDoc } from 'firebase/firestore';
+import { collection, query as firestoreQuery, where, getDocs, addDoc, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Load environment variables
 dotenv.config();
@@ -146,69 +146,103 @@ router.post("/signin", async (req, res) => {
       return res.render("signin", { 
         user: null, 
         error: "Email and password are required",
-        success: null
+        success: null,
+        title: "Sign In"  // Add title parameter
       });
     }
+    
+    console.log(`Attempting to sign in user with email: ${email}`);
     
     // Sign in with Firebase Authentication
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
     
-    // Get user data from Firestore
-    const usersRef = collection(db, 'users');
-    const userQuery = firestoreQuery(usersRef, where('uid', '==', firebaseUser.uid));
-    const userSnapshot = await getDocs(userQuery);
+    console.log(`Firebase Auth sign-in successful for UID: ${firebaseUser.uid}`);
     
-    if (userSnapshot.empty) {
-      return res.render("signin", {
-        user: null,
-        error: "User not found in database",
-        success: null
-      });
-    }
-
-    const userDoc = userSnapshot.docs[0];
-    const user = {
-      user_id: userDoc.id,
-      ...userDoc.data()
-    };
-    
-    // Check if profile is complete
-    const isComplete = user.title && user.bio;
-
-    // Set session data consistently
-    req.session.user = {
-      user_id: user.user_id,
-      name: user.name,
-      email: user.email,
-      profile_complete: isComplete,
-      profile_pic: user.profile_pic || '/images/user.jpg'
-    };
-    
-    // Save session before redirect
-    req.session.save((err) => {
-      if (err) {
-        console.error("Error saving session:", err);
+    // Get user data from Firestore - using document ID directly
+    try {
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (!userDocSnap.exists()) {
+        console.log(`User document not found for UID: ${firebaseUser.uid}`);
         return res.render("signin", {
           user: null,
-          error: "An error occurred during sign in",
-          success: null
+          error: "User profile not found. Please contact support.",
+          success: null,
+          title: "Sign In"
         });
       }
       
-      // Redirect based on profile completion
-      if (!isComplete) {
-        return res.redirect("/profile/complete");
-      }
-      return res.redirect("/dashboard");
-    });
+      console.log(`User document retrieved for UID: ${firebaseUser.uid}`);
+      
+      const userData = userDocSnap.data();
+      const user = {
+        user_id: firebaseUser.uid,
+        ...userData
+      };
+      
+      // Check if profile is complete
+      const isComplete = user.title && user.bio;
+      console.log(`Profile complete status: ${isComplete}`);
 
+      // Set session data consistently
+      req.session.user = {
+        user_id: user.user_id,
+        name: user.name,
+        email: user.email,
+        profile_complete: isComplete,
+        profile_pic: user.profile_pic || '/images/user.jpg'
+      };
+      
+      // Save session before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.render("signin", {
+            user: null,
+            error: "An error occurred during sign in",
+            success: null,
+            title: "Sign In"
+          });
+        }
+        
+        console.log(`Session saved, redirecting user: ${user.user_id}`);
+        
+        // Redirect based on profile completion
+        if (!isComplete) {
+          return res.redirect("/profile/complete");
+        }
+        return res.redirect("/dashboard");
+      });
+    } catch (firestoreError) {
+      console.error("Firestore error:", firestoreError);
+      return res.render("signin", {
+        user: null,
+        error: "Error retrieving user profile. Please try again.",
+        success: null,
+        title: "Sign In"
+      });
+    }
   } catch (error) {
-    console.error("Error in signin:", error);
+    console.error("Firebase Auth error:", error);
+    
+    let errorMessage = "Invalid email or password";
+    
+    // Handle specific Firebase Auth errors
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      errorMessage = "Invalid email or password";
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = "Too many failed login attempts. Please try again later.";
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = "This account has been disabled. Please contact support.";
+    }
+    
     res.render("signin", {
       user: null,
-      error: "Invalid email or password",
-      success: null
+      error: errorMessage,
+      success: null,
+      title: "Sign In"
     });
   }
 });
