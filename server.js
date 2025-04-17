@@ -50,7 +50,8 @@ app.use(session({
 }));
 
 // Set view engine
-app.set("view engine", "ejs");
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
 // Body parser middleware
 app.use(bodyParser.urlencoded({ extended: true }));
