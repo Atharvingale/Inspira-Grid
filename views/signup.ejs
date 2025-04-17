@@ -19,9 +19,14 @@
                             <p class="text-muted">Create a new account</p>
                         </div>
                         
+                        <!-- Make sure this part exists in your signup.ejs file -->
                         <% if (error) { %>
                             <div class="alert alert-danger" role="alert">
-                                <%= error %>
+                                <% if (error.includes('auth/email-already-in-use')) { %>
+                                    This email is already registered. Please <a href="/signin">sign in</a> or use a different email address.
+                                <% } else { %>
+                                    <%= error %>
+                                <% } %>
                             </div>
                         <% } %>
                         

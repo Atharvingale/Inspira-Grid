@@ -485,7 +485,7 @@ router.get("/projects/:id", async (req, res) => {
     
     // Check if user has already applied
     const applicationsRef = collection(db, 'project_applications');
-    const applicationQuery = query(
+    const applicationQuery = firestoreQuery(
       applicationsRef,
       where('project_id', '==', projectId),
       where('user_id', '==', userId)

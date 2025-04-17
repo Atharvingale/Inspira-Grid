@@ -8,8 +8,8 @@ const router = express.Router();
 // Import Firebase configuration
 import { db } from '../config/firebase.js';
 import { 
-  doc, getDoc, updateDoc, collection, query as firestoreQuery, 
-  where, getDocs, orderBy, limit, serverTimestamp
+  collection, doc, getDoc, getDocs, query as firestoreQuery, where, 
+  orderBy, limit, addDoc, updateDoc, deleteDoc, serverTimestamp 
 } from 'firebase/firestore';
 
 // Remove the enableIndexedDbPersistence code since it's causing issues
@@ -184,25 +184,25 @@ router.get("/profile", isAuthenticated, async (req, res) => {
     
     // Get project count
     const projectsRef = collection(db, 'projects');
-    const projectQuery = query(projectsRef, where('owner_id', '==', userId));
+    const projectQuery = firestoreQuery(projectsRef, where('owner_id', '==', userId));
     const projectSnapshot = await getDocs(projectQuery);
     userProfile.projectCount = projectSnapshot.size;
     
     // Get team count
     const teamMembersRef = collection(db, 'team_members');
-    const teamQuery = query(teamMembersRef, where('user_id', '==', userId));
+    const teamQuery = firestoreQuery(teamMembersRef, where('user_id', '==', userId));
     const teamSnapshot = await getDocs(teamQuery);
     userProfile.teamCount = teamSnapshot.size;
     
     // Get task count
     const tasksRef = collection(db, 'tasks');
-    const taskQuery = query(tasksRef, where('assigned_to', '==', userId));
+    const taskQuery = firestoreQuery(tasksRef, where('assigned_to', '==', userId));
     const taskSnapshot = await getDocs(taskQuery);
     userProfile.taskCount = taskSnapshot.size;
     
     // Get user skills
     const userSkillsRef = collection(db, 'user_skills');
-    const skillsQuery = query(userSkillsRef, where('user_id', '==', userId));
+    const skillsQuery = firestoreQuery(userSkillsRef, where('user_id', '==', userId));
     const skillsSnapshot = await getDocs(skillsQuery);
     
     const skills = [];
@@ -221,7 +221,7 @@ router.get("/profile", isAuthenticated, async (req, res) => {
     
     // Get user education
     const educationRef = collection(db, 'user_education');
-    const educationQuery = query(
+    const educationQuery = firestoreQuery(
       educationRef, 
       where('user_id', '==', userId),
       orderBy('start_date', 'desc')
@@ -249,7 +249,7 @@ router.get("/profile", isAuthenticated, async (req, res) => {
     
     // Get recent activities
     const activitiesRef = collection(db, 'activity_log');
-    const activitiesQuery = query(
+    const activitiesQuery = firestoreQuery(
       activitiesRef,
       where('user_id', '==', userId),
       orderBy('created_at', 'desc'),
@@ -269,11 +269,42 @@ router.get("/profile", isAuthenticated, async (req, res) => {
       };
     });
     
+    // Get user work experience
+    const experienceRef = collection(db, 'user_experience');
+    const experienceQuery = firestoreQuery(
+      experienceRef, 
+      where('user_id', '==', userId),
+      orderBy('start_date', 'desc')
+    );
+    const experienceSnapshot = await getDocs(experienceQuery);
+    
+    const workExperience = experienceSnapshot.docs.map(doc => {
+      const data = doc.data();
+      const startDate = data.start_date ? data.start_date.toDate() : null;
+      const endDate = data.end_date ? data.end_date.toDate() : null;
+      
+      return {
+        id: doc.id,
+        company: data.company,
+        position: data.position,
+        location: data.location,
+        start_date: startDate,
+        end_date: endDate,
+        current_job: data.current_job,
+        description: data.description,
+        startYear: startDate ? startDate.getFullYear() : null,
+        startMonth: startDate ? startDate.toLocaleString('default', { month: 'short' }) : null,
+        endYear: endDate ? endDate.getFullYear() : null,
+        endMonth: endDate ? endDate.toLocaleString('default', { month: 'short' }) : null
+      };
+    });
+    
     // Combine all data
     const userData = {
       ...userProfile,
       skills,
       education,
+      workExperience,  // Now this variable is defined
       recentActivities
     };
     
@@ -312,7 +343,7 @@ router.get("/profile/edit", isAuthenticated, async (req, res) => {
     
     // Get user skills
     const userSkillsRef = collection(db, 'user_skills');
-    const userSkillsQuery = query(userSkillsRef, where('user_id', '==', userId));
+    const userSkillsQuery = firestoreQuery(userSkillsRef, where('user_id', '==', userId));
     const userSkillsSnapshot = await getDocs(userSkillsQuery);
     
     const userSkills = [];
@@ -332,7 +363,7 @@ router.get("/profile/edit", isAuthenticated, async (req, res) => {
     
     // Get all available skills for dropdown
     const skillsRef = collection(db, 'skills');
-    const allSkillsQuery = query(skillsRef, orderBy('category'), orderBy('skill_name'));
+    const allSkillsQuery = firestoreQuery(skillsRef, orderBy('category'), orderBy('skill_name'));
     const allSkillsSnapshot = await getDocs(allSkillsQuery);
     
     const allSkills = allSkillsSnapshot.docs.map(doc => ({
@@ -388,7 +419,7 @@ router.post("/profile/edit", isAuthenticated, async (req, res) => {
     if (skills) {
       // First delete existing skills
       const userSkillsRef = collection(db, 'user_skills');
-      const userSkillsQuery = query(userSkillsRef, where('user_id', '==', userId));
+      const userSkillsQuery = firestoreQuery(userSkillsRef, where('user_id', '==', userId));
       const userSkillsSnapshot = await getDocs(userSkillsQuery);
       
       const deletePromises = userSkillsSnapshot.docs.map(doc => 
@@ -429,32 +460,24 @@ router.post("/profile/upload-photo", isAuthenticated, upload.single('profile_pic
     }
     
     const userId = req.session.user.user_id;
-    const localFilePath = req.file.path;
     
-    // Upload file to Firebase Storage
-    const storageRef = ref(storage, `profiles/${userId}/${req.file.filename}`);
-    const fileBuffer = fs.readFileSync(localFilePath);
-    
-    const uploadResult = await uploadBytes(storageRef, fileBuffer);
-    const downloadURL = await getDownloadURL(uploadResult.ref);
+    // With Cloudinary, the file path is already in req.file.path
+    const imageUrl = req.file.path;
     
     // Update user profile picture in Firestore
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      profile_pic: downloadURL,
+      profile_pic: imageUrl,
       updated_at: serverTimestamp()
     });
     
     // Update session
-    req.session.user.profile_pic = downloadURL;
-    
-    // Remove local file after upload to Firebase
-    fs.unlinkSync(localFilePath);
+    req.session.user.profile_pic = imageUrl;
     
     res.json({ 
       success: true, 
       message: "Profile picture updated successfully",
-      filePath: downloadURL
+      filePath: imageUrl
     });
   } catch (error) {
     console.error("Error uploading profile picture:", error);
@@ -484,6 +507,156 @@ router.get("/profile-pic/:userId", async (req, res) => {
   } catch (error) {
     console.error("Error serving profile picture:", error);
     res.sendFile(path.join(__dirname, '../public/images/user.jpg'));
+  }
+});
+
+// Add Work Experience route
+router.post("/profile/add-experience", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { 
+      company, position, location, start_date, end_date, 
+      current_job, description 
+    } = req.body;
+    
+    // Validate required fields
+    if (!company || !position || !start_date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Company, position, and start date are required" 
+      });
+    }
+    
+    // Add work experience to Firestore
+    await addDoc(collection(db, 'user_experience'), {
+      user_id: userId,
+      company,
+      position,
+      location: location || null,
+      start_date: new Date(start_date),
+      end_date: current_job ? null : (end_date ? new Date(end_date) : null),
+      current_job: current_job === 'on',
+      description: description || null,
+      created_at: serverTimestamp()
+    });
+    
+    // Add activity log
+    await addDoc(collection(db, 'activity_log'), {
+      user_id: userId,
+      type: 'experience_added',
+      description: `Added work experience at ${company}`,
+      created_at: serverTimestamp()
+    });
+    
+    res.redirect("/profile?success=Work experience added successfully");
+  } catch (error) {
+    console.error("Error adding work experience:", error);
+    res.redirect("/profile?error=An error occurred while adding work experience");
+  }
+});
+
+// Delete Work Experience route
+router.post("/profile/delete-experience/:id", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const experienceId = req.params.id;
+    
+    // Get experience to verify ownership
+    const experienceRef = doc(db, 'user_experience', experienceId);
+    const experienceSnap = await getDoc(experienceRef);
+    
+    if (!experienceSnap.exists()) {
+      return res.status(404).json({ success: false, message: "Experience not found" });
+    }
+    
+    // Verify ownership
+    if (experienceSnap.data().user_id !== userId) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+    
+    // Delete experience
+    await deleteDoc(experienceRef);
+    
+    res.redirect("/profile?success=Work experience deleted successfully");
+  } catch (error) {
+    console.error("Error deleting work experience:", error);
+    res.redirect("/profile?error=An error occurred while deleting work experience");
+  }
+});
+
+// Add Education route
+router.post("/profile/add-education", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { 
+      institution_name, degree, field_of_study, start_date, end_date, 
+      current_education, grade, activities, description 
+    } = req.body;
+    
+    // Validate required fields
+    if (!institution_name || !degree || !start_date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Institution, degree, and start date are required" 
+      });
+    }
+    
+    // Add education to Firestore
+    await addDoc(collection(db, 'user_education'), {
+      user_id: userId,
+      institution_name,
+      degree,
+      field_of_study: field_of_study || null,
+      start_date: new Date(start_date),
+      end_date: current_education ? null : (end_date ? new Date(end_date) : null),
+      current_education: current_education === 'on',
+      grade: grade || null,
+      activities: activities || null,
+      description: description || null,
+      created_at: serverTimestamp()
+    });
+    
+    // Add activity log
+    await addDoc(collection(db, 'activity_log'), {
+      user_id: userId,
+      type: 'education_added',
+      description: `Added education at ${institution_name}`,
+      created_at: serverTimestamp()
+    });
+    
+    res.redirect("/profile?success=Education added successfully");
+  } catch (error) {
+    console.error("Error adding education:", error);
+    res.redirect("/profile?error=An error occurred while adding education");
+  }
+});
+
+// Delete Education route
+router.post("/profile/delete-education/:id", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const educationId = req.params.id;
+    
+    // Get education to verify ownership
+    const educationRef = doc(db, 'user_education', educationId);
+    const educationSnap = await getDoc(educationRef);
+    
+    if (!educationSnap.exists()) {
+      return res.status(404).json({ success: false, message: "Education not found" });
+    }
+    
+    // Verify ownership
+    if (educationSnap.data().user_id !== userId) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+    
+    // Delete education
+    await deleteDoc(educationRef);
+    
+    res.redirect("/profile?success=Education deleted successfully");
+  } catch (error) {
+    console.error("Error deleting education:", error);
+    res.redirect("/profile?error=An error occurred while deleting education");
   }
 });
 

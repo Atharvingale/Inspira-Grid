@@ -22,10 +22,9 @@
                 <!-- Profile Card -->
                 <div class="card profile-card">
                     <div class="profile-header"></div>
-                    <!-- Update the profile avatar image src -->
+                    <!-- Profile avatar with correct image source -->
                     <div class="profile-avatar">
-                        <img src="/profile-pic/<%= user.user_id %>" class="rounded-circle" width="120" height="120">
-                        <!-- Update the avatar edit button to trigger the modal -->
+                        <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle" width="120" height="120" alt="Profile Picture">
                         <button class="btn btn-sm btn-light rounded-circle avatar-edit-btn" 
                                 title="Change Profile Picture" 
                                 data-bs-toggle="modal" 
@@ -144,24 +143,24 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i> Work Experience</h5>
-                        <button class="btn btn-sm btn-link">
-                            <i class="fas fa-plus me-1"></i> Add
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+                            <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
                     <div class="card-body">
-                        <% if (user.experience && user.experience.length > 0) { %>
-                            <% user.experience.forEach(function(exp) { %>
+                        <% if (user.workExperience && user.workExperience.length > 0) { %>
+                            <% user.workExperience.forEach(function(exp) { %>
                             <div class="timeline-item">
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-content">
                                     <div class="d-flex justify-content-between">
                                         <h5><%= exp.position %></h5>
                                         <div class="timeline-date">
-                                            <%= exp.startDate %> - <%= exp.endDate || 'Present' %>
+                                            <%= exp.startMonth %> <%= exp.startYear %> - <%= exp.current_job ? 'Present' : (exp.endMonth + ' ' + exp.endYear) %>
                                         </div>
                                     </div>
                                     <h6 class="text-primary"><%= exp.company %></h6>
-                                    <p><%= exp.description %></p>
+                                    <p><%= exp.description || '' %></p>
                                 </div>
                             </div>
                             <% }); %>
@@ -175,8 +174,8 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i> Education</h5>
-                        <button class="btn btn-sm btn-link">
-                            <i class="fas fa-plus me-1"></i> Add
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEducationModal">
+                            <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
                     <div class="card-body">
@@ -192,7 +191,7 @@
                                         </div>
                                     </div>
                                     <h6 class="text-primary"><%= edu.institution %></h6>
-                                    <p><%= edu.description %></p>
+                                    <p><%= edu.description || '' %></p>
                                 </div>
                             </div>
                             <% }); %>
@@ -234,28 +233,216 @@
         </div>
     </div>
 
-    <!-- Add this before the footer -->
+
+    <!-- Add this modal at the end of the file, before the closing body tag -->
     <!-- Profile Photo Upload Modal -->
-    <div class="modal fade" id="photoModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Profile Picture</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form action="/profile/upload-photo" method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="photo" class="form-label">Choose Photo</label>
-                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Upload Photo</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="photoModalLabel">Update Profile Picture</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="photoUploadForm" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="profile_pic" class="form-label">Choose a new profile picture</label>
+                <input class="form-control" type="file" id="profile_pic" name="profile_pic" accept="image/jpeg,image/png,image/jpg">
+                <div class="form-text">Maximum file size: 5MB. Supported formats: JPG, JPEG, PNG.</div>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Upload Photo</button>
+              </div>
+            </form>
+            <div id="uploadStatus" class="mt-3" style="display: none;"></div>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Add this script at the end of the file, before the closing body tag -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const photoForm = document.getElementById('photoUploadForm');
+      const uploadStatus = document.getElementById('uploadStatus');
+      
+      if (photoForm) {
+        photoForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          uploadStatus.innerHTML = '<div class="alert alert-info">Uploading...</div>';
+          uploadStatus.style.display = 'block';
+          
+          const formData = new FormData(photoForm);
+          
+          try {
+            const response = await fetch('/profile/upload-photo', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              uploadStatus.innerHTML = '<div class="alert alert-success">Profile picture updated successfully!</div>';
+              
+              // Close modal after 2 seconds and reload page
+              setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('photoModal'));
+                modal.hide();
+                window.location.reload();
+              }, 2000);
+            } else {
+              uploadStatus.innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            uploadStatus.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
+          }
+        });
+      }
+    });
+    </script>
+
+    <!-- Add this script at the end of the file, before the closing body tag -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle current job checkbox
+      const currentJobCheckbox = document.getElementById('current_job');
+      const endDateInput = document.getElementById('end_date');
+      
+      if (currentJobCheckbox && endDateInput) {
+        currentJobCheckbox.addEventListener('change', function() {
+          endDateInput.disabled = this.checked;
+          if (this.checked) {
+            endDateInput.value = '';
+          }
+        });
+      }
+      
+      // Handle current education checkbox
+      const currentEducationCheckbox = document.getElementById('current_education');
+      const educationEndDateInput = document.querySelector('#addEducationModal #end_date');
+      
+      if (currentEducationCheckbox && educationEndDateInput) {
+        currentEducationCheckbox.addEventListener('change', function() {
+          educationEndDateInput.disabled = this.checked;
+          if (this.checked) {
+            educationEndDateInput.value = '';
+          }
+        });
+      }
+    });
+    </script>
+
+    <!-- Add Work Experience Modal -->
+    <div class="modal fade" id="addExperienceModal" tabindex="-1" aria-labelledby="addExperienceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addExperienceModalLabel">Add Work Experience</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form action="/profile/add-experience" method="POST">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="company" class="form-label">Company*</label>
+                  <input type="text" class="form-control" id="company" name="company" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="position" class="form-label">Position*</label>
+                  <input type="text" class="form-control" id="position" name="position" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="location" class="form-label">Location</label>
+                <input type="text" class="form-control" id="location" name="location">
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="start_date" class="form-label">Start Date*</label>
+                  <input type="date" class="form-control" id="start_date" name="start_date" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="end_date" class="form-label">End Date</label>
+                  <input type="date" class="form-control" id="end_date" name="end_date">
+                </div>
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="current_job" name="current_job">
+                <label class="form-check-label" for="current_job">I currently work here</label>
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Add Experience</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Add Education Modal -->
+    <div class="modal fade" id="addEducationModal" tabindex="-1" aria-labelledby="addEducationModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addEducationModalLabel">Add Education</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form action="/profile/add-education" method="POST">
+              <div class="mb-3">
+                <label for="institution_name" class="form-label">Institution*</label>
+                <input type="text" class="form-control" id="institution_name" name="institution_name" required>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="degree" class="form-label">Degree*</label>
+                  <input type="text" class="form-control" id="degree" name="degree" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="field_of_study" class="form-label">Field of Study</label>
+                  <input type="text" class="form-control" id="field_of_study" name="field_of_study">
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="start_date" class="form-label">Start Date*</label>
+                  <input type="date" class="form-control" id="start_date" name="start_date" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="end_date" class="form-label">End Date</label>
+                  <input type="date" class="form-control" id="end_date" name="end_date">
+                </div>
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="current_education" name="current_education">
+                <label class="form-check-label" for="current_education">I am currently studying here</label>
+              </div>
+              <div class="mb-3">
+                <label for="grade" class="form-label">Grade</label>
+                <input type="text" class="form-control" id="grade" name="grade">
+              </div>
+              <div class="mb-3">
+                <label for="activities" class="form-label">Activities</label>
+                <input type="text" class="form-control" id="activities" name="activities">
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Add Education</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
 
     <footer class="bg-light py-3 mt-5">
@@ -264,6 +451,9 @@
         </div>
     </footer>
 
+    <!-- Add Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- Keep only the profile.js file since other scripts are in header -->
     <script src="/js/profile.js"></script>
 </body>
