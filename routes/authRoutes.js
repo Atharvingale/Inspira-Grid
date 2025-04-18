@@ -136,6 +136,9 @@ router.get("/signin", (req, res) => {
   });
 });
 
+// I'll fix the signin route POST handler that has the timeout implementation
+// but is currently incomplete
+
 // Signin route - POST
 router.post("/signin", async (req, res) => {
   try {
@@ -152,20 +155,57 @@ router.post("/signin", async (req, res) => {
     
     // Attempt to sign in
     try {
-      // Your existing authentication logic here
-      // ...
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
       // Clear the timeout if authentication succeeds
       clearTimeout(authTimeout);
       
-      // Set session and redirect
-      // ...
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (!userDoc.exists()) {
+        return res.render("signin", {
+          user: null,
+          error: "User account not found. Please sign up.",
+          title: "Sign In"
+        });
+      }
+      
+      const userData = userDoc.data();
+      
+      // Set session data
+      req.session.user = {
+        user_id: user.uid,
+        name: userData.name,
+        email: userData.email,
+        profile_pic: userData.profile_pic || null,
+        profile_complete: userData.profile_complete || false
+      };
+      
+      // Redirect to dashboard
+      res.redirect("/dashboard");
     } catch (authError) {
       // Clear the timeout if authentication fails
       clearTimeout(authTimeout);
       
       // Handle authentication error
-      // ...
+      let errorMessage = "Invalid email or password. Please try again.";
+      
+      if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (authError.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
+      } else {
+        console.error("Firebase auth error:", authError);
+      }
+      
+      res.render("signin", {
+        user: null,
+        error: errorMessage,
+        title: "Sign In"
+      });
     }
   } catch (error) {
     console.error("Signin error:", error);

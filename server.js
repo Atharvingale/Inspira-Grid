@@ -44,6 +44,7 @@ app.locals.db = db;
 app.use(cookieParser());
 
 // Session configuration with MongoDB store
+// Update the MongoStore creation with additional options
 app.use(session({
   name: process.env.SESSION_NAME || 'inspira_grid_session',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -54,7 +55,18 @@ app.use(session({
     collectionName: 'sessions',
     ttl: 86400, // 1 day in seconds
     autoRemove: 'native',
-    touchAfter: 3600 // Update session once per hour unless data changes
+    touchAfter: 3600, // Update session once per hour unless data changes
+    mongoOptions: {
+      ssl: true,
+      tls: true,
+      tlsAllowInvalidCertificates: false,
+      tlsAllowInvalidHostnames: false,
+      retryWrites: true,
+      w: 'majority',
+      maxIdleTimeMS: 10000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000
+    }
   }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
