@@ -186,3 +186,13 @@ app.use((req, res, next) => {
 
 // Add this before your session middleware
 app.use(cookieParser());
+
+// Flash messages middleware
+app.use((req, res, next) => {
+  res.locals.success_msg = req.session.success_msg;
+  res.locals.error_msg = req.session.error_msg;
+  res.locals.user = req.session.user;  // This makes user available to all views
+  delete req.session.success_msg;
+  delete req.session.error_msg;
+  next();
+});

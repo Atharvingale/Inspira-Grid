@@ -11,40 +11,12 @@
     <link rel="stylesheet" href="/css/project-details.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <div class="logo-container">
-                <img src="/images/logo.png" alt="Inspira Grid" class="logo-img" />
-                <span class="logo-text">Inspira Grid</span>
-            </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/projects"><i class="fas fa-project-diagram me-1"></i> Projects</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/teams"><i class="fas fa-users me-1"></i> Teams</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/messages"><i class="fas fa-comment-dots me-1"></i> Messages</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
-                            <span><%= user.name %></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- Include Navbar Partial -->
+    <%- include('./partials/header', { 
+        title: 'Projects', 
+        currentPage: 'projects',
+        cssFiles: ['dashboard']
+    }) %>
 
     <!-- Hero Section -->
     <div class="hero-section">
@@ -53,7 +25,7 @@
                 <h1 id="project-title"><%= project.title %></h1>
                 <div class="project-meta">
                     <div class="owner-info">
-                        <img src="<%= project.owner_pic || '/images/avatar-placeholder.jpg' %>" alt="<%= project.owner_name %>" class="owner-avatar">
+                        <img src="<%= project.owner_pic || '/images/user.jpg' %>" alt="<%= project.owner_name %>" class="owner-avatar">
                         <span class="owner-name"><%= project.owner_name %></span>
                         <span class="owner-badge">Owner</span>
                     </div>
@@ -109,7 +81,7 @@
                     <section class="project-updates card">
                         <h2>Project Updates</h2>
                         <div class="timeline">
-                            <% if (updates && updates.length > 0) { %>
+                            <% if (typeof updates !== 'undefined' && updates && updates.length > 0) { %>
                                 <% updates.forEach(update => { %>
                                     <div class="timeline-item">
                                         <div class="timeline-date"><%= update.formatted_date %></div>
@@ -147,7 +119,7 @@
                             <% if (comments && comments.length > 0) { %>
                                 <% comments.forEach(comment => { %>
                                     <div class="comment">
-                                        <img src="<%= comment.profile_pic || '/images/avatar-placeholder.jpg' %>" alt="<%= comment.author_name %>" class="comment-avatar">
+                                        <img src="<%= comment.profile_pic || '/images/user.jpg' %>" alt="<%= comment.author_name %>" class="comment-avatar">
                                         <div class="comment-content">
                                             <div class="comment-header">
                                                 <span class="comment-author"><%= comment.author_name %></span>
@@ -182,7 +154,7 @@
                             <% if (team && team.length > 0) { %>
                                 <% team.forEach(member => { %>
                                     <li class="team-member">
-                                        <img src="<%= member.profile_pic || '/images/avatar-placeholder.jpg' %>" alt="<%= member.name %>" class="member-avatar">
+                                        <img src="<%= member.profile_pic || '/images/user.jpg' %>" alt="<%= member.name %>" class="member-avatar">
                                         <div class="member-info">
                                             <span class="member-name"><%= member.name %></span>
                                             <span class="member-role"><%= member.role %></span>
