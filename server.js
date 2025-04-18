@@ -54,13 +54,22 @@ app.use(session({
     collectionName: 'sessions',
     ttl: 86400, // 1 day in seconds
     autoRemove: 'native',
-    touchAfter: 3600, // Update session once per hour unless data changes
-    mongoOptions: {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 30000
-    }
+    clientPromise: (async () => {
+      const { MongoClient } = await import('mongodb');
+      const client = new MongoClient(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 20000,
+        ssl: true,
+        tls: true,
+        tlsCAFile: undefined, // Let MongoDB driver handle CA
+        minPoolSize: 1,
+        maxPoolSize: 10
+      });
+      return client.connect();
+    })()
   }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
