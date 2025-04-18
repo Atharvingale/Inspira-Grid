@@ -28,6 +28,9 @@ import notificationRoutes from './routes/notificationRoutes.js';
 // Import middleware
 import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
 
+// Import the session maintenance middleware
+import { sessionMaintenance } from './middleware/session.js';
+
 // Add this import that was mentioned at the bottom of the file
 import initDatabase from './database/init.js';
 
@@ -41,19 +44,22 @@ app.locals.db = db;
 
 // Session configuration with MongoDB store
 app.use(session({
+  name: process.env.SESSION_NAME || 'inspira_grid_session',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions', // Name of the collection to store sessions
-    ttl: 24 * 60 * 60, // Session TTL (1 day in seconds)
-    autoRemove: 'native' // Use MongoDB's TTL index
+    collectionName: 'sessions',
+    ttl: parseInt(process.env.SESSION_MAX_AGE) / 1000 || 86400,
+    autoRemove: 'native',
+    touchAfter: 24 * 3600 // Only update the session once per day unless data changes
   }),
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    httpOnly: true, // Prevents client-side JS from reading the cookie
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours
+    sameSite: 'lax' // Helps with CSRF protection
   }
 }));
 
@@ -166,6 +172,9 @@ initDatabase().then(() => {
     console.log(`Server running on port ${port} (database initialization failed)`);
   });
 });
+
+// Apply session maintenance middleware
+app.use(sessionMaintenance);
 
 // Add this middleware after your session middleware but before your routes
 app.use((req, res, next) => {
