@@ -210,7 +210,7 @@ a:hover {
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, #4a6bff 0%, #6a8eff 100%);
+    background: linear-gradient(135deg, #4e54c8, #8f94fb);
     color: var(--white);
     padding: 60px 0 40px;
     margin-bottom: 30px;

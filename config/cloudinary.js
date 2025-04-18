@@ -2,6 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import dotenv from 'dotenv';
 
+// Load environment variables
 dotenv.config();
 
 // Configure Cloudinary
@@ -11,12 +12,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Create storage engine for multer
+// Create storage engine
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'inspira-grid-profiles',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
+    folder: 'inspira-grid',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
     transformation: [{ width: 500, height: 500, crop: 'limit' }]
   }
 });
