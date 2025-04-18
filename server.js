@@ -27,9 +27,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 
 // Import middleware
 import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
-
-// Import the session maintenance middleware
-import { sessionMaintenance } from './middleware/session.js';
+import { sessionMaintenance, timeoutHandler } from './middleware/session.js';
 
 // Add this import that was mentioned at the bottom of the file
 import initDatabase from './database/init.js';
@@ -42,6 +40,9 @@ const __dirname = path.dirname(__filename);
 // Make the database available to all routes
 app.locals.db = db;
 
+// Add cookie parser BEFORE session middleware
+app.use(cookieParser());
+
 // Session configuration with MongoDB store
 app.use(session({
   name: process.env.SESSION_NAME || 'inspira_grid_session',
@@ -51,17 +52,20 @@ app.use(session({
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     collectionName: 'sessions',
-    ttl: parseInt(process.env.SESSION_MAX_AGE) / 1000 || 86400,
+    ttl: 86400, // 1 day in seconds
     autoRemove: 'native',
-    touchAfter: 24 * 3600 // Only update the session once per day unless data changes
+    touchAfter: 3600 // Update session once per hour unless data changes
   }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours
+    maxAge: 86400000, // 24 hours (1 day) in milliseconds
     sameSite: 'lax' // Helps with CSRF protection
   }
 }));
+
+// Apply session maintenance middleware AFTER session setup but BEFORE routes
+app.use(sessionMaintenance);
 
 // Set view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -82,9 +86,46 @@ app.use((req, res, next) => {
   next();
 });
 
-// Make user data available to all views
+// Session backup/restore middleware
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+  // If session exists, proceed normally
+  if (req.session && req.session.user) {
+    res.locals.user = req.session.user;
+    
+    // Create a backup cookie with minimal user info
+    const basicUserInfo = {
+      user_id: req.session.user.user_id,
+      name: req.session.user.name,
+      email: req.session.user.email
+    };
+    res.cookie('user_basic', JSON.stringify(basicUserInfo), {
+      maxAge: 86400000, // 1 day
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+  } 
+  // If no session but backup cookie exists, restore minimal session
+  else if (req.cookies && req.cookies.user_basic) {
+    try {
+      const userData = JSON.parse(req.cookies.user_basic);
+      req.session.user = userData;
+      res.locals.user = userData;
+      console.log("Session restored from backup cookie for user:", userData.user_id);
+    } catch (e) {
+      console.error("Error parsing backup cookie:", e);
+    }
+  }
+  
+  next();
+});
+
+// Flash messages middleware
+app.use((req, res, next) => {
+  res.locals.success_msg = req.session.success_msg;
+  res.locals.error_msg = req.session.error_msg;
+  delete req.session.success_msg;
+  delete req.session.error_msg;
   next();
 });
 
@@ -171,44 +212,4 @@ initDatabase().then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port} (database initialization failed)`);
   });
-});
-
-// Apply session maintenance middleware
-app.use(sessionMaintenance);
-
-// Add this middleware after your session middleware but before your routes
-app.use((req, res, next) => {
-  // If session exists, proceed normally
-  if (req.session && req.session.user) {
-    res.locals.user = req.session.user;
-    return next();
-  }
-  
-  // If no session but backup cookie exists, restore minimal session
-  const userBasic = req.cookies && req.cookies.user_basic;
-  if (userBasic) {
-    try {
-      const userData = JSON.parse(userBasic);
-      req.session.user = userData;
-      res.locals.user = userData;
-      console.log("Session restored from backup cookie for user:", userData.id);
-    } catch (e) {
-      console.error("Error parsing backup cookie:", e);
-    }
-  }
-  
-  next();
-});
-
-// Add this before your session middleware
-app.use(cookieParser());
-
-// Flash messages middleware
-app.use((req, res, next) => {
-  res.locals.success_msg = req.session.success_msg;
-  res.locals.error_msg = req.session.error_msg;
-  res.locals.user = req.session.user;  // This makes user available to all views
-  delete req.session.success_msg;
-  delete req.session.error_msg;
-  next();
 });
