@@ -82,4 +82,19 @@ app.use(session({
   }
 }));
 
-// Rest of your server.js file remains the same
+// Import routes - update to import individual route files
+import indexRoutes from './routes/index.js';
+import authRoutes from './routes/authRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import applicationRoutes from './routes/applicationRoutes.js';
+import teamRoutes from './routes/teamRoutes.js';
+import resourceRoutes from './routes/resourceRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+
+// Import middleware
+import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
+
+// Add this import that was mentioned at the bottom of the file
+import initDatabase from './database/init.js';
