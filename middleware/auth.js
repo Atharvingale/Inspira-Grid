@@ -3,7 +3,12 @@ import { doc, getDoc } from 'firebase/firestore';
 
 // Middleware to check if user is authenticated
 export const isAuthenticated = (req, res, next) => {
+  // Log session info for debugging
+  console.log('Session check:', req.session.id, req.session.user ? 'User exists' : 'No user');
+  
   if (req.session && req.session.user) {
+    // Touch the session to refresh the cookie
+    req.session.touch();
     return next();
   }
   res.redirect("/signin?error=Please sign in to continue");
@@ -21,6 +26,8 @@ export const checkProfileComplete = async (req, res, next) => {
     
     // If we already know the profile completion status from the session, use that
     if (req.session.user.profile_complete === true) {
+      // Touch the session to refresh the cookie
+      req.session.touch();
       return next();
     }
     
@@ -40,6 +47,9 @@ export const checkProfileComplete = async (req, res, next) => {
     
     // Update the session with the current profile_complete status
     req.session.user.profile_complete = isComplete;
+    
+    // Touch the session to refresh the cookie
+    req.session.touch();
     
     // If profile is incomplete, redirect to complete profile page
     if (!isComplete) {

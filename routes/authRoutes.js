@@ -137,6 +137,7 @@ router.get("/signin", (req, res) => {
 });
 
 // Signin route - POST
+// Add this to your signin POST route
 router.post("/signin", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -183,42 +184,34 @@ router.post("/signin", async (req, res) => {
     const isComplete = user.title && user.bio;
     
     // Set session data
+    // When setting the session, be explicit about saving it
     req.session.user = {
-      user_id: user.user_id,
-      name: user.name,
-      email: user.email,
-      profile_complete: isComplete,
-      profile_pic: user.profile_pic || '/images/user.jpg'
+      user_id: user.uid,
+      name: userData.name,
+      email: userData.email,
+      profile_pic: userData.profile_pic || null,
+      profile_complete: isProfileComplete,
+      // Add any other user data you need
     };
     
-    // Force session save and use a callback approach for Vercel
-    req.session.save((err) => {
+    // Force session save before redirecting
+    req.session.save(err => {
       if (err) {
-        console.error("Error saving session:", err);
+        console.error("Session save error:", err);
         return res.render("signin", {
           user: null,
-          error: "An error occurred during sign in",
-          success: null,
+          error: "Authentication error. Please try again.",
           title: "Sign In"
         });
       }
       
-      // Set a cookie with minimal user info as backup
-      res.cookie('user_basic', JSON.stringify({
-        id: user.user_id,
-        name: user.name
-      }), { 
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      
-      // Redirect based on profile completion
-      if (!isComplete) {
+      // Redirect after successful session save
+      if (!isProfileComplete) {
         return res.redirect("/profile/complete");
       }
       return res.redirect("/dashboard");
     });
+    
   } catch (error) {
     console.error("Signin error:", error);
     
