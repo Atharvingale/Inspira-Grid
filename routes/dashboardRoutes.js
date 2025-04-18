@@ -7,7 +7,16 @@ import {
 
 import { db } from '../config/firebase.js';
 
-router.get("/dashboard", async (req, res) => {
+// Add authentication middleware
+const isAuthenticated = (req, res, next) => {
+  if (!req.session.user) {
+    return res.redirect('/signin?error=Please sign in to access the dashboard');
+  }
+  next();
+};
+
+// Apply middleware to dashboard route
+router.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.user_id;
 
@@ -225,7 +234,7 @@ router.get("/dashboard", async (req, res) => {
     res.status(500).render("dashboard", {
       title: "Dashboard",
       currentPage: "dashboard",
-      user: req.session.user,
+      user: req.session.user || {}, // Provide a default empty user object
       projectCount: 0,
       applicationCount: 0,
       recentProjects: [],

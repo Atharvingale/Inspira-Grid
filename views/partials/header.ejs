@@ -34,18 +34,20 @@
                     <!-- Removed profile nav item as it's already in the dropdown menu -->
                 </ul>
                 <div class="d-flex align-items-center">
-                    <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
-                            <span><%= user.name %></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
-                            <li><a class="dropdown-item" href="/profile/edit"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/signout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                        </ul>
-                    </div>
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
+                                <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
+                                <span><%= user.name %></span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <!-- dropdown menu items -->
+                            </ul>
+                        </div>
+                    <% } else { %>
+                        <a href="/signin" class="btn btn-primary">Sign In</a>
+                        <a href="/signup" class="btn btn-outline-primary ms-2">Sign Up</a>
+                    <% } %>
                 </div>
             </div>
         </div>
