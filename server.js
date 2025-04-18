@@ -54,7 +54,13 @@ app.use(session({
     collectionName: 'sessions',
     ttl: 86400, // 1 day in seconds
     autoRemove: 'native',
-    touchAfter: 3600 // Update session once per hour unless data changes
+    touchAfter: 3600, // Update session once per hour unless data changes
+    mongoOptions: {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000
+    }
   }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
