@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import session from 'express-session';
+import cookieSession from 'cookie-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -41,18 +41,15 @@ const __dirname = path.dirname(__filename);
 // Make the database available to all routes
 app.locals.db = db;
 
-// Updated session configuration for Vercel
+// Use cookie-session instead of express-session
 app.use(cookieParser());
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    httpOnly: true, // Prevents client-side JS from reading the cookie
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: 'lax' // Helps with CSRF protection
-  }
+app.use(cookieSession({
+  name: 'session',
+  keys: [process.env.SESSION_SECRET || 'your-secret-key'],
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  secure: process.env.NODE_ENV === 'production',
+  httpOnly: true,
+  sameSite: 'lax'
 }));
 
 // Middleware

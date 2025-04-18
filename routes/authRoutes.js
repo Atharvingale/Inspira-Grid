@@ -31,9 +31,6 @@ router.get("/signup", (req, res) => {
 });
 // Signup route - POST
 router.post("/signup", async (req, res) => {
-  // Log the received email at the start of the request
-  console.log("Signup attempt received for email:", req.body.email); // Log incoming email
-
   try {
     const { name, email, password, confirmPassword, skills } = req.body;
 
@@ -81,38 +78,26 @@ router.post("/signup", async (req, res) => {
     });
     console.log(`Firestore doc created successfully for user: ${user.uid}`); // Log success
 
-    // Set session
+    // Set session directly
     req.session.user = {
       user_id: user.uid,
       name,
       email
     };
     
-    // Force session save and use a callback approach for Vercel
-    req.session.save((err) => {
-      if (err) {
-        console.error("Error saving session:", err);
-        return res.render("signup", {
-          user: null,
-          error: "Account created but session could not be established. Please sign in.",
-          title: "Sign Up",
-          success: null
-        });
-      }
-      
-      // Set a cookie with minimal user info as backup
-      res.cookie('user_basic', JSON.stringify({
-        id: user.uid,
-        name: name
-      }), { 
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      
-      console.log(`Session saved, redirecting user: ${user.uid}`);
-      res.redirect("/dashboard");
+    // Set backup cookie
+    res.cookie('user_basic', JSON.stringify({
+      id: user.uid,
+      name: name
+    }), { 
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
     });
+    
+    // Redirect to dashboard
+    res.redirect("/dashboard");
+    
   } catch (error) {
     // Log the detailed error object from Firebase for better diagnosis
     console.error("Detailed Signup Error Object:", JSON.stringify(error, null, 2)); // Log the full error object
@@ -201,33 +186,30 @@ router.post("/signin", async (req, res) => {
     // Check if profile is complete
     const isProfileComplete = userData.title && userData.bio;
     
-    // Set session data
+    // Set session data directly (no need for save with cookie-session)
     req.session.user = {
       user_id: firebaseUser.uid,
       name: userData.name,
       email: userData.email,
       profile_pic: userData.profile_pic || null,
-      profile_complete: isProfileComplete,
-      // Add any other user data you need
+      profile_complete: isProfileComplete
     };
     
-    // Force session save before redirecting
-    req.session.save(err => {
-      if (err) {
-        console.error("Session save error:", err);
-        return res.render("signin", {
-          user: null,
-          error: "Authentication error. Please try again.",
-          title: "Sign In"
-        });
-      }
-      
-      // Redirect after successful session save
-      if (!isProfileComplete) {
-        return res.redirect("/profile/complete");
-      }
-      return res.redirect("/dashboard");
+    // Set backup cookie
+    res.cookie('user_basic', JSON.stringify({
+      id: firebaseUser.uid,
+      name: userData.name
+    }), { 
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
     });
+    
+    // Redirect based on profile completion
+    if (!isProfileComplete) {
+      return res.redirect("/profile/complete");
+    }
+    return res.redirect("/dashboard");
     
   } catch (error) {
     console.error("Signin error:", error);
