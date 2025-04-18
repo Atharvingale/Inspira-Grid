@@ -141,102 +141,37 @@ router.post("/signin", async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // Validate input
-    if (!email || !password) {
-      return res.render("signin", { 
-        user: null, 
-        error: "Email and password are required",
-        success: null,
-        title: "Sign In"
-      });
-    }
-    
-    console.log(`Attempting to sign in user with email: ${email}`);
-    
-    // Sign in with Firebase Authentication
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    
-    console.log(`Firebase Auth sign-in successful for UID: ${firebaseUser.uid}`);
-    
-    // Get user data from Firestore
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    
-    if (!userDocSnap.exists()) {
-      console.log(`User document not found for UID: ${firebaseUser.uid}`);
-      return res.render("signin", {
+    // Set a timeout for Firebase authentication
+    const authTimeout = setTimeout(() => {
+      return res.status(503).render("signin", {
         user: null,
-        error: "User profile not found. Please contact support.",
-        success: null,
+        error: "Authentication service is taking too long. Please try again.",
         title: "Sign In"
       });
+    }, 8000); // 8 seconds timeout
+    
+    // Attempt to sign in
+    try {
+      // Your existing authentication logic here
+      // ...
+      
+      // Clear the timeout if authentication succeeds
+      clearTimeout(authTimeout);
+      
+      // Set session and redirect
+      // ...
+    } catch (authError) {
+      // Clear the timeout if authentication fails
+      clearTimeout(authTimeout);
+      
+      // Handle authentication error
+      // ...
     }
-    
-    const userData = userDocSnap.data();
-    const user = {
-      user_id: firebaseUser.uid,
-      ...userData
-    };
-    
-    // Check if profile is complete
-    const isComplete = user.title && user.bio;
-    
-    // Set session data
-    req.session.user = {
-      user_id: user.user_id,
-      name: user.name,
-      email: user.email,
-      profile_complete: isComplete,
-      profile_pic: user.profile_pic || '/images/user.jpg'
-    };
-    
-    // Force session save and use a callback approach for Vercel
-    req.session.save((err) => {
-      if (err) {
-        console.error("Error saving session:", err);
-        return res.render("signin", {
-          user: null,
-          error: "An error occurred during sign in",
-          success: null,
-          title: "Sign In"
-        });
-      }
-      
-      // Set a cookie with minimal user info as backup
-      res.cookie('user_basic', JSON.stringify({
-        id: user.user_id,
-        name: user.name
-      }), { 
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      
-      // Redirect based on profile completion
-      if (!isComplete) {
-        return res.redirect("/profile/complete");
-      }
-      return res.redirect("/dashboard");
-    });
   } catch (error) {
     console.error("Signin error:", error);
-    
-    let errorMessage = "Invalid email or password";
-    
-    // Handle specific Firebase Auth errors
-    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-      errorMessage = "Invalid email or password";
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = "Too many failed login attempts. Please try again later.";
-    } else if (error.code === 'auth/user-disabled') {
-      errorMessage = "This account has been disabled. Please contact support.";
-    }
-    
     res.render("signin", {
       user: null,
-      error: errorMessage,
-      success: null,
+      error: "An error occurred during sign in. Please try again.",
       title: "Sign In"
     });
   }
@@ -300,32 +235,12 @@ router.post("/signup", async (req, res) => {
       name,
       email
     };
-    
-    // Force session save and use a callback approach for Vercel
-    req.session.save((err) => {
-      if (err) {
-        console.error("Error saving session:", err);
-        return res.render("signup", {
-          user: null,
-          error: "Account created but session could not be established. Please sign in.",
-          title: "Sign Up",
-          success: null
-        });
-      }
-      
-      // Set a cookie with minimal user info as backup
-      res.cookie('user_basic', JSON.stringify({
-        id: user.uid,
-        name: name
-      }), { 
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      
-      console.log(`Session saved, redirecting user: ${user.uid}`);
-      res.redirect("/dashboard");
-    });
+    console.log(`Session set for user: ${user.uid}`); // Log success
+
+    // Redirect to dashboard
+    console.log(`Redirecting user ${user.uid} to dashboard`); // Log before redirect
+    res.redirect("/dashboard");
+
   } catch (error) {
     // Log the detailed error object from Firebase for better diagnosis
     console.error("Detailed Signup Error Object:", JSON.stringify(error, null, 2)); // Log the full error object

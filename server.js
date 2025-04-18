@@ -129,7 +129,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use routes
+// Apply timeout handler to ALL routes to prevent timeouts
+app.use(timeoutHandler);
+
+// Use routes with timeout handling
 app.use(authRoutes); // Auth routes should be applied before profile completion check
 app.use(indexRoutes); // Add the index routes
 
