@@ -1,7 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import session from 'express-session';
-import MongoStore from 'connect-mongo';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -41,7 +40,6 @@ const __dirname = path.dirname(__filename);
 // Make the database available to all routes
 app.locals.db = db;
 
-
 // Session configuration with custom Firebase store
 app.use(session({
   store: new FirebaseSessionStore({
@@ -52,12 +50,6 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions', // Name of the collection to store sessions
-    ttl: 24 * 60 * 60, // Session TTL (1 day in seconds)
-    autoRemove: 'native' // Use MongoDB's TTL index
-  }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,

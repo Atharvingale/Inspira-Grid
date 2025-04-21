@@ -16,7 +16,7 @@ router.use((req, res, next) => {
   console.log(`Auth Route: ${req.method} ${req.path}`);
   next();
 });
-
+//
 // Signup route - GET
 router.get("/signup", (req, res) => {
   if (req.session.user) {
