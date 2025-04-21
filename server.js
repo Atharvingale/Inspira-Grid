@@ -13,6 +13,8 @@ dotenv.config();
 
 // Import database configuration
 import db from './config/database.js';
+import { db as firestoreDb } from './config/firebase.js';
+import FirebaseSessionStore from './config/firebaseSessionStore.js';
 
 // Import routes - update to import individual route files
 import indexRoutes from './routes/index.js';
@@ -39,8 +41,14 @@ const __dirname = path.dirname(__filename);
 // Make the database available to all routes
 app.locals.db = db;
 
-// Session configuration with MongoDB store
+
+// Session configuration with custom Firebase store
 app.use(session({
+  store: new FirebaseSessionStore({
+    db: firestoreDb,
+    collection: 'sessions',
+    ttl: 86400 // 24 hours in seconds
+  }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
@@ -51,8 +59,8 @@ app.use(session({
     autoRemove: 'native' // Use MongoDB's TTL index
   }),
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    httpOnly: true, // Prevents client-side JS from reading the cookie
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
