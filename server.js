@@ -291,13 +291,15 @@ app.use((req, res) => {
   }
 });
 
-// Error handling middleware
+// Enhanced error handling middleware for Vercel
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
+  console.error('Server error details:', err);
   try {
     res.status(500).render("error", {
       user: req.session.user || null,
-      error: "An unexpected error occurred. Please try again later.",
+      error: process.env.NODE_ENV === 'production' ? 
+        "An unexpected error occurred. Please try again later." : 
+        err.message || "Unknown error",
       title: "Server Error"
     });
   } catch (renderErr) {
@@ -308,18 +310,24 @@ app.use((err, req, res, next) => {
 
 // Initialize database tables
 initDatabase().then(() => {
-  // Start the server
-  httpServer.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+  // Only start the server in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    httpServer.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  }
 }).catch(err => {
   console.error('Failed to initialize database:', err);
-  // Start the server anyway
-  httpServer.listen(port, () => {
-    console.log(`Server running on port ${port} (database initialization failed)`);
-  });
+  // Only start the server in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    httpServer.listen(port, () => {
+      console.log(`Server running on port ${port} (database initialization failed)`);
+    });
+  }
 });
 
+// Add this for Vercel serverless deployment
+export default app;
 // Add this middleware after your session middleware but before your routes
 app.use((req, res, next) => {
   // If session exists, proceed normally
@@ -344,8 +352,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add this before your session middleware
+// Add cookieParser before session middleware
 app.use(cookieParser());
+
+// Session configuration with custom Firebase store
+app.use(session({
+  store: new FirebaseSessionStore({
+    db: db,
+    collection: 'sessions',
+    ttl: 86400 // 24 hours in seconds
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Flash messages middleware
 app.use((req, res, next) => {
