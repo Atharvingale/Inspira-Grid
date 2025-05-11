@@ -6,13 +6,15 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { db } from './config/firebase.js';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 // Load environment variables
 dotenv.config();
 
-// Import database configuration
-import db from './config/database.js';
-import { db as firestoreDb } from './config/firebase.js';
+
 import FirebaseSessionStore from './config/firebaseSessionStore.js';
 
 // Import routes - update to import individual route files
@@ -25,6 +27,11 @@ import applicationRoutes from './routes/applicationRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import apiRoutes from './routes/apiRoutes.js';
+import helpRoutes from './routes/helpRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 // Import middleware
 import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
@@ -33,6 +40,15 @@ import { isAuthenticated, checkProfileComplete } from './middleware/auth.js';
 import initDatabase from './database/init.js';
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.NODE_ENV === 'production' ? 'https://inspiragrid.com' : 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+
 const port = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,7 +59,7 @@ app.locals.db = db;
 // Session configuration with custom Firebase store
 app.use(session({
   store: new FirebaseSessionStore({
-    db: firestoreDb,
+    db: db,
     collection: 'sessions',
     ttl: 86400 // 24 hours in seconds
   }),
@@ -82,6 +98,137 @@ app.use((req, res, next) => {
   next();
 });
 
+// Socket.io middleware
+io.use((socket, next) => {
+    const session = socket.handshake.auth.session;
+    if (session && session.user) {
+        socket.user = session.user;
+        next();
+    } else {
+        next(new Error('Authentication error'));
+    }
+});
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.user.user_id);
+    
+    // Join user's personal room
+    socket.join(socket.user.user_id);
+    
+    // Handle sending messages
+    socket.on('send_message', async (data) => {
+        try {
+            console.log('Received message:', data);
+            
+            // Get recipient's details
+            const recipientDoc = await getDoc(doc(db, 'users', data.recipientId));
+            if (!recipientDoc.exists()) {
+                throw new Error('Recipient not found');
+            }
+            
+            const recipientData = recipientDoc.data();
+            
+            // Create message document
+            const messageData = {
+                sender: socket.user.user_id,
+                recipient: data.recipientId,
+                content: data.content,
+                read: false,
+                participants: [socket.user.user_id, data.recipientId],
+                createdAt: serverTimestamp()
+            };
+            
+            const messageRef = await addDoc(collection(db, 'messages'), messageData);
+            console.log('Message saved with ID:', messageRef.id);
+            
+            // Get the complete message data
+            const messageDoc = await getDoc(messageRef);
+            const completeMessage = {
+                id: messageRef.id,
+                ...messageDoc.data(),
+                sender: {
+                    user_id: socket.user.user_id,
+                    username: socket.user.name
+                },
+                recipient: {
+                    user_id: data.recipientId,
+                    username: recipientData.name
+                },
+                tempId: data.tempId
+            };
+            
+            // Emit to sender
+            socket.emit('new_message', completeMessage);
+            
+            // Emit to recipient
+            socket.to(data.recipientId).emit('new_message', completeMessage);
+            
+            // Update conversation list for both users
+            const conversationData = {
+                user: {
+                    user_id: data.recipientId,
+                    username: recipientData.name,
+                    profile_pic: recipientData.profile_pic
+                },
+                lastMessage: {
+                    content: data.content,
+                    createdAt: messageData.createdAt,
+                    read: false
+                }
+            };
+            
+            // Emit conversation update to sender
+            socket.emit('conversation_update', conversationData);
+            
+            // Emit conversation update to recipient
+            socket.to(data.recipientId).emit('conversation_update', {
+                user: {
+                    user_id: socket.user.user_id,
+                    username: socket.user.name,
+                    profile_pic: socket.user.profile_pic
+                },
+                lastMessage: {
+                    content: data.content,
+                    createdAt: messageData.createdAt,
+                    read: false
+                }
+            });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            socket.emit('error', { message: error.message });
+        }
+    });
+    
+    // Handle typing status
+    socket.on('typing', (data) => {
+        socket.to(data.recipientId).emit('user_typing', {
+            userId: socket.user.user_id,
+            username: socket.user.name
+        });
+    });
+    
+    // Handle message read status
+    socket.on('mark_read', async (data) => {
+        try {
+            const messageRef = doc(db, 'messages', data.messageId);
+            await updateDoc(messageRef, { read: true });
+            
+            socket.to(data.senderId).emit('message_read', {
+                messageId: data.messageId
+            });
+        } catch (error) {
+            console.error('Error marking message as read:', error);
+            socket.emit('error', { message: error.message });
+        }
+    });
+    
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.user.user_id);
+    });
+});
+
 // Use routes
 app.use(authRoutes); // Auth routes should be applied before profile completion check
 app.use(indexRoutes); // Add the index routes
@@ -91,7 +238,8 @@ app.use('/dashboard', isAuthenticated, checkProfileComplete);
 app.use('/projects', isAuthenticated, checkProfileComplete);
 app.use('/teams', isAuthenticated, checkProfileComplete);
 app.use('/resources', isAuthenticated, checkProfileComplete);
-app.use('/messages', isAuthenticated, checkProfileComplete);
+app.use('/analytics', isAuthenticated, checkProfileComplete);
+app.use('/help', isAuthenticated, checkProfileComplete);
 
 // Profile routes need special handling
 app.use('/profile', (req, res, next) => {
@@ -114,6 +262,11 @@ app.use(applicationRoutes);
 app.use(teamRoutes);
 app.use(resourceRoutes);
 app.use(notificationRoutes);
+app.use(searchRoutes);
+app.use(analyticsRoutes);
+app.use('/api', apiRoutes);
+app.use(helpRoutes);
+app.use(messageRoutes);
 
 // Home route
 app.get("/", (req, res) => {
@@ -156,13 +309,13 @@ app.use((err, req, res, next) => {
 // Initialize database tables
 initDatabase().then(() => {
   // Start the server
-  app.listen(port, () => {
+  httpServer.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);
   // Start the server anyway
-  app.listen(port, () => {
+  httpServer.listen(port, () => {
     console.log(`Server running on port ${port} (database initialization failed)`);
   });
 });
