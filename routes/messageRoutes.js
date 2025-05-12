@@ -2,8 +2,8 @@ import express from 'express';
 import { db } from '../config/firebase.js';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, orderBy, serverTimestamp, limit, startAfter, getDoc } from 'firebase/firestore';
 import { isAuthenticated } from '../middleware/auth.js';
-import Message from '../models/message.js';
-import User from '../models/user.js';
+import Message from '../models/Message.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
