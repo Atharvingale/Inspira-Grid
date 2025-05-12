@@ -16,23 +16,24 @@
     <% } %>
     <!-- Fix for passive event listener warning -->
     <script>
-        // Add passive support for all touch events
-        jQuery.event.special.touchstart = {
-            setup: function( _, ns, handle ) {
-                this.addEventListener("touchstart", handle, { passive: true });
-            }
-        };
-        jQuery.event.special.touchmove = {
-            setup: function( _, ns, handle ) {
-                this.addEventListener("touchmove", handle, { passive: true });
-            }
-        };
-        jQuery.event.special.touchend = {
-            setup: function( _, ns, handle ) {
-                this.addEventListener("touchend", handle, { passive: true });
-            }
-        };
+        // Override addEventListener to make touch events passive by default
+        document.addEventListener('DOMContentLoaded', function() {
+            const originalAddEventListener = EventTarget.prototype.addEventListener;
+            EventTarget.prototype.addEventListener = function(type, listener, options) {
+                if (type === 'touchstart' || type === 'touchmove' || type === 'touchend') {
+                    let passiveOptions = options;
+                    if (passiveOptions === undefined || passiveOptions === false) {
+                        passiveOptions = { passive: true };
+                    } else if (typeof passiveOptions === 'object') {
+                        passiveOptions = { ...passiveOptions, passive: true };
+                    }
+                    return originalAddEventListener.call(this, type, listener, passiveOptions);
+                }
+                return originalAddEventListener.call(this, type, listener, options);
+            };
+        });
     </script>
+    <link rel="icon" type="image/x-icon" href="/public/images/logo.ico">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
