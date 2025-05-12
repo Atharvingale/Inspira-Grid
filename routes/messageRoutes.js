@@ -2,8 +2,8 @@ import express from 'express';
 import { db } from '../config/firebase.js';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, orderBy, serverTimestamp, limit, startAfter, getDoc } from 'firebase/firestore';
 import { isAuthenticated } from '../middleware/auth.js';
-import Message from '../models/Message.js'; // Changed from message.js to Message.js
-import User from '../models/User.js';
+import Message from '../models/message.js';
+import User from '../models/user.js';
 
 const router = express.Router();
 
@@ -394,4 +394,4 @@ router.post('/mark-read/:messageId', isAuthenticated, async (req, res) => {
     }
 });
 
-export default router;
+export default router; 
