@@ -1,177 +1,653 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspira Grid Messages</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/shared.css">
-    <link rel="stylesheet" href="/css/messages.css">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <div class="logo-container">
-                <img src="/images/logo.png" alt="Inspira Grid" class="logo-img" />
-                <span class="logo-text">Inspira Grid</span>
-            </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/projects"><i class="fas fa-project-diagram me-1"></i> Projects</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/teams"><i class="fas fa-users me-1"></i> Teams</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/messages"><i class="fas fa-comment-dots me-1"></i> Messages</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
-                            <img src="<%= user.profile_pic || '/images/user.jpg' %>" class="rounded-circle me-2" width="32" height="32">
-                            <span><%= user.name %></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+<%- include('partials/header') %>
 
-    <div class="container py-4">
-        <div class="messaging-container">
-            <div class="row g-0">
-                <!-- Contacts Sidebar -->
-                <div class="col-md-4 col-lg-3 contacts-sidebar">
-                    <div class="contacts-header">
-                        <h5 class="mb-0">Messages</h5>
-                        <button class="btn btn-sm action-btn action-btn-primary">
-                            <i class="fas fa-plus"></i> New Message
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Conversations List -->
+        <div class="col-md-4 border-end">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><%= user.name %></h5>
+                <button class="btn btn-link text-dark p-0" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                    <i class="fas fa-edit fa-lg"></i>
                         </button>
+            </div>
+
+            <div class="conversations-list" style="height: calc(100vh - 200px); overflow-y: auto;">
+                <% if (conversations && conversations.length > 0) { %>
+                    <% conversations.forEach(conv => { %>
+                        <a href="/messages/<%= conv.user.user_id %>" 
+                           class="conversation-item d-flex align-items-center p-3 text-decoration-none text-dark <%= conv.user.user_id === selectedUserId ? 'active' : '' %>"
+                           data-conversation-id="<%= conv.user.user_id %>">
+                            <div class="avatar-circle me-3">
+                                <% if (conv.user.profile_pic) { %>
+                                    <img src="<%= conv.user.profile_pic %>" alt="<%= conv.user.username %>" class="rounded-circle">
+                                <% } else { %>
+                                    <%= conv.user.username.charAt(0).toUpperCase() %>
+                                <% } %>
                     </div>
-                    <div class="search-box mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0">
-                                <i class="fas fa-search text-muted"></i>
-                            </span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search contacts...">
-                        </div>
-                    </div>
-                    <div class="contacts-list">
-                        <% contacts.forEach(function(contact, index) { %>
-                        <div class="contact-item <%= contact.isActive ? 'active' : '' %> <%= contact.unreadCount > 0 ? 'unread' : '' %>">
-                            <div class="d-flex align-items-center">
-                                <div class="position-relative">
-                                    <img src="<%= contact.profile_pic %>" class="rounded-circle" width="48" height="48">
-                                    <% if (contact.isOnline) { %>
-                                    <span class="online-indicator"></span>
-                                    <% } %>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><%= conv.user.username %></h6>
+                                    <small class="text-muted">
+                                        <%= new Date(conv.lastMessage.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                    </small>
                                 </div>
-                                <div class="ms-3 flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0"><%= contact.name %></h6>
-                                        <small class="text-muted"><%= contact.lastMessageTime %></small>
-                                    </div>
-                                    <p class="text-truncate mb-0 small">
-                                        <%= contact.lastMessage %>
+                                <p class="mb-0 text-truncate" style="max-width: 200px;">
+                                    <%= conv.lastMessage.content %>
                                     </p>
                                 </div>
-                                <% if (contact.unreadCount > 0) { %>
-                                <div class="ms-2">
-                                    <span class="badge rounded-pill bg-primary"><%= contact.unreadCount %></span>
+                            <% if (conv.unread > 0) { %>
+                                <span class="badge bg-primary rounded-pill ms-2"><%= conv.unread %></span>
+                            <% } %>
+                        </a>
+                    <% }); %>
+                <% } else { %>
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-comments fa-3x mb-3"></i>
+                        <p>No conversations yet</p>
+                        <p class="small">Start a conversation by clicking the compose button</p>
                                 </div>
                                 <% } %>
                             </div>
+        </div>
+
+        <!-- Chat Window -->
+        <div class="col-md-8 d-flex flex-column" style="height: calc(100vh - 100px);">
+            <% if (selectedUserId) { %>
+                <div class="chat-header border-bottom p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-3">
+                            <% if (selectedUser && selectedUser.profile_pic) { %>
+                                <img src="<%= selectedUser.profile_pic %>" alt="<%= selectedUsername %>" class="rounded-circle">
+                            <% } else { %>
+                                <%= selectedUsername.charAt(0).toUpperCase() %>
+                            <% } %>
                         </div>
-                        <% }); %>
+                        <h5 class="mb-0"><%= selectedUsername %></h5>
                     </div>
                 </div>
                 
-                <!-- Chat Area -->
-                <div class="col-md-8 col-lg-9 chat-area">
-                    <% if (activeContact) { %>
-                    <div class="chat-header">
-                        <div class="d-flex align-items-center">
-                            <div class="position-relative">
-                                <img src="<%= activeContact.profile_pic %>" class="rounded-circle" width="48" height="48">
-                                <% if (activeContact.isOnline) { %>
-                                <span class="online-indicator"></span>
+                <div class="chat-messages flex-grow-1 p-3" id="chatMessages" style="overflow-y: auto;">
+                    <div class="d-flex flex-column">
+                        <% if (messages && messages.length > 0) { %>
+                            <% messages.forEach(message => { %>
+                                <div class="message-bubble <%= message.sender.user_id === user.user_id ? 'sent' : 'received' %>" data-message-id="<%= message.id %>">
+                                    <div class="message-content">
+                                        <%= message.content %>
+                                        <small class="message-time">
+                                            <%= message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '' %>
+                                            <% if (message.sender.user_id === user.user_id) { %>
+                                                <i class="fas fa-check-double <%= message.read ? 'text-primary' : 'text-muted' %> ms-1"></i>
                                 <% } %>
-                            </div>
-                            <div class="ms-3">
-                                <h5 class="mb-0"><%= activeContact.name %></h5>
-                                <small class="text-muted">
-                                    <%= activeContact.isOnline ? 'Online' : 'Last seen ' + activeContact.lastSeen %>
                                 </small>
                             </div>
-                        </div>
-                        <div class="chat-actions">
-                            <button class="btn btn-sm btn-light rounded-circle" title="Voice Call">
-                                <i class="fas fa-phone"></i>
-                            </button>
-                            <button class="btn btn-sm btn-light rounded-circle" title="Video Call">
-                                <i class="fas fa-video"></i>
-                            </button>
-                            <button class="btn btn-sm btn-light rounded-circle" title="More Options">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="chat-messages">
-                        <% messages.forEach(function(message) { %>
-                        <div class="message <%= message.isFromMe ? 'message-out' : 'message-in' %>">
-                            <div class="message-content">
-                                <p><%= message.text %></p>
-                                <div class="message-meta">
-                                    <small class="text-muted"><%= message.time %></small>
-                                    <% if (message.isFromMe) { %>
-                                    <i class="fas fa-check-double <%= message.isRead ? 'text-primary' : 'text-muted' %>"></i>
-                                    <% } %>
                                 </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="text-center text-muted py-5">
+                                <p>No messages yet</p>
+                                <p class="small">Send a message to start the conversation</p>
                             </div>
-                        </div>
-                        <% }); %>
+                        <% } %>
+                    </div>
                     </div>
                     
-                    <div class="chat-input">
-                        <div class="input-group">
-                            <button class="btn btn-light" type="button">
-                                <i class="fas fa-paperclip"></i>
-                            </button>
-                            <input type="text" class="form-control" placeholder="Type a message...">
-                            <button class="btn action-btn action-btn-primary" type="button">
+                <div class="chat-input p-3 border-top">
+                    <form id="messageForm" class="d-flex align-items-center">
+                        <input type="text" class="form-control me-2" id="messageInput" 
+                               placeholder="Message..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary rounded-circle">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
+                    </form>
+                </div>
+            <% } else { %>
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-comments fa-3x mb-3"></i>
+                    <p>Select a conversation or start a new one</p>
+                </div>
+            <% } %>
                         </div>
                     </div>
-                    <% } else { %>
-                    <div class="no-chat-selected">
-                        <div class="text-center">
-                            <div class="mb-4">
-                                <i class="fas fa-comment-dots fa-4x text-muted"></i>
                             </div>
-                            <h4>Select a conversation</h4>
-                            <p class="text-muted">Choose from your existing conversations or start a new one</p>
-                            <button class="btn action-btn action-btn-primary mt-3">
-                                <i class="fas fa-plus me-2"></i> New Message
-                            </button>
+
+<!-- New Message Modal -->
+<div class="modal fade" id="newMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="userSearch" 
+                               placeholder="Search users...">
                     </div>
-                    <% } %>
+                    <div id="searchResults" class="list-group mt-2" style="max-height: 300px; overflow-y: auto;"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/messages.js"></script>
-</body>
-</html>
+<style>
+.avatar-circle {
+    width: 44px;
+    height: 44px;
+    background-color: #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #495057;
+    overflow: hidden;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.conversation-item {
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.conversation-item:hover {
+    background-color: #f8f9fa;
+}
+
+.conversation-item.active {
+    background-color: #f8f9fa;
+}
+
+.message-bubble {
+    max-width: 70%;
+    margin-bottom: 1rem;
+}
+
+.message-bubble.sent {
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.message-bubble.received {
+    align-self: flex-start;
+    margin-right: auto;
+}
+
+.message-content {
+    padding: 0.75rem 1rem;
+    border-radius: 1.5rem;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.sent .message-content {
+    background-color: #0095f6;
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.received .message-content {
+    background-color: #f8f9fa;
+    color: #212529;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.sent .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.received .message-time {
+    color: #6c757d;
+}
+
+.chat-input input {
+    border-radius: 1.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.chat-input button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.typing-indicator {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+}
+
+.chat-header {
+    background-color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+</style>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+let socket;
+let selectedUserId = '<%= selectedUserId %>';
+let selectedUsername = '<%= selectedUsername %>';
+let typingTimeout;
+
+// Initialize Socket.io
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize socket with proper user data
+    socket = io({
+        auth: {
+            session: {
+                user: JSON.parse('<%- JSON.stringify(user) %>')
+            }
+        }
+    });
+
+    // Handle new message
+    socket.on('new_message', (message) => {
+        console.log('Received new message:', message);
+        
+        // Check if this is a response to our temporary message
+        if (message.tempId) {
+            // Replace temporary message with real message
+            const tempMessage = document.querySelector(`[data-message-id="${message.tempId}"]`);
+            if (tempMessage) {
+                tempMessage.remove();
+            }
+        }
+        
+        // Only append if it's for the current conversation
+        if (message.sender.user_id === selectedUserId || message.recipient.user_id === selectedUserId) {
+            appendMessage(message);
+            scrollToBottom();
+        }
+    });
+
+    // Handle conversation updates
+    socket.on('conversation_update', (conversation) => {
+        console.log('Received conversation update:', conversation);
+        updateConversationList(conversation);
+    });
+
+    // Handle typing status
+    socket.on('user_typing', (data) => {
+        if (data.userId === selectedUserId) {
+            showTypingIndicator(data.username);
+        }
+    });
+
+    // Handle message read status
+    socket.on('message_read', (data) => {
+        const messageElement = document.querySelector(`[data-message-id="${data.messageId}"]`);
+        if (messageElement) {
+            const checkIcon = messageElement.querySelector('.fa-check-double');
+            if (checkIcon) {
+                checkIcon.classList.remove('text-muted');
+                checkIcon.classList.add('text-primary');
+            }
+        }
+    });
+
+    // Handle errors
+    socket.on('error', (error) => {
+        showError(error.message);
+    });
+
+    // Initial scroll to bottom
+    scrollToBottom();
+});
+
+// Initialize search with debounce
+let searchTimeout;
+document.getElementById('userSearch')?.addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = e.target.value.trim();
+        if (query.length >= 2) {
+            searchUsers(query);
+        } else {
+            document.getElementById('searchResults').innerHTML = '';
+        }
+    }, 300);
+});
+
+async function searchUsers(query) {
+    try {
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.innerHTML = `
+            <div class="list-group-item text-center text-muted">
+                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Searching users...</p>
+            </div>
+        `;
+
+        const response = await fetch(`/search-users?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Search failed');
+        }
+
+        resultsDiv.innerHTML = '';
+        
+        if (data.length === 0) {
+            resultsDiv.innerHTML = `
+                <div class="list-group-item text-center text-muted">
+                    <i class="fas fa-search mb-2"></i>
+                    <p class="mb-0">No users found</p>
+                    <small>Try a different search term</small>
+                </div>
+            `;
+            return;
+        }
+        
+        data.forEach(user => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item list-group-item-action';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'd-flex w-100 justify-content-between align-items-center';
+            
+            const userInfoDiv = document.createElement('div');
+            userInfoDiv.className = 'd-flex align-items-center';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar-circle me-3';
+            if (user.profile_pic) {
+                const img = document.createElement('img');
+                img.src = user.profile_pic;
+                img.alt = user.username;
+                img.className = 'rounded-circle';
+                avatarDiv.appendChild(img);
+            } else {
+                avatarDiv.textContent = user.username.charAt(0).toUpperCase();
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = `
+                <div class="fw-bold">${user.username}</div>
+                <div class="text-muted small">${user.email || 'No email'}</div>
+            `;
+            
+            userInfoDiv.appendChild(avatarDiv);
+            userInfoDiv.appendChild(textDiv);
+            
+            const selectButton = document.createElement('button');
+            selectButton.className = 'btn btn-primary btn-sm';
+            selectButton.innerHTML = '<i class="fas fa-paper-plane"></i> Message';
+            selectButton.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (user.user_id) {
+                    window.location.href = `/messages/${user.user_id}`;
+                } else {
+                    showError('Invalid user data');
+                }
+            };
+            
+            contentDiv.appendChild(userInfoDiv);
+            contentDiv.appendChild(selectButton);
+            item.appendChild(contentDiv);
+            
+            // Make the entire item clickable
+            item.onclick = (e) => {
+                if (e.target !== selectButton) {
+                    if (user.user_id) {
+                        window.location.href = `/messages/${user.user_id}`;
+                    } else {
+                        showError('Invalid user data');
+                    }
+                }
+            };
+            
+            resultsDiv.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error searching users:', error);
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.innerHTML = `
+            <div class="list-group-item text-center text-danger">
+                <i class="fas fa-exclamation-circle mb-2"></i>
+                <p class="mb-0">Failed to search users</p>
+                <small>${error.message}</small>
+            </div>
+        `;
+    }
+}
+
+// Handle message form submission
+document.getElementById('messageForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!selectedUserId) {
+        showError('Please select a recipient first');
+        return;
+    }
+
+    const messageInput = document.getElementById('messageInput');
+    const content = messageInput.value.trim();
+    
+    if (!content) {
+        showError('Please enter a message');
+        return;
+    }
+
+    try {
+        // Create temporary message object
+        const tempId = 'temp-' + Date.now();
+        const tempMessage = {
+            id: tempId,
+            content: content,
+            sender: {
+                user_id: '<%= user.user_id %>',
+                username: '<%= user.name %>'
+            },
+            recipient: {
+                user_id: selectedUserId,
+                username: selectedUsername
+            },
+            createdAt: new Date(),
+            read: false
+        };
+
+        // Append message immediately
+        appendMessage(tempMessage);
+        
+        // Clear input
+        messageInput.value = '';
+        
+        // Send message through socket
+        socket.emit('send_message', {
+            recipientId: selectedUserId,
+            content: content,
+            tempId: tempId // Pass the temporary ID
+        });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showError(error.message || 'Failed to send message');
+    }
+});
+
+// Handle typing indicator
+document.getElementById('messageInput')?.addEventListener('input', () => {
+    clearTimeout(typingTimeout);
+    socket.emit('typing', { recipientId: selectedUserId });
+    
+    typingTimeout = setTimeout(() => {
+        // Clear typing indicator after 1 second of no typing
+    }, 1000);
+});
+
+function appendMessage(message) {
+    console.log('Appending message:', message);
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    // Check if message already exists
+    const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+    if (existingMessage) {
+        console.log('Message already exists, skipping append');
+        return;
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message-bubble ${message.sender.user_id === '<%= user.user_id %>' ? 'sent' : 'received'}`;
+    messageDiv.setAttribute('data-message-id', message.id);
+    
+    const timestamp = message.createdAt ? new Date(message.createdAt.toDate ? message.createdAt.toDate() : message.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+    
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            ${message.content}
+            <small class="message-time">
+                ${timestamp}
+                ${message.sender.user_id === '<%= user.user_id %>' ? 
+                    `<i class="fas fa-check-double ${message.read ? 'text-primary' : 'text-muted'} ms-1"></i>` : 
+                    ''}
+            </small>
+        </div>
+    `;
+    
+    const messageContainer = chatMessages.querySelector('.d-flex.flex-column');
+    if (messageContainer) {
+        messageContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+}
+
+function showTypingIndicator(username) {
+    const chatMessages = document.getElementById('chatMessages');
+    let typingDiv = document.querySelector('.typing-indicator');
+    
+    if (!typingDiv) {
+        typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        chatMessages.appendChild(typingDiv);
+    }
+    
+    typingDiv.textContent = `${username} is typing...`;
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        typingDiv.remove();
+    }, 1000);
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function showError(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed bottom-0 end-0 m-3';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+function updateConversationList(conversation) {
+    const conversationsList = document.querySelector('.conversations-list');
+    if (!conversationsList) return;
+
+    // Find existing conversation
+    const existingConversation = document.querySelector(`[data-conversation-id="${conversation.user.user_id}"]`);
+    
+    // Helper function to format the timestamp
+    const formatTimestamp = (timestamp) => {
+        let date;
+        if (timestamp && typeof timestamp.toDate === 'function') {
+            // It's a Firestore timestamp
+            date = timestamp.toDate();
+        } else if (timestamp) {
+            // It's a regular timestamp or Date object
+            date = new Date(timestamp);
+        } else {
+            // Fallback to current time
+            date = new Date();
+        }
+        return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    };
+    
+    if (existingConversation) {
+        // Update existing conversation
+        const lastMessage = existingConversation.querySelector('.text-truncate');
+        const timestamp = existingConversation.querySelector('.text-muted small');
+        
+        if (lastMessage) lastMessage.textContent = conversation.lastMessage.content;
+        if (timestamp) {
+            timestamp.textContent = formatTimestamp(conversation.lastMessage.createdAt);
+        }
+        
+        // Move to top
+        conversationsList.insertBefore(existingConversation, conversationsList.firstChild);
+    } else {
+        // Create new conversation
+        const conversationHtml = `
+            <a href="/messages/${conversation.user.user_id}" 
+               class="conversation-item d-flex align-items-center p-3 text-decoration-none text-dark"
+               data-conversation-id="${conversation.user.user_id}">
+                <div class="avatar-circle me-3">
+                    ${conversation.user.profile_pic ? 
+                        `<img src="${conversation.user.profile_pic}" alt="${conversation.user.username}" class="rounded-circle">` :
+                        conversation.user.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">${conversation.user.username}</h6>
+                        <small class="text-muted">
+                            ${formatTimestamp(conversation.lastMessage.createdAt)}
+                        </small>
+                    </div>
+                    <p class="mb-0 text-truncate" style="max-width: 200px;">
+                        ${conversation.lastMessage.content}
+                    </p>
+                </div>
+            </a>
+        `;
+        
+        conversationsList.insertAdjacentHTML('afterbegin', conversationHtml);
+    }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
