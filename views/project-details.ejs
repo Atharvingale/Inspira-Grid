@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= project.title %> | Inspira Grid</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/shared.css">
     <link rel="stylesheet" href="/css/project-details.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 </head>
 <body>
     <!-- Include Navbar Partial -->
@@ -187,258 +190,6 @@
                         <% } %>
                     </section>
 
-                    <!-- Application Modal -->
-                    <div class="modal fade" id="applyProjectModal" tabindex="-1" aria-labelledby="applyProjectModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header bg-gradient-primary text-white">
-                                    <h5 class="modal-title" id="applyProjectModalLabel">
-                                        <i class="fas fa-paper-plane me-2"></i>Apply to Project
-                                    </h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body p-4">
-                                    <!-- Project Info Summary -->
-                                    <div class="project-summary mb-4 p-3 rounded bg-light">
-                                        <h6 class="project-title mb-2 d-flex align-items-center">
-                                            <i class="fas fa-project-diagram text-primary me-2"></i>
-                                            <span id="modalProjectTitle"><%= project.title %></span>
-                                        </h6>
-                                    </div>
-                                    
-                                    <!-- Application Steps Progress -->
-                                    <div class="application-progress mb-4">
-                                        <div class="steps-indicator d-flex justify-content-between mb-2">
-                                            <span class="step-indicator active" id="step1Indicator">1. Basic Info</span>
-                                            <span class="step-indicator" id="step2Indicator">2. Skills & Experience</span>
-                                            <span class="step-indicator" id="step3Indicator">3. Review</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-primary" role="progressbar" style="width: 33%" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <form id="projectApplicationForm" class="needs-validation" novalidate>
-                                        <input type="hidden" id="projectIdInput" name="project_id" value="<%= project.project_id %>">
-                                        
-                                        <!-- Step 1: Basic Info (visible by default) -->
-                                        <div class="form-step" id="step1">
-                                            <div class="mb-4">
-                                                <label for="coverLetter" class="form-label fw-bold">
-                                                    <i class="fas fa-comment-alt text-primary me-2"></i>Why are you interested in this project?
-                                                </label>
-                                                <textarea class="form-control" id="coverLetter" name="cover_letter" rows="4" placeholder="Describe your interest and how your skills match the project requirements..." required></textarea>
-                                                <div class="form-text">Be specific about your relevant experience and what excites you about this project.</div>
-                                                <div class="invalid-feedback">Please provide a cover letter.</div>
-                                            </div>
-                                            
-                                            <div class="mb-4">
-                                                <label for="availability" class="form-label fw-bold">
-                                                    <i class="fas fa-calendar-alt text-primary me-2"></i>Availability
-                                                </label>
-                                                <select class="form-select" id="availability" name="availability" required>
-                                                    <option value="" selected disabled>Select your availability</option>
-                                                    <option value="Full-time">Full-time</option>
-                                                    <option value="Part-time">Part-time</option>
-                                                    <option value="Weekends">Weekends only</option>
-                                                    <option value="Evenings">Evenings only</option>
-                                                    <option value="Flexible">Flexible</option>
-                                                </select>
-                                                <div class="form-text">Let the project owner know when you're available to contribute.</div>
-                                                <div class="invalid-feedback">Please select your availability.</div>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-end">
-                                                <button type="button" class="btn btn-primary px-4" id="nextToStep2Btn">
-                                                    Next <i class="fas fa-arrow-right ms-2"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Step 2: Skills & Experience (hidden by default) -->
-                                        <div class="form-step d-none" id="step2">
-                                            <div class="mb-4">
-                                                <label for="relevantSkills" class="form-label fw-bold">
-                                                    <i class="fas fa-code text-primary me-2"></i>Relevant Skills
-                                                </label>
-                                                <div class="skills-selection-container">
-                                                    <!-- Search and add custom skill -->
-                                                    <div class="input-group mb-3">
-                                                        <span class="input-group-text bg-white border-end-0">
-                                                            <i class="fas fa-search text-muted"></i>
-                                                        </span>
-                                                        <input type="text" class="form-control border-start-0" id="skillsSearchInput" placeholder="Search or add new skill...">
-                                                        <button class="btn btn-primary" type="button" id="addCustomSkillBtn">
-                                                            <i class="fas fa-plus"></i> Add
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    <!-- Skills categories tabs -->
-                                                    <ul class="nav nav-pills nav-fill skills-categories mb-3" id="skillsCategoriesTabs" role="tablist">
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link active" id="all-skills-tab" data-bs-toggle="pill" data-bs-target="#all-skills" type="button" role="tab">All</button>
-                                                        </li>
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link" id="frontend-skills-tab" data-bs-toggle="pill" data-bs-target="#frontend-skills" type="button" role="tab">Frontend</button>
-                                                        </li>
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link" id="backend-skills-tab" data-bs-toggle="pill" data-bs-target="#backend-skills" type="button" role="tab">Backend</button>
-                                                        </li>
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link" id="data-skills-tab" data-bs-toggle="pill" data-bs-target="#data-skills" type="button" role="tab">Data</button>
-                                                        </li>
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link" id="custom-skills-tab" data-bs-toggle="pill" data-bs-target="#custom-skills" type="button" role="tab">Custom</button>
-                                                        </li>
-                                                    </ul>
-                                                    
-                                                    <!-- Skills content -->
-                                                    <div class="tab-content p-3 border rounded skills-selection-area" id="skillsTabContent">
-                                                        <!-- All skills tab -->
-                                                        <div class="tab-pane fade show active" id="all-skills" role="tabpanel">
-                                                            <div class="skills-grid">
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="JavaScript" id="skill-javascript">
-                                                                    <label class="form-check-label" for="skill-javascript">JavaScript</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Python" id="skill-python">
-                                                                    <label class="form-check-label" for="skill-python">Python</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Java" id="skill-java">
-                                                                    <label class="form-check-label" for="skill-java">Java</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="React" id="skill-react">
-                                                                    <label class="form-check-label" for="skill-react">React</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Node.js" id="skill-nodejs">
-                                                                    <label class="form-check-label" for="skill-nodejs">Node.js</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="UI/UX Design" id="skill-uiux">
-                                                                    <label class="form-check-label" for="skill-uiux">UI/UX Design</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Machine Learning" id="skill-ml">
-                                                                    <label class="form-check-label" for="skill-ml">Machine Learning</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Data Science" id="skill-datascience">
-                                                                    <label class="form-check-label" for="skill-datascience">Data Science</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="Mobile Development" id="skill-mobile">
-                                                                    <label class="form-check-label" for="skill-mobile">Mobile Development</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="DevOps" id="skill-devops">
-                                                                    <label class="form-check-label" for="skill-devops">DevOps</label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Frontend skills tab -->
-                                                        <div class="tab-pane fade" id="frontend-skills" role="tabpanel">
-                                                            <div class="skills-grid">
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="JavaScript" id="skill-javascript-fe">
-                                                                    <label class="form-check-label" for="skill-javascript-fe">JavaScript</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="React" id="skill-react-fe">
-                                                                    <label class="form-check-label" for="skill-react-fe">React</label>
-                                                                </div>
-                                                                <div class="form-check skill-item">
-                                                                    <input class="form-check-input" type="checkbox" name="relevant_skills[]" value="UI/UX Design" id="skill-uiux-fe">
-                                                                    <label class="form-check-label" for="skill-uiux-fe">UI/UX Design</label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Custom skills tab -->
-                                                        <div class="tab-pane fade" id="custom-skills" role="tabpanel">
-                                                            <div id="customSkillsContainer" class="skills-grid">
-                                                                <!-- Custom skills will be added here dynamically -->
-                                                                <div class="empty-custom-skills text-center text-muted py-3">
-                                                                    <i class="fas fa-plus-circle fs-4 mb-2"></i>
-                                                                    <p>Add custom skills using the input field above</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Add other category tabs with similar structure -->
-                                                    </div>
-                                                    
-                                                    <!-- Selected skills display -->
-                                                    <div class="selected-skills mt-2" id="selectedSkillsContainer">
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <small class="text-muted me-2">Selected skills:</small>
-                                                            <div id="selectedSkillsBadges" class="d-flex flex-wrap"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-text">Select skills that are relevant to this specific project or add custom ones.</div>
-                                            </div>
-                                            
-                                            <div class="mb-4">
-                                                <label for="experience" class="form-label fw-bold">
-                                                    <i class="fas fa-briefcase text-primary me-2"></i>Relevant Experience
-                                                </label>
-                                                <textarea class="form-control" id="experience" name="experience" rows="3" placeholder="Briefly describe your relevant experience..."></textarea>
-                                                <div class="form-text">Highlight specific experiences that make you a good fit for this project.</div>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between">
-                                                <button type="button" class="btn btn-outline-secondary" id="backToStep1Btn">
-                                                    <i class="fas fa-arrow-left me-2"></i> Back
-                                                </button>
-                                                <button type="button" class="btn btn-primary px-4" id="nextToStep3Btn">
-                                                    Next <i class="fas fa-arrow-right ms-2"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Step 3: Review (hidden by default) -->
-                                        <div class="form-step d-none" id="step3">
-                                            <div class="application-review p-3 bg-light rounded mb-4">
-                                                <h6 class="mb-3">Review Your Application</h6>
-                                                <div class="review-item mb-3">
-                                                    <strong>Interest:</strong>
-                                                    <p id="reviewCoverLetter" class="mb-2 text-muted">Your cover letter will appear here</p>
-                                                </div>
-                                                <div class="review-item mb-3">
-                                                    <strong>Availability:</strong>
-                                                    <p id="reviewAvailability" class="mb-2 text-muted">Your availability will appear here</p>
-                                                </div>
-                                                <div class="review-item mb-3">
-                                                    <strong>Skills:</strong>
-                                                    <div id="reviewSkills" class="mb-2"></div>
-                                                </div>
-                                                <div class="review-item">
-                                                    <strong>Experience:</strong>
-                                                    <p id="reviewExperience" class="mb-0 text-muted">Your experience will appear here</p>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between">
-                                                <button type="button" class="btn btn-outline-secondary" id="backToStep2Btn">
-                                                    <i class="fas fa-arrow-left me-2"></i> Back
-                                                </button>
-                                                <button type="button" class="btn btn-primary px-4" id="submitApplicationBtn">
-                                                    <i class="fas fa-paper-plane me-2"></i>Submit Application
-                                                    <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
                     <!-- Project Actions (for owners) -->
                     <% if (project.owner_id === user.user_id) { %>
                         <section class="project-actions card">
@@ -486,8 +237,9 @@
                             <% } %>
                         </section>
                     <% } %>
+                </div> <!-- This closing div for sidebar was missing -->
 
-                    <!-- Add this near the end of the body tag, before the closing </body> -->
+                <!-- Add this near the end of the body tag, before the closing </body> -->
                     <script>
                         function confirmDelete() {
                             if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
@@ -534,7 +286,7 @@
                         <% } %>
                     </div>
                 </section>
-            </div>
+                </div>
             
             <!-- Related Projects -->
             <% if (relatedProjects && relatedProjects.length > 0) { %>
@@ -639,7 +391,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- View Application Modal -->
     <div class="modal fade" id="viewApplicationModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -649,48 +401,31 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-3">
-                            <img id="modalApplicantPic" src="/images/user.jpg" alt="Applicant" class="img-fluid rounded-circle mb-2" style="width: 150px; height: 150px; object-fit: cover;">
-                            <h5 id="modalApplicantName">Applicant Name</h5>
-                            <a id="viewProfileLink" href="#" class="btn btn-sm btn-outline-primary"><i class="fas fa-user"></i> View Full Profile</a>
+                    <div class="applicant-header d-flex align-items-center mb-4">
+                        <img src="" alt="" class="applicant-modal-pic rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                        <div>
+                            <h4 class="applicant-modal-name mb-1"></h4>
+                            <p class="text-muted mb-0 application-modal-date"></p>
                         </div>
-                        <div class="col-md-8">
-                            <div class="application-status mb-3">
-                                <span class="fw-bold">Status: </span>
-                                <span id="modalApplicationStatus" class="badge bg-warning">Pending</span>
-                            </div>
-                            <div class="mb-3">
-                                <h6 class="fw-bold">Cover Letter</h6>
-                                <p id="modalCoverLetter" class="p-2 bg-light rounded">Cover letter content</p>
-                            </div>
-                            <div class="mb-3">
-                                <h6 class="fw-bold">Relevant Skills</h6>
-                                <div id="modalSkills" class="skills-container"></div>
-                            </div>
-                            <div class="mb-3">
-                                <h6 class="fw-bold">Availability</h6>
-                                <p id="modalAvailability" class="p-2 bg-light rounded">Availability details</p>
-                            </div>
-                            <div class="mb-3">
-                                <h6 class="fw-bold">Experience</h6>
-                                <p id="modalExperience" class="p-2 bg-light rounded">Experience details</p>
-                            </div>
-                        </div>
+                    </div>
+                    <div class="application-details">
+                        <h5>Cover Letter</h5>
+                        <p class="application-modal-letter"></p>
+                        
+                        <h5>Relevant Skills</h5>
+                        <div class="application-modal-skills"></div>
+                        
+                        <h5>Availability</h5>
+                        <p class="application-modal-availability"></p>
+                        
+                        <h5>Experience</h5>
+                        <p class="application-modal-experience"></p>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <div class="d-flex justify-content-between w-100">
-                        <div>
-                            <button type="button" class="btn btn-success" id="approveApplicationBtn">
-                                <i class="fas fa-check"></i> Approve
-                            </button>
-                            <button type="button" class="btn btn-danger" id="rejectApplicationBtn">
-                                <i class="fas fa-times"></i> Reject
-                            </button>
-                        </div>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success accept-application" data-application-id="">Accept</button>
+                    <button type="button" class="btn btn-danger reject-application" data-application-id="">Reject</button>
                 </div>
             </div>
         </div>
@@ -699,67 +434,9 @@
     <!-- Footer -->
     <%- include('partials/footer') %>
 
+    <!-- Add Bootstrap JavaScript bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/projects.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Copy share link functionality
-            const copyLinkBtn = document.getElementById('copyLinkBtn');
-            if (copyLinkBtn) {
-                copyLinkBtn.addEventListener('click', function() {
-                    const shareLink = document.getElementById('shareLink');
-                    shareLink.select();
-                    document.execCommand('copy');
-                    
-                    // Change button text temporarily
-                    const originalText = copyLinkBtn.innerHTML;
-                    copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    setTimeout(() => {
-                        copyLinkBtn.innerHTML = originalText;
-                    }, 2000);
-                });
-            }
-            
-            // Apply button functionality
-            const applyBtn = document.querySelector('.join-project .btn-primary');
-            if (applyBtn) {
-                applyBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const applyModal = new bootstrap.Modal(document.getElementById('applyProjectModal'));
-                    applyModal.show();
-                });
-            }
-            
-            // Project action buttons
-            const editBtn = document.querySelector('.btn-edit');
-            if (editBtn) {
-                editBtn.addEventListener('click', function() {
-                    window.location.href = '/projects/<%= project.project_id %>/edit';
-                });
-            }
-            
-            // Alert auto-dismiss
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                setTimeout(() => {
-                    alert.classList.add('fade');
-                    setTimeout(() => {
-                        alert.remove();
-                    }, 500);
-                }, 5000);
-            });
-            
-            // Handle form submissions with AJAX (optional enhancement)
-            const commentForm = document.querySelector('.comment-form form');
-            if (commentForm) {
-                commentForm.addEventListener('submit', function(e) {
-                    // You can implement AJAX form submission here if desired
-                    // This would prevent page reload when posting comments
-                    // For now, we'll let the form submit normally
-                });
-            }
-        });
-    </script>
-    
 </body>
 </html>

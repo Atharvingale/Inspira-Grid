@@ -43,20 +43,56 @@ $(document).ready(function() {
     
     // When modal is shown, populate project info
     $('#applyProjectModal').on('show.bs.modal', function (event) {
-        const button = $(event.relatedTarget);
-        const projectId = button.data('project-id');
-        const projectTitle = button.data('project-title');
-        const projectDesc = button.data('project-description');
-        
-        // Set hidden input value
-        $('#projectIdInput').val(projectId);
-        
-        // Set project info in the summary section
-        $('#modalProjectTitle').text(projectTitle);
-        $('#modalProjectDescription').text(projectDesc);
+        // Only set the project ID if it wasn't already set by the apply-btn click handler
+        if (!$('#projectIdInput').val()) {
+            const button = $(event.relatedTarget) || $('.apply-btn').last();
+            const projectId = button.data('project-id');
+            const projectTitle = button.data('project-title');
+            const projectDesc = button.data('project-description');
+            
+            // Set hidden input value
+            $('#projectIdInput').val(projectId);
+            console.log('Setting project ID from modal show event:', projectId);
+            
+            // Set project info in the summary section
+            $('#modalProjectTitle').text(projectTitle || 'Project Title');
+            $('#modalProjectDescription').text(projectDesc || 'Project description will appear here');
+        }
         
         // Reset form and progress
         resetApplicationForm();
+    });
+    
+    // Modify the submit handler to double-check project ID
+    $('#submitApplicationBtn').on('click', function() {
+        const projectId = $('#projectIdInput').val();
+        console.log('Submitting application for project ID:', projectId);
+        
+        if (!projectId) {
+            // Try to recover the project ID from the last clicked apply button
+            let recoveredProjectId = null;
+            
+            // First try the stored reference from the click handler
+            if (window.lastClickedApplyBtn) {
+                recoveredProjectId = window.lastClickedApplyBtn.data('project-id');
+            }
+            
+            // If that fails, fall back to the last button on the page
+            if (!recoveredProjectId) {
+                const lastApplyBtn = $('.apply-btn').last();
+                recoveredProjectId = lastApplyBtn.data('project-id');
+            }
+            
+            if (recoveredProjectId) {
+                $('#projectIdInput').val(recoveredProjectId);
+                console.log('Recovered project ID:', recoveredProjectId);
+            } else {
+                showAlert('danger', 'Missing project ID. Please try again.');
+                return;
+            }
+        }
+        
+        // Rest of the submission code...
     });
     
     // Multi-step form navigation
@@ -183,38 +219,6 @@ $(document).ready(function() {
         $('.progress-bar').css('width', '33%').attr('aria-valuenow', 33);
     }
     
-    // Submit application
-    $('#submitApplicationBtn').click(function() {
-        const btn = $(this);
-        const spinner = btn.find('.spinner-border');
-        
-        // Show loading spinner
-        btn.attr('disabled', true);
-        spinner.removeClass('d-none');
-        
-        // Collect all form data
-        const formData = {
-            project_id: $('#projectIdInput').val(),
-            cover_letter: $('#coverLetter').val(),
-            relevant_skills: $('#relevantSkills').val(),
-            availability: $('#availability').val(),
-            experience: $('#experience').val()
-        };
-        
-        // Simulate AJAX request (replace with actual AJAX)
-        setTimeout(function() {
-            // Hide loading spinner
-            btn.attr('disabled', false);
-            spinner.addClass('d-none');
-            
-            // Show success message and close modal
-            $('#applyProjectModal').modal('hide');
-            
-            // Show success toast
-            showToast('Application Submitted', 'Your application has been successfully submitted!', 'success');
-        }, 1500);
-    });
-    
     // Toast notification function
     function showToast(title, message, type) {
         const toastHTML = `
@@ -262,38 +266,62 @@ $(document).ready(function() {
         });
     }
     
-    // Handle Apply button click
+    // Handle Apply button click - KEEP THIS HANDLER
     $('.apply-btn').on('click', function() {
         const projectId = $(this).data('project-id');
+        console.log('Apply button clicked, project ID:', projectId);
         $('#projectIdInput').val(projectId);
+        console.log('Project ID set to:', $('#projectIdInput').val());
+        // Store the clicked button reference for later recovery if needed
+        window.lastClickedApplyBtn = $(this);
         $('#applyProjectModal').modal('show');
     });
     
-    // Handle application submission
+    // Handle application submission from multi-step form
     $('#submitApplicationBtn').on('click', function() {
-        const projectId = $('#projectIdInput').val();
-        const coverLetter = $('#coverLetter').val();
-        const relevantSkills = $('#relevantSkills').val();
-        const availability = $('#availability').val();
+        // Show loading spinner
+        const spinner = $(this).find('.spinner-border');
+        spinner.removeClass('d-none');
+        $(this).prop('disabled', true);
         
-        if (!projectId || !coverLetter || !availability) {
-            alert('Please fill in all required fields');
+        // Get form data
+        const projectId = $('#projectIdInput').val();
+        
+        // Check if projectId exists before making the request
+        if (!projectId) {
+            // Hide spinner
+            spinner.addClass('d-none');
+            $(this).prop('disabled', false);
+            
+            // Show error using the correct function
+            showAlert('danger', 'Missing project ID. Please try again.');
             return;
         }
+        
+        const coverLetter = $('#coverLetter').val();
+        const availability = $('#availability').val();
+        const experience = $('#experience').val();
+        const skills = $('#relevantSkills').val() || [];
         
         $.ajax({
             url: `/projects/${projectId}/apply`,
             method: 'POST',
             data: {
                 cover_letter: coverLetter,
-                relevant_skills: JSON.stringify(relevantSkills),
-                availability: availability
+                availability: availability,
+                experience: experience,
+                relevant_skills: JSON.stringify(skills)
             },
             success: function(response) {
+                // Hide spinner
+                spinner.addClass('d-none');
+                $('#submitApplicationBtn').prop('disabled', false);
+                
+                // Close modal
                 $('#applyProjectModal').modal('hide');
                 
-                // Show success message
-                showAlert('success', response.message);
+                // Use showAlert instead of showToast
+                showAlert('success', response.message || 'Application submitted successfully!');
                 
                 // Refresh the page after a short delay
                 setTimeout(function() {
@@ -301,10 +329,16 @@ $(document).ready(function() {
                 }, 1500);
             },
             error: function(xhr) {
+                // Hide spinner
+                spinner.addClass('d-none');
+                $('#submitApplicationBtn').prop('disabled', false);
+                
                 let errorMessage = 'Failed to submit application';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
+                
+                // Use showAlert instead of showToast
                 showAlert('danger', errorMessage);
             }
         });
@@ -619,24 +653,25 @@ document.addEventListener('DOMContentLoaded', function() {
 // Custom Skills Functionality
 document.addEventListener('DOMContentLoaded', function() {
     const skillsSearchInput = document.getElementById('skillsSearchInput');
-    const addCustomSkillBtn = document.getElementById('addCustomSkillBtn');
-    const customSkillsContainer = document.getElementById('customSkillsContainer');
-    const selectedSkillsBadges = document.getElementById('selectedSkillsBadges');
+    const addSkillButton = document.getElementById('addCustomSkill');
     
-    // Add custom skill when button is clicked
-    addCustomSkillBtn.addEventListener('click', function() {
-        addCustomSkill();
-    });
-    
-    // Add custom skill when Enter key is pressed
-    skillsSearchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            addCustomSkill();
-        }
-    });
+    // Only add event listeners if the elements exist
+    if (skillsSearchInput && addSkillButton) {
+        addSkillButton.addEventListener('click', addCustomSkill);
+        
+        // Add event listener for Enter key
+        skillsSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomSkill();
+            }
+        });
+    }
     
     function addCustomSkill() {
+        // Only proceed if skillsSearchInput exists
+        if (!skillsSearchInput) return;
+        
         const skillName = skillsSearchInput.value.trim();
         
         if (skillName === '') return;
@@ -724,24 +759,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add event listeners to all skill checkboxes
-    document.querySelectorAll('input[name="relevant_skills[]"]').forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedSkills);
-    });
+    const checkboxes = document.querySelectorAll('input[name="relevant_skills[]"]');
+    if (checkboxes.length > 0) {
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedSkills);
+        });
+    }
     
     // Filter skills based on search input
-    skillsSearchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const skillItems = document.querySelectorAll('.skill-item');
-        
-        skillItems.forEach(item => {
-            const skillName = item.querySelector('label').textContent.toLowerCase();
-            if (skillName.includes(searchTerm) || searchTerm === '') {
-                item.style.display = '';
-            } else {
-                item.style.display = 'none';
-            }
+    if (skillsSearchInput) {
+        skillsSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const skillItems = document.querySelectorAll('.skill-item');
+            
+            skillItems.forEach(item => {
+                const skillName = item.querySelector('label').textContent.toLowerCase();
+                if (skillName.includes(searchTerm) || searchTerm === '') {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 });
 
 // Application modal functionality

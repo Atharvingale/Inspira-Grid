@@ -343,7 +343,10 @@
                                         <a href="/projects/<%= project.project_id %>" class="btn btn-outline-primary flex-grow-1 me-2">
                                             <i class="fas fa-eye me-2"></i>View
                                         </a>
-                                        <button class="btn btn-primary apply-btn" data-project-id="<%= project.project_id %>">
+                                        <button class="btn btn-primary apply-btn" 
+                                                data-project-id="<%= project.project_id %>" 
+                                                data-project-title="<%= project.title %>" 
+                                                data-project-description="<%= project.description %>">
                                             <i class="fas fa-paper-plane me-2"></i>Apply
                                         </button>
                                     </div>

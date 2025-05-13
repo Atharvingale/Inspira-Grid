@@ -691,13 +691,14 @@ router.get("/projects/:id", async (req, res) => {
       currentPage: "projects",
       user: req.session.user,
       project: processedProject,
+      applications: projectData.applications || [], // Explicitly pass applications
       updates: updates,
       comments: comments,
       isMember: projectData.isTeamMember,
-      team: projectData.team ? projectData.team.members : [], // Add team members array
+      team: projectData.team ? projectData.team.members : [],
       progress: progress,
-      hasPendingApplication: projectData.hasApplied && projectData.application?.status === 'Pending', // Check if application is pending
-      relatedProjects: [], // Add empty related projects array
+      hasPendingApplication: projectData.hasApplied && projectData.application?.status === 'Pending',
+      relatedProjects: [],
       baseUrl: baseUrl,
       projectUrl: projectUrl,
       applications: projectData.applications || [], // Add this line to pass applications to the template
