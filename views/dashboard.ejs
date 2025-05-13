@@ -313,21 +313,5 @@
         <%- include('./partials/footer', { 
             jsFiles: ['dashboard']
         }) %>
-
-        <!-- Add this near the top of your dashboard content -->
-        <% if (locals.indexMessage) { %>
-          <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-info-circle me-2"></i> <%= indexMessage %>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        <% } %>
-
-        <!-- Remove this duplicate footer -->
-        <!-- <footer class="bg-light py-3 mt-5">
-            <div class="container text-center">
-                <p class="mb-0 text-muted">© 2025 Inspira Grid. All rights reserved.</p>
-            </div>
-        </footer> -->
-
 </body>
 </html>

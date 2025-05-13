@@ -1,67 +1,577 @@
-<!-- Add this to ensure the form includes the header and footer properly -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Complete Your Profile - Inspira Grid</title>
-  <link rel="stylesheet" href="/css/login.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
+    :root {
+      --primary: #0052a5;
+      --primary-dark: #003d7a;
+      --secondary: #3aa5de;
+      --secondary-light: #5bb7e5;
+      --accent: #10b981;
+      --accent-light: #34d399;
+      --light: #f0f6ff;
+      --dark: #1e293b;
+      --gray: #94a3b8;
+      --gray-light: #e2e8f0;
+      --gray-dark: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 6px 10px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+      --radius-sm: 0.375rem;
+      --radius: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --transition: all 0.3s ease;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
-      overflow-y: auto; /* Enable vertical scrolling */
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: var(--dark);
+      line-height: 1.6;
+      overflow-x: hidden;
       min-height: 100vh;
-      padding: 2rem 0;
+      display: flex;
+      flex-direction: column;
     }
     
-    .profile-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      overflow-y: visible; /* Ensure content can overflow */
-    }
-    
-    .welcome-header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    
-    .welcome-header h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      color: var(--primary);
-    }
-    
-    .welcome-header p {
-      color: #64748b;
-      font-size: 1.1rem;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    /* Add these new styles for better scrolling */
+    /* Background pattern with subtle animation */
     .background-pattern {
-      position: fixed; /* Change from absolute to fixed */
+      position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       z-index: -1;
+      background-image: 
+        radial-gradient(circle at 25px 25px, rgba(58, 165, 222, 0.08) 2%, transparent 0%),
+        radial-gradient(circle at 75px 75px, rgba(0, 82, 165, 0.05) 2%, transparent 0%);
+      background-size: 100px 100px;
+      opacity: 0.8;
+      animation: patternShift 120s linear infinite;
     }
     
+    @keyframes patternShift {
+      0% { background-position: 0 0; }
+      100% { background-position: 100px 100px; }
+    }
+    
+    /* Modern header with glass effect */
+    .header {
+      background: var(--gradient);
+      position: relative;
+      width: 100%;
+      padding: 2rem 0 3rem;
+      color: white;
+      text-align: center;
+      border-bottom-left-radius: 40% 3rem;
+      border-bottom-right-radius: 40% 3rem;
+      margin-bottom: 3rem;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+      z-index: 1;
+    }
+    
+    .header-content {
+      position: relative;
+      z-index: 2;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .logo img {
+      height: 50px;
+      margin-right: 15px;
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+      transition: var(--transition);
+    }
+    
+    .logo:hover img {
+      transform: scale(1.05);
+    }
+    
+    .logo-text {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .profile-title {
+      font-size: 2rem;
+      margin: 0.5rem 0 1.8rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Enhanced progress steps */
+    .progress-container {
+      width: 100%;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    
+    .progress-steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    
+    .progress-step {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+    
+    .progress-connector {
+      height: 3px;
+      width: 80px;
+      background: rgba(255, 255, 255, 0.3);
+      margin: 0 5px;
+      position: relative;
+      transition: var(--transition);
+    }
+    
+    .progress-connector.active {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .progress-connector.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: white;
+      animation: progressFill 0.8s ease-out forwards;
+    }
+    
+    @keyframes progressFill {
+      0% { width: 0; }
+      100% { width: 100%; }
+    }
+    
+    .step-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      color: white;
+      font-weight: 600;
+      transition: var(--transition);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    }
+    
+    .step-icon.active {
+      background: white;
+      border-color: white;
+      color: var(--primary);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      transform: scale(1.05);
+    }
+    
+    .step-text {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    
+    .step-text.active {
+      color: white;
+      font-weight: 600;
+      transform: translateY(2px);
+    }
+    
+    /* Main content container */
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    
+    .profile-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 4rem;
+    }
+    
+    /* Welcome header */
+    .welcome-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .welcome-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+    }
+    
+    .welcome-header p {
+      font-size: 1.1rem;
+      color: var(--gray-dark);
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    
+    /* Enhanced form styling */
     .profile-form {
       background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      margin-bottom: 2rem; /* Add margin at the bottom */
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--gray-light);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .profile-form::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: var(--gradient);
+    }
+    
+    .form-section {
+      margin-bottom: 2.5rem;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      background: #ffffff;
+      border-left: 4px solid var(--primary);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      animation: slideIn 0.5s ease-out forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    .form-section:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+      border-left-color: var(--secondary);
+    }
+    
+    .form-section:nth-child(1) { animation-delay: 0.1s; }
+    .form-section:nth-child(2) { animation-delay: 0.3s; }
+    .form-section:nth-child(3) { animation-delay: 0.5s; }
+    
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-section h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .form-section h3 i {
+      color: var(--secondary);
+      font-size: 1.1rem;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      flex: 1;
+      margin-bottom: 1rem;
+    }
+    
+    /* Enhanced floating labels */
+    .floating-label {
+      position: relative;
+    }
+    
+    .floating-label input,
+    .floating-label textarea {
+      width: 100%;
+      height: 58px;
+      padding: 22px 16px 10px;
+      font-size: 1rem;
+      border: 1px solid var(--gray-light);
+      border-radius: var(--radius);
+      background-color: #ffffff;
+      transition: var(--transition);
+      color: var(--dark);
+    }
+    
+    .floating-label textarea {
+      height: auto;
+      min-height: 130px;
+      padding-top: 28px;
+      resize: vertical;
+    }
+    
+    .floating-label input:focus,
+    .floating-label textarea:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(58, 165, 222, 0.15);
+    }
+    
+    .floating-label label {
+      position: absolute;
+      top: 0;
+      left: 16px;
+      height: 100%;
+      padding: 19px 0 0 0;
+      pointer-events: none;
+      transform-origin: left top;
+      transition: var(--transition);
+      color: var(--gray-dark);
+      font-size: 1rem;
+    }
+    
+    .required-field::after {
+      content: '*';
+      color: var(--error);
+      margin-left: 4px;
+    }
+    
+    .floating-label input:focus ~ label,
+    .floating-label input:not(:placeholder-shown) ~ label,
+    .floating-label textarea:focus ~ label,
+    .floating-label textarea:not(:placeholder-shown) ~ label {
+      transform: translateY(-12px) scale(0.75);
+      color: var(--secondary);
+    }
+    
+    .help-text {
+      font-size: 0.85rem;
+      color: var(--gray-dark);
+      margin-top: 0.5rem;
+      transition: var(--transition);
+    }
+    
+    .floating-label:focus-within .help-text {
+      color: var(--secondary);
+    }
+    
+    /* Enhanced submit button */
+    .submit-btn {
+      width: 100%;
+      padding: 1.1rem;
+      background: var(--gradient);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-top: 1rem;
+    }
+    
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0, 82, 165, 0.25);
+    }
+    
+    .submit-btn:active::after {
+      animation: ripple 0.6s ease-out;
+    }
+    
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+    
+    /* Error styling */
+    .auth-error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+      border-left: 4px solid var(--error);
+      box-shadow: var(--shadow-sm);
+      animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    
+    .auth-error i {
+      margin-right: 12px;
+      font-size: 1.2rem;
+    }
+    
+    @keyframes shake {
+      10%, 90% { transform: translateX(-1px); }
+      20%, 80% { transform: translateX(2px); }
+      30%, 50%, 70% { transform: translateX(-4px); }
+      40%, 60% { transform: translateX(4px); }
+    }
+    
+    /* Back to top button */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 50px;
+      height: 50px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: var(--transition);
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+    }
+    
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    
+    .back-to-top:hover {
+      background: var(--secondary);
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
     }
     
     /* Responsive adjustments */
     @media (max-width: 768px) {
+      .header {
+        padding: 1.5rem 0 2.5rem;
+        border-bottom-left-radius: 30% 2rem;
+        border-bottom-right-radius: 30% 2rem;
+        margin-bottom: 2rem;
+      }
+      
+      .logo img {
+        height: 40px;
+      }
+      
+      .logo-text {
+        font-size: 1.5rem;
+      }
+      
+      .profile-title {
+        font-size: 1.6rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .progress-connector {
+        width: 40px;
+      }
+      
+      .step-icon {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .welcome-header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .welcome-header p {
+        font-size: 1rem;
+      }
+      
       .profile-container {
-        padding: 1rem;
+        padding: 0 1rem;
       }
       
       .profile-form {
@@ -70,39 +580,82 @@
       
       .form-row {
         flex-direction: column;
+        gap: 1rem;
       }
       
       .form-group {
         width: 100%;
       }
+      
+      .form-section {
+        padding: 1.25rem;
+      }
+      
+      .back-to-top {
+        bottom: 1.5rem;
+        right: 1.5rem;
+        width: 45px;
+        height: 45px;
+      }
     }
     
-    /* Add a back to top button */
-    .back-to-top {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--primary);
-      color: white;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 1000;
-    }
-    
-    .back-to-top.visible {
-      opacity: 1;
+    @media (max-width: 480px) {
+      .header-content {
+        padding: 0 1rem;
+      }
+      
+      .progress-steps {
+        gap: 10px;
+      }
+      
+      .progress-connector {
+        width: 25px;
+      }
+      
+      .step-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+      }
+      
+      .step-text {
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="background-pattern"></div>
+  
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <img src="/images/logo.png" alt="Inspira Grid Logo">
+        <span class="logo-text">Inspira Grid</span>
+      </div>
+      
+      <h2 class="profile-title">Complete Your Profile</h2>
+      
+      <div class="progress-container">
+        <div class="progress-steps">
+          <div class="progress-step">
+            <div class="step-icon active">1</div>
+            <div class="step-text active">Sign Up</div>
+          </div>
+          <div class="progress-connector active"></div>
+          <div class="progress-step">
+            <div class="step-icon active">2</div>
+            <div class="step-text active">Profile</div>
+          </div>
+          <div class="progress-connector"></div>
+          <div class="progress-step">
+            <div class="step-icon">3</div>
+            <div class="step-text">Explore</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
   
   <div class="container profile-container">
     <div class="welcome-header">
@@ -111,7 +664,8 @@
     </div>
     
     <% if (error) { %>
-      <div class="auth-error" style="background-color: #fee2e2; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+      <div class="auth-error">
+        <i class="fas fa-exclamation-circle"></i>
         <%= error %>
       </div>
     <% } %>
@@ -120,17 +674,17 @@
       <div class="form-section">
         <h3><i class="fas fa-user-circle"></i> Basic Information</h3>
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <input type="text" id="title" name="title" class="form-control" placeholder=" " required>
             <label for="title" class="required-field">Professional Title</label>
-            <input type="text" id="title" name="title" class="form-control" placeholder="e.g., Full Stack Developer" required>
-            <div class="help-text">Your professional title or role</div>
+            <div class="help-text">Your professional title or role (e.g., Full Stack Developer)</div>
           </div>
         </div>
         
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <textarea id="bio" name="bio" class="form-control" placeholder=" " required></textarea>
             <label for="bio" class="required-field">Bio</label>
-            <textarea id="bio" name="bio" class="form-control" placeholder="Tell us about yourself, your experience, and what you're passionate about..." required></textarea>
             <div class="help-text">A brief description about yourself (150-300 characters recommended)</div>
           </div>
         </div>
@@ -139,10 +693,10 @@
       <div class="form-section">
         <h3><i class="fas fa-tools"></i> Skills & Expertise</h3>
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <input type="text" id="skills" name="skills" class="form-control" placeholder=" ">
             <label for="skills">Skills</label>
-            <input type="text" id="skills" name="skills" class="form-control" placeholder="e.g., JavaScript, React, Node.js, UI/UX Design">
-            <div class="help-text">Comma-separated list of your skills</div>
+            <div class="help-text">Comma-separated list of your skills (e.g., JavaScript, React, Node.js)</div>
           </div>
         </div>
       </div>
@@ -150,26 +704,28 @@
       <div class="form-section">
         <h3><i class="fas fa-address-card"></i> Contact Information</h3>
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <input type="tel" id="phone" name="phone" class="form-control" placeholder=" ">
             <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g., +1 (555) 123-4567">
+            <div class="help-text">Your contact number (e.g., +1 (555) 123-4567)</div>
           </div>
           
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <input type="text" id="location" name="location" class="form-control" placeholder=" ">
             <label for="location">Location</label>
-            <input type="text" id="location" name="location" class="form-control" placeholder="e.g., New York, USA">
+            <div class="help-text">Your city and country (e.g., New York, USA)</div>
           </div>
         </div>
         
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group floating-label">
+            <input type="url" id="website" name="website" class="form-control" placeholder=" ">
             <label for="website">Website/Portfolio</label>
-            <input type="url" id="website" name="website" class="form-control" placeholder="e.g., https://yourportfolio.com">
+            <div class="help-text">Link to your personal website or portfolio</div>
           </div>
         </div>
       </div>
       
-      <!-- Make sure the submit button has proper handling -->
       <button type="submit" class="submit-btn" id="submitBtn">
         <span id="submitSpinner" style="display: none;">
           <i class="fas fa-spinner fa-spin"></i>
@@ -177,27 +733,19 @@
         <span id="submitText">Complete Profile</span>
       </button>
     </form>
-    
-    <!-- Script for form submission -->
-    <script>
-      document.getElementById('profileForm').addEventListener('submit', function(e) {
-        // Show spinner
-        document.getElementById('submitSpinner').style.display = 'inline-block';
-        document.getElementById('submitText').style.display = 'none';
-        
-        // Don't disable the form submission - that could be causing issues
-        // Just show the spinner to indicate processing
-      });
-    </script>
-    
-    <!-- Add a back to top button -->
-    <div class="back-to-top" id="backToTop">
-      <i class="fas fa-arrow-up"></i>
-    </div>
   </div>
   
-  <!-- Add this script at the end of the body -->
+  <div class="back-to-top" id="backToTop">
+    <i class="fas fa-arrow-up"></i>
+  </div>
+  
   <script>
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      // Show spinner
+      document.getElementById('submitSpinner').style.display = 'inline-block';
+      document.getElementById('submitText').style.display = 'none';
+    });
+    
     // Back to top button functionality
     const backToTopButton = document.getElementById('backToTop');
     
@@ -220,14 +768,28 @@
     
     // Ensure form is scrollable on all devices
     document.addEventListener('DOMContentLoaded', function() {
-      // Check if form is taller than viewport
-      const form = document.querySelector('.profile-form');
-      const windowHeight = window.innerHeight;
+      // Add focus/blur events for floating labels
+      const inputs = document.querySelectorAll('.floating-label input, .floating-label textarea');
       
-      if (form && form.offsetHeight > windowHeight) {
-        // Add a class to body to ensure scrolling
-        document.body.classList.add('scrollable-form');
-      }
+      inputs.forEach(input => {
+        // Check if input has value on load
+        if (input.value) {
+          input.classList.add('has-value');
+        }
+        
+        input.addEventListener('focus', function() {
+          this.parentElement.classList.add('focused');
+        });
+        
+        input.addEventListener('blur', function() {
+          this.parentElement.classList.remove('focused');
+          if (this.value) {
+            this.classList.add('has-value');
+          } else {
+            this.classList.remove('has-value');
+          }
+        });
+      });
     });
   </script>
 </body>
