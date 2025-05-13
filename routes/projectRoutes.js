@@ -567,22 +567,36 @@ router.get("/projects/:id", async (req, res) => {
         // Get applicant details
         const applicantRef = doc(db, 'users', appData.user_id);
         const applicantSnap = await getDoc(applicantRef);
+        let applicantData = {};
         
         if (applicantSnap.exists()) {
-          applications.push({
-            application_id: appDoc.id,
-            ...appData,
-            applicant_name: applicantSnap.data().name,
-            applicant_pic: applicantSnap.data().profile_pic,
-            applicant_title: applicantSnap.data().title,
-            created_at_formatted: appData.created_at ? 
-              new Date(appData.created_at.toDate()).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              }) : 'recently'
-          });
+          applicantData = applicantSnap.data();
         }
+        
+        applications.push({
+          application_id: appDoc.id,
+          user_id: appData.user_id,
+          user_name: applicantData.name || 'Unknown User',
+          profile_pic: applicantData.profile_pic || null,
+          cover_letter: appData.cover_letter,
+          relevant_skills: appData.relevant_skills || [],
+          availability: appData.availability,
+          experience: appData.experience || null,
+          status: appData.status,
+          formatted_date: appData.created_at ? 
+            new Date(appData.created_at.toDate()).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric'
+            }) : 'Recently',
+          applicant_name: applicantData.name,
+          applicant_pic: applicantData.profile_pic,
+          applicant_title: applicantData.title,
+          created_at_formatted: appData.created_at ? 
+            new Date(appData.created_at.toDate()).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }) : 'recently'
+        });
       }
       
       projectData.applications = applications;
@@ -682,10 +696,11 @@ router.get("/projects/:id", async (req, res) => {
       isMember: projectData.isTeamMember,
       team: projectData.team ? projectData.team.members : [], // Add team members array
       progress: progress,
-      hasPendingApplication: projectData.hasApplied, // Add this line
+      hasPendingApplication: projectData.hasApplied && projectData.application?.status === 'Pending', // Check if application is pending
       relatedProjects: [], // Add empty related projects array
       baseUrl: baseUrl,
       projectUrl: projectUrl,
+      applications: projectData.applications || [], // Add this line to pass applications to the template
       error: req.query.error || null,
       success: req.query.success || null
     });
