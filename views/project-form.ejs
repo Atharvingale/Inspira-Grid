@@ -7,17 +7,189 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/shared.css">
     <link rel="stylesheet" href="/css/projects.css">
+    <style>
+        :root {
+            --primary: #0052a5;
+            --secondary: #3aa5de;
+            --accent: #10b981;
+            --light: #f0f6ff;
+            --dark: #1e293b;
+            --gray: #94a3b8;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem;
+            border-bottom: none;
+        }
+        
+        .card-header h5 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background-color: #f8fafc;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(58, 165, 222, 0.2);
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 82, 165, 0.2);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 82, 165, 0.25);
+        }
+        
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: var(--dark);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+        
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .form-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .form-section-title i {
+            margin-right: 0.75rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .milestone-item {
+            background-color: #f8fafc;
+            border-radius: 10px;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .milestone-item:hover {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        #add-milestone {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .select2-container--default .select2-selection--multiple {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            min-height: 50px;
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(58, 165, 222, 0.2);
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--light);
+            border: 1px solid var(--secondary);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: var(--primary);
+            margin-right: 5px;
+        }
+        
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+        
+        .required-field::after {
+            content: '*';
+            color: #ef4444;
+            margin-left: 4px;
+        }
+    </style>
 </head>
 <body>
     <%- include('partials/header') %>
     
-    <div class="container py-4">
-        <div class="row">
-            <!-- Sidebar removed -->
-            
-            <div class="col-md-12">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-folder-plus me-2"></i><%= isNew ? 'Create New Project' : 'Edit Project' %></h5>
@@ -25,78 +197,96 @@
                     <div class="card-body">
                         <% if (error) { %>
                             <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
                                 <%= error %>
                             </div>
                         <% } %>
                         
                         <% if (success) { %>
                             <div class="alert alert-success" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
                                 <%= success %>
                             </div>
                         <% } %>
                         
                         <form action="<%= isNew ? '/projects/new' : '/projects/' + project.project_id + '/update' %>" method="POST">
-                            <div class="mb-3">
-                                <label for="title" class="form-label">Project Title*</label>
-                                <input type="text" class="form-control" id="title" name="title" value="<%= project.title || '' %>" required>
+                            <div class="form-section">
+                                <h3 class="form-section-title"><i class="fas fa-info-circle"></i>Basic Information</h3>
+                                <div class="mb-4">
+                                    <label for="title" class="form-label required-field">Project Title</label>
+                                    <input type="text" class="form-control" id="title" name="title" value="<%= project.title || '' %>" required>
+                                    <div class="help-text">Give your project a clear, descriptive title</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="description" class="form-label required-field">Project Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="5" required><%= project.description || '' %></textarea>
+                                    <div class="help-text">Describe your project goals, scope, and what you're looking to achieve</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="category" class="form-label">Project Category</label>
+                                    <select class="form-control" id="category" name="category">
+                                        <option value="Web Development" <%= project.category === 'Web Development' ? 'selected' : '' %>>Web Development</option>
+                                        <option value="Mobile Development" <%= project.category === 'Mobile Development' ? 'selected' : '' %>>Mobile Development</option>
+                                        <option value="UI/UX Design" <%= project.category === 'UI/UX Design' ? 'selected' : '' %>>UI/UX Design</option>
+                                        <option value="Data Science" <%= project.category === 'Data Science' ? 'selected' : '' %>>Data Science</option>
+                                        <option value="Machine Learning" <%= project.category === 'Machine Learning' ? 'selected' : '' %>>Machine Learning</option>
+                                        <option value="DevOps" <%= project.category === 'DevOps' ? 'selected' : '' %>>DevOps</option>
+                                        <option value="Other" <%= project.category === 'Other' ? 'selected' : '' %>>Other</option>
+                                    </select>
+                                    <div class="help-text">Select the category that best fits your project</div>
+                                </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Project Description*</label>
-                                <textarea class="form-control" id="description" name="description" rows="5" required><%= project.description || '' %></textarea>
+                            <div class="form-section">
+                                <h3 class="form-section-title"><i class="fas fa-tools"></i>Skills & Requirements</h3>
+                                <div class="mb-4">
+                                    <label for="required_skills" class="form-label">Required Skills</label>
+                                    <select class="form-control select2-multi" id="required_skills" name="required_skills" multiple>
+                                        <% 
+                                        const skillOptions = [
+                                            'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift',
+                                            'React', 'Angular', 'Vue.js', 'Node.js', 'Django', 'Flask', 'Spring Boot',
+                                            'HTML5', 'CSS3', 'UI/UX Design', 'Graphic Design', 'Content Writing',
+                                            'Project Management', 'Data Analysis', 'Machine Learning', 'DevOps',
+                                            'Mobile Development', 'Database Management', 'Cloud Computing'
+                                        ];
+                                        
+                                        const selectedSkills = project.required_skills || [];
+                                        %>
+                                        
+                                        <% skillOptions.forEach(skill => { %>
+                                            <option value="<%= skill %>" <%= selectedSkills.includes(skill) ? 'selected' : '' %>><%= skill %></option>
+                                        <% }); %>
+                                        
+                                        <% selectedSkills.forEach(skill => { %>
+                                            <% if (!skillOptions.includes(skill)) { %>
+                                                <option value="<%= skill %>" selected><%= skill %></option>
+                                            <% } %>
+                                        <% }); %>
+                                    </select>
+                                    <div class="help-text">Select or type skills needed for your project (press Enter to add custom skills)</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="status" class="form-label">Project Status</label>
+                                    <select class="form-control" id="status" name="status">
+                                        <option value="Open" <%= (project.status === 'Open' || !project.status) ? 'selected' : '' %>>Open for Applications</option>
+                                        <option value="In Progress" <%= project.status === 'In Progress' ? 'selected' : '' %>>In Progress</option>
+                                        <option value="On Hold" <%= project.status === 'On Hold' ? 'selected' : '' %>>On Hold</option>
+                                        <option value="Completed" <%= project.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                    </select>
+                                    <div class="help-text">Current status of your project</div>
+                                </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="category" class="form-label">Project Category</label>
-                                <select class="form-control" id="category" name="category">
-                                    <option value="Web Development" <%= project.category === 'Web Development' ? 'selected' : '' %>>Web Development</option>
-                                    <option value="Mobile Development" <%= project.category === 'Mobile Development' ? 'selected' : '' %>>Mobile Development</option>
-                                    <option value="UI/UX Design" <%= project.category === 'UI/UX Design' ? 'selected' : '' %>>UI/UX Design</option>
-                                    <option value="Data Science" <%= project.category === 'Data Science' ? 'selected' : '' %>>Data Science</option>
-                                    <option value="Machine Learning" <%= project.category === 'Machine Learning' ? 'selected' : '' %>>Machine Learning</option>
-                                    <option value="DevOps" <%= project.category === 'DevOps' ? 'selected' : '' %>>DevOps</option>
-                                    <option value="Other" <%= project.category === 'Other' ? 'selected' : '' %>>Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="required_skills" class="form-label">Required Skills</label>
-                                <select class="form-control select2-multi" id="required_skills" name="required_skills" multiple>
-                                    <% 
-                                    const skillOptions = [
-                                        'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift',
-                                        'React', 'Angular', 'Vue.js', 'Node.js', 'Django', 'Flask', 'Spring Boot',
-                                        'HTML5', 'CSS3', 'UI/UX Design', 'Graphic Design', 'Content Writing',
-                                        'Project Management', 'Data Analysis', 'Machine Learning', 'DevOps',
-                                        'Mobile Development', 'Database Management', 'Cloud Computing'
-                                    ];
-                                    
-                                    const selectedSkills = project.required_skills || [];
-                                    %>
-                                    
-                                    <% skillOptions.forEach(skill => { %>
-                                        <option value="<%= skill %>" <%= selectedSkills.includes(skill) ? 'selected' : '' %>><%= skill %></option>
-                                    <% }); %>
-                                </select>
-                                <small class="text-muted">Select multiple skills by clicking or searching</small>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="status" class="form-label">Project Status</label>
-                                <select class="form-control" id="status" name="status">
-                                    <option value="Open" <%= (project.status === 'Open' || !project.status) ? 'selected' : '' %>>Open for Applications</option>
-                                    <option value="In Progress" <%= project.status === 'In Progress' ? 'selected' : '' %>>In Progress</option>
-                                    <option value="On Hold" <%= project.status === 'On Hold' ? 'selected' : '' %>>On Hold</option>
-                                    <option value="Completed" <%= project.status === 'Completed' ? 'selected' : '' %>>Completed</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Project Milestones</label>
+                            <div class="form-section">
+                                <h3 class="form-section-title"><i class="fas fa-tasks"></i>Project Milestones</h3>
                                 <div id="milestones-container">
                                     <% const milestones = project.milestones || ['Planning', 'Design', 'Development', 'Testing', 'Deployment']; %>
                                     <% milestones.forEach((milestone, index) => { %>
-                                        <div class="milestone-item input-group mb-2">
+                                        <div class="milestone-item input-group mb-3">
                                             <input type="text" class="form-control" name="milestones[]" value="<%= milestone %>" placeholder="Milestone name">
                                             <select class="form-control" name="milestone_status[]">
                                                 <option value="pending" <%= (project.milestone_status && project.milestone_status[index] === 'pending') ? 'selected' : '' %>>Pending</option>
@@ -107,13 +297,16 @@
                                         </div>
                                     <% }); %>
                                 </div>
-                                <button type="button" id="add-milestone" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-plus"></i> Add Milestone
+                                <button type="button" id="add-milestone" class="btn btn-outline-primary mt-2">
+                                    <i class="fas fa-plus me-1"></i> Add Milestone
                                 </button>
+                                <div class="help-text mt-2">Define key milestones to track your project progress</div>
                             </div>
                             
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="/projects" class="btn btn-secondary">Cancel</a>
+                                <a href="/projects" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to Projects
+                                </a>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-1"></i> <%= isNew ? 'Create Project' : 'Update Project' %>
                                 </button>
@@ -132,12 +325,19 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('.select2-multi').select2();
+            // Initialize Select2 with tags option enabled
+            $('.select2-multi').select2({
+                tags: true,
+                tokenSeparators: [',', ' '],
+                placeholder: 'Select or type skills...',
+                theme: 'classic',
+                closeOnSelect: false
+            });
             
             // Add milestone functionality
             $('#add-milestone').click(function() {
                 const newMilestone = `
-                    <div class="milestone-item input-group mb-2">
+                    <div class="milestone-item input-group mb-3">
                         <input type="text" class="form-control" name="milestones[]" placeholder="Milestone name">
                         <select class="form-control" name="milestone_status[]">
                             <option value="pending">Pending</option>
@@ -153,6 +353,23 @@
             // Remove milestone functionality
             $(document).on('click', '.remove-milestone', function() {
                 $(this).closest('.milestone-item').remove();
+            });
+            
+            // Form validation and submission animation
+            $('form').on('submit', function() {
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                
+                submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+                submitBtn.prop('disabled', true);
+                
+                // This is just for visual feedback, the actual submission happens normally
+                setTimeout(function() {
+                    submitBtn.html(originalText);
+                    submitBtn.prop('disabled', false);
+                }, 10000); // Timeout as fallback in case submission takes too long
+                
+                return true;
             });
         });
     </script>

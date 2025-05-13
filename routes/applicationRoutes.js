@@ -15,15 +15,16 @@ const isAuthenticated = (req, res, next) => {
   res.redirect("/signin");
 };
 
-// Apply to project
-router.post("/projects/apply", isAuthenticated, async (req, res) => {
+// Apply to project (alternative route that matches client URL pattern)
+router.post("/projects/:id/apply", isAuthenticated, async (req, res) => {
   try {
-    const { projectId, message, skills, coverLetter } = req.body;
+    const projectId = req.params.id;
+    const { cover_letter, relevant_skills, availability } = req.body;
     const userId = req.session.user.user_id;
 
     // Check if user already applied to this project
     const applicationsRef = collection(db, 'project_applications');
-    const q = query(applicationsRef, 
+    const q = firestoreQuery(applicationsRef, 
       where('project_id', '==', projectId), 
       where('user_id', '==', userId)
     );
@@ -37,15 +38,17 @@ router.post("/projects/apply", isAuthenticated, async (req, res) => {
     }
 
     // Convert skills to array format if it's not already
-    const relevantSkills = typeof skills === 'string' ? skills.split(',').map(s => s.trim()) : skills;
+    const skillsArray = typeof relevant_skills === 'string' ? 
+      JSON.parse(relevant_skills) : 
+      relevant_skills;
 
     // Insert the application
     const applicationData = {
       project_id: projectId,
       user_id: userId,
-      message,
-      cover_letter: coverLetter || null,
-      relevant_skills: relevantSkills,
+      cover_letter: cover_letter || null,
+      relevant_skills: skillsArray,
+      availability: availability,
       status: "Pending",
       created_at: serverTimestamp()
     };
