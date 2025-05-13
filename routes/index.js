@@ -55,25 +55,10 @@ router.get("/", async (req, res) => {
       });
     }
     
-    // Get testimonials
-    const testimonialsRef = collection(db, 'testimonials');
-    const testimonialsQuery = firestoreQuery(
-      testimonialsRef,
-      orderBy('created_at', 'desc'),
-      limit(3)
-    );
-    const testimonialsSnapshot = await getDocs(testimonialsQuery);
-    
-    const testimonials = testimonialsSnapshot.docs.map(doc => ({
-      testimonial_id: doc.id,
-      ...doc.data()
-    }));
-    
     res.render("index", {
       title: "Inspira Grid - Collaborate on Creative Projects",
       user: req.session.user || null,
       featuredProjects,
-      testimonials,
       currentPage: 'home'
     });
   } catch (error) {
