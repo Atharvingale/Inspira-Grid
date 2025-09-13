@@ -1,0 +1,30 @@
+{
+  "name": "inspira-grid",
+  "version": "1.0.0",
+  "description": "A full-stack collaborative platform for students, creators, and developers",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm start",
+    "server:install": "cd server && npm install",
+    "client:install": "cd client && npm install",
+    "install-all": "npm install && npm run server:install && npm run client:install",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "keywords": [
+    "collaboration",
+    "students",
+    "projects",
+    "teams",
+    "react",
+    "nodejs",
+    "firebase"
+  ],
+  "author": "Inspira-Grid Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
