@@ -59,6 +59,7 @@ const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const applicationRoutes = require('./routes/applications');
 const messageRoutes = require('./routes/messages');
+const userRoutes = require('./routes/users');
 const { validateFirebaseToken } = require('./middleware/auth');
 
 // Add Firebase token validation middleware for API routes
@@ -69,6 +70,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

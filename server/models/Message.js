@@ -1,15 +1,32 @@
 const admin = require('firebase-admin');
-const db = admin.firestore();
 
 class MessageModel {
   constructor() {
-    this.collection = db.collection('messages');
-    this.conversationsCollection = db.collection('conversations');
+    // Initialize Firestore lazily to avoid initialization issues
+    this.db = null;
+    this.collection = null;
+    this.conversationsCollection = null;
+  }
+
+  // Get Firestore instance (initialize if needed)
+  getDB() {
+    if (!this.db) {
+      try {
+        this.db = admin.firestore();
+        this.collection = this.db.collection('messages');
+        this.conversationsCollection = this.db.collection('conversations');
+      } catch (error) {
+        console.error('Error initializing Firestore in MessageModel:', error);
+        throw new Error('Failed to initialize database connection');
+      }
+    }
+    return this.db;
   }
 
   // Create a new message
   async create(messageData) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const messageRef = this.collection.doc();
       const message = {
         id: messageRef.id,
@@ -37,6 +54,7 @@ class MessageModel {
   // Create a new conversation
   async createConversation(conversationData) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const conversationRef = this.conversationsCollection.doc();
       const conversation = {
         id: conversationRef.id,
@@ -56,6 +74,7 @@ class MessageModel {
   // Get all conversations for a user
   async getUserConversations(userId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const conversationsSnapshot = await this.conversationsCollection
         .where('participantIds', 'array-contains', userId)
         .orderBy('lastMessageAt', 'desc')
@@ -73,7 +92,7 @@ class MessageModel {
         if (conversationData.type === 'direct' && conversationData.participantIds.length === 2) {
           const otherParticipantId = conversationData.participantIds.find(id => id !== userId);
           if (otherParticipantId) {
-            const userDoc = await db.collection('users').doc(otherParticipantId).get();
+            const userDoc = await this.db.collection('users').doc(otherParticipantId).get();
             if (userDoc.exists) {
               const userData = userDoc.data();
               conversationData.name = userData.displayName || userData.email?.split('@')[0] || 'Unknown User';
@@ -95,6 +114,7 @@ class MessageModel {
   // Get messages for a conversation with pagination
   async getConversationMessages(conversationId, page = 1, limit = 50) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const offset = (page - 1) * limit;
 
       const messagesSnapshot = await this.collection
@@ -128,6 +148,7 @@ class MessageModel {
   // Check if user has access to a conversation
   async checkConversationAccess(conversationId, userId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const conversationDoc = await this.conversationsCollection.doc(conversationId).get();
       if (!conversationDoc.exists) {
         return false;
@@ -144,12 +165,13 @@ class MessageModel {
   // Mark messages as read for a user
   async markMessagesAsRead(conversationId, userId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const messagesSnapshot = await this.collection
         .where('conversationId', '==', conversationId)
         .where('senderId', '!=', userId)
         .get();
 
-      const batch = db.batch();
+      const batch = this.db.batch();
       
       messagesSnapshot.docs.forEach(doc => {
         const messageData = doc.data();
@@ -170,6 +192,7 @@ class MessageModel {
   // Get unread message count for a user in a conversation
   async getUnreadMessageCount(conversationId, userId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const unreadSnapshot = await this.collection
         .where('conversationId', '==', conversationId)
         .where('senderId', '!=', userId)
@@ -193,6 +216,7 @@ class MessageModel {
   // Find existing direct conversation between two users
   async findDirectConversation(participantIds) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const conversationsSnapshot = await this.conversationsCollection
         .where('type', '==', 'direct')
         .where('participantIds', '==', participantIds)
@@ -227,6 +251,7 @@ class MessageModel {
   // Search messages in a conversation
   async searchMessages(conversationId, searchQuery, limit = 20) {
     try {
+      this.getDB(); // Ensure DB is initialized
       // Note: Firestore doesn't support full-text search natively
       // For production, consider using Algolia or similar service
       const messagesSnapshot = await this.collection
@@ -257,6 +282,7 @@ class MessageModel {
   // Get conversation by ID
   async getConversationById(conversationId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const conversationDoc = await this.conversationsCollection.doc(conversationId).get();
       if (!conversationDoc.exists) {
         return null;
@@ -272,6 +298,7 @@ class MessageModel {
   // Delete a message (for admin or sender)
   async deleteMessage(messageId, userId, isAdmin = false) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const messageDoc = await this.collection.doc(messageId).get();
       if (!messageDoc.exists) {
         throw new Error('Message not found');
@@ -293,6 +320,7 @@ class MessageModel {
   // Update message (edit)
   async updateMessage(messageId, newMessage, userId) {
     try {
+      this.getDB(); // Ensure DB is initialized
       const messageDoc = await this.collection.doc(messageId).get();
       if (!messageDoc.exists) {
         throw new Error('Message not found');

@@ -58,6 +58,12 @@ passport.deserializeUser(async (uid, done) => {
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && 
     process.env.GITHUB_CLIENT_ID !== 'your-github-client-id') {
   
+  console.log('GitHub OAuth Config:', {
+    clientID: process.env.GITHUB_CLIENT_ID ? `${process.env.GITHUB_CLIENT_ID.substring(0, 10)}...` : 'MISSING',
+    clientSecret: process.env.GITHUB_CLIENT_SECRET ? `${process.env.GITHUB_CLIENT_SECRET.substring(0, 10)}...` : 'MISSING',
+    callbackURL: process.env.GITHUB_CALLBACK_URL || "http://localhost:5000/api/auth/github/callback"
+  });
+
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,

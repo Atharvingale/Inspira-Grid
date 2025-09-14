@@ -14,22 +14,31 @@ router.get('/github',
 
 // GitHub OAuth callback
 router.get('/github/callback',
-  passport.authenticate('github', { 
-    failureRedirect: `${process.env.CLIENT_URL}/login?error=github_auth_failed`,
-    failureMessage: true
-  }),
-  async (req, res) => {
-    try {
-      // Successful authentication
-      console.log('GitHub OAuth success for user:', req.user.uid);
+  (req, res, next) => {
+    console.log('GitHub callback received with code:', req.query.code?.substring(0, 10) + '...');
+    
+    passport.authenticate('github', (err, user, info) => {
+      if (err) {
+        console.error('GitHub OAuth authentication error:', err);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=github_auth_failed&details=${encodeURIComponent(err.message)}`);
+      }
       
-      // Redirect to frontend with success
-      const redirectUrl = `${process.env.CLIENT_URL}/dashboard?github_connected=true`;
-      res.redirect(redirectUrl);
-    } catch (error) {
-      console.error('GitHub callback error:', error);
-      res.redirect(`${process.env.CLIENT_URL}/login?error=callback_error`);
-    }
+      if (!user) {
+        console.error('GitHub OAuth failed - no user returned:', info);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=github_auth_no_user`);
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error('Login error after GitHub OAuth:', err);
+          return res.redirect(`${process.env.CLIENT_URL}/login?error=login_failed`);
+        }
+        
+        console.log('GitHub OAuth success for user:', user.uid);
+        const redirectUrl = `${process.env.CLIENT_URL}/dashboard?github_connected=true`;
+        res.redirect(redirectUrl);
+      });
+    })(req, res, next);
   }
 );
 
