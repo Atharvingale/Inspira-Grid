@@ -119,7 +119,6 @@ router.post('/', [
   body('teamSize').isInt({ min: 2, max: 20 }).withMessage('Team size must be 2-20 members'),
   body('duration').optional().trim(),
   body('budget').optional().trim(),
-  body('githubRepo').optional().isURL().withMessage('Invalid GitHub repository URL')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -138,7 +137,6 @@ router.post('/', [
       teamSize: parseInt(req.body.teamSize),
       duration: req.body.duration,
       budget: req.body.budget,
-      githubRepo: req.body.githubRepo,
       ownerId: req.user.uid,
       ownerName: req.user.displayName,
       ownerEmail: req.user.email
@@ -170,7 +168,6 @@ router.put('/:id', [
   body('teamSize').optional().isInt({ min: 2, max: 20 }),
   body('duration').optional().trim(),
   body('budget').optional().trim(),
-  body('githubRepo').optional().isURL()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -203,7 +200,7 @@ router.put('/:id', [
     }
 
     const updates = {};
-    const allowedFields = ['title', 'description', 'category', 'skillsRequired', 'teamSize', 'duration', 'budget', 'githubRepo'];
+    const allowedFields = ['title', 'description', 'category', 'skillsRequired', 'teamSize', 'duration', 'budget'];
     
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {

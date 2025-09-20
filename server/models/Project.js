@@ -290,20 +290,84 @@ class Project {
     }
   }
 
+  // Link GitHub repository to project
+  async linkGitHubRepository(projectId, repositoryData) {
+    try {
+      const project = await this.getById(projectId);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      const githubRepo = {
+        repositoryUrl: repositoryData.repositoryUrl,
+        repositoryName: repositoryData.repositoryName,
+        description: repositoryData.description,
+        linkedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      await this.collection.doc(projectId).update({
+        githubRepository: githubRepo,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return this.getById(projectId);
+    } catch (error) {
+      console.error('Error linking GitHub repository:', error);
+      throw error;
+    }
+  }
+
+  // Unlink GitHub repository from project
+  async unlinkGitHubRepository(projectId) {
+    try {
+      const project = await this.getById(projectId);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      await this.collection.doc(projectId).update({
+        githubRepository: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return this.getById(projectId);
+    } catch (error) {
+      console.error('Error unlinking GitHub repository:', error);
+      throw error;
+    }
+  }
+
+  // Get projects with GitHub repositories
+  async getProjectsWithGitHub() {
+    try {
+      const snapshot = await this.collection
+        .where('githubRepository', '!=', null)
+        .orderBy('updatedAt', 'desc')
+        .get();
+
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting projects with GitHub:', error);
+      throw error;
+    }
+  }
+
   // Get project statistics
   async getStats() {
     try {
-      const [totalSnapshot, approvedSnapshot, pendingSnapshot] = await Promise.all([
+      const [totalSnapshot, approvedSnapshot, pendingSnapshot, githubSnapshot] = await Promise.all([
         this.collection.get(),
         this.collection.where('status', '==', 'approved').get(),
-        this.collection.where('status', '==', 'pending').get()
+        this.collection.where('status', '==', 'pending').get(),
+        this.collection.where('githubRepository', '!=', null).get()
       ]);
 
       return {
         total: totalSnapshot.size,
         approved: approvedSnapshot.size,
         pending: pendingSnapshot.size,
-        rejected: totalSnapshot.size - approvedSnapshot.size - pendingSnapshot.size
+        rejected: totalSnapshot.size - approvedSnapshot.size - pendingSnapshot.size,
+        withGithub: githubSnapshot.size
       };
     } catch (error) {
       console.error('Error getting project stats:', error);

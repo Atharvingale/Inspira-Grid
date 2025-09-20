@@ -63,6 +63,14 @@ if (!admin.apps.length) {
         
         console.log('✅ Firebase Admin SDK initialized in fallback emulator mode');
       } else {
+        console.log('🔍 Firebase config loaded:', {
+          projectId: firebaseConfig.project_id,
+          clientEmail: firebaseConfig.client_email,
+          privateKeyId: firebaseConfig.private_key_id,
+          hasPrivateKey: !!firebaseConfig.private_key,
+          privateKeyLength: firebaseConfig.private_key?.length || 0
+        });
+        
         admin.initializeApp({
           credential: admin.credential.cert(firebaseConfig),
           databaseURL: process.env.FIREBASE_DATABASE_URL

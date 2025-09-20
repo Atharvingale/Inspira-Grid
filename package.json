@@ -11,7 +11,11 @@
     "client:install": "cd client && npm install",
     "install-all": "npm install && npm run server:install && npm run client:install",
     "build": "cd client && npm run build",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "setup": "npm run copy-env && npm run install-all",
+    "copy-env": "node scripts/copy-env.js",
+    "check-env": "node scripts/check-env.js",
+    "generate-secrets": "node scripts/generate-secrets.js"
   },
   "keywords": [
     "collaboration",
@@ -25,6 +29,7 @@
   "author": "Inspira-Grid Team",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.3.1"
   }
 }

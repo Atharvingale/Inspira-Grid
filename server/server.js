@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const http = require('http');
 const socketIo = require('socket.io');
 const session = require('express-session');
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 
 // Initialize Firebase before importing other modules
 require('./config/firebase');
@@ -46,7 +46,9 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Allow cross-origin cookies in dev
+    domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : undefined // No domain restriction in dev
   }
 }));
 
@@ -56,6 +58,7 @@ app.use(passport.session());
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const githubRoutes = require('./routes/github');
 const projectRoutes = require('./routes/projects');
 const applicationRoutes = require('./routes/applications');
 const messageRoutes = require('./routes/messages');
@@ -67,6 +70,7 @@ app.use('/api', validateFirebaseToken);
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/github', githubRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/messages', messageRoutes);
@@ -80,8 +84,9 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     endpoints: {
       auth: '/api/auth',
-      githubOAuth: '/api/auth/github',
-      githubCallback: '/api/auth/github/callback'
+      github: '/api/github',
+      githubConnect: '/api/github/connect',
+      githubCallback: '/api/github/callback'
     }
   });
 });

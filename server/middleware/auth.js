@@ -53,9 +53,14 @@ const requireCompleteProfile = (req, res, next) => {
 // Middleware to validate Firebase ID token (for Firebase Auth users)
 const validateFirebaseToken = async (req, res, next) => {
   try {
+    // First check if user is already authenticated via session (GitHub OAuth)
+    if (req.user) {
+      return next(); // User is authenticated via session, skip Firebase token validation
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next(); // Let session-based auth handle it
+      return next(); // Let session-based auth handle it or continue for public routes
     }
 
     const token = authHeader.split(' ')[1];
@@ -75,7 +80,7 @@ const validateFirebaseToken = async (req, res, next) => {
       return next();
     }
 
-    // Otherwise verify real Firebase ID token
+    // Verify real Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(token);
     
     // Get user data from Firestore
@@ -96,8 +101,9 @@ const validateFirebaseToken = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Firebase token validation error:', error);
-    next(); // Continue with session-based auth
+    console.error('Firebase token validation error:', error.message);
+    // Don't set req.user on error - let routes handle unauthorized access
+    next(); // Continue with session-based auth or let routes handle missing user
   }
 };
 
