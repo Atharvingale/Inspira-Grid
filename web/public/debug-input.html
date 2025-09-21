@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Debug Test</title>
+    <style>
+        body {
+            background-color: #1f2937;
+            color: white;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Ultra aggressive input styling */
+        input {
+            background-color: #374151 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff !important;
+            border: 2px solid #6366f1 !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            font-size: 16px !important;
+            width: 300px !important;
+            margin: 10px 0 !important;
+        }
+        
+        input::placeholder {
+            color: #9ca3af !important;
+            -webkit-text-fill-color: #9ca3af !important;
+        }
+        
+        input:focus {
+            outline: 2px solid #6366f1 !important;
+            background-color: #374151 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        
+        /* Force autofill styles */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #374151 inset !important;
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff !important;
+            color: #ffffff !important;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #111827;
+            padding: 30px;
+            border-radius: 12px;
+        }
+        
+        h1 {
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        
+        .test-group {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #374151;
+            border-radius: 8px;
+        }
+        
+        label {
+            display: block;
+            color: #ffffff;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Input Text Visibility Debug Test</h1>
+        
+        <div class="test-group">
+            <h2>Basic Input Tests</h2>
+            <label>Text Input:</label>
+            <input type="text" placeholder="Type some text here..." value="Test text">
+            
+            <label>Email Input:</label>
+            <input type="email" placeholder="Enter your email..." value="test@example.com">
+            
+            <label>Password Input:</label>
+            <input type="password" placeholder="Enter password..." value="password123">
+        </div>
+        
+        <div class="test-group">
+            <h2>Inline Style Test</h2>
+            <label>Input with inline styles:</label>
+            <input 
+                type="text" 
+                placeholder="Inline styled input..." 
+                value="Inline test text"
+                style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; background-color: #374151 !important;"
+            >
+        </div>
+        
+        <div class="test-group">
+            <h2>Instructions</h2>
+            <p style="color: #d1d5db;">
+                1. You should see white text in all input fields<br>
+                2. When you type, the text should be visible in white<br>
+                3. The cursor should be white<br>
+                4. If any text is invisible, this indicates a browser-specific issue
+            </p>
+        </div>
+        
+        <div class="test-group">
+            <h2>Browser Info</h2>
+            <p style="color: #d1d5db;" id="browser-info">
+                Loading browser information...
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Display browser info
+        document.getElementById('browser-info').innerHTML = 
+            'User Agent: ' + navigator.userAgent + '<br>' +
+            'Platform: ' + navigator.platform + '<br>' +
+            'Language: ' + navigator.language;
+    </script>
+</body>
+</html>

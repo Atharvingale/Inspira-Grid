@@ -1,0 +1,372 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NUCLEAR LEVEL INPUT TEXT VISIBILITY FIXES - LOAD FIRST */
+* input { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+* textarea { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+* select { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+input { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+textarea { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+select { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+input[type] { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+input[class*="input"] { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+input[class*="Input"] { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; caret-color: #ffffff !important; }
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 15, 15, 35;
+  --background-end-rgb: 3, 7, 18;
+  --surface-rgb: 22, 33, 62;
+  --border-rgb: 31, 41, 55;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      135deg,
+      rgb(var(--background-start-rgb)) 0%,
+      rgb(var(--background-end-rgb)) 100%
+    );
+  font-feature-settings: 'cv11', 'ss01';
+  font-variant-numeric: tabular-nums;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Enhanced scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Focus styles for better accessibility */
+*:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Selection styles */
+::selection {
+  background-color: rgba(99, 102, 241, 0.2);
+  color: #ffffff;
+}
+
+/* Smooth transitions for interactive elements */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Responsive utilities */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .text-responsive {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+  }
+  
+  .heading-responsive {
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+  }
+  
+  .hero-responsive {
+    font-size: clamp(2rem, 8vw, 4rem);
+  }
+}
+
+/* Touch targets for mobile */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Fix autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Ensure form text is visible - aggressive approach */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Force input text visibility on all states */
+input:focus,
+input:active,
+input:hover,
+textarea:focus,
+textarea:active,
+textarea:hover,
+select:focus,
+select:active,
+select:hover {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  outline: none !important;
+}
+
+/* Placeholder styling */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 0.7 !important;
+  -webkit-text-fill-color: #9ca3af !important;
+}
+
+/* Override ANY potential Tailwind conflicts */
+.text-white input,
+.text-gray-400 input,
+.placeholder\:text-gray-400 input,
+input.text-white,
+input.placeholder\:text-gray-400,
+[class*="text-"] input,
+input[class*="text-"],
+.bg-dark-surface input,
+input.bg-dark-surface {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Force visibility on focused inputs */
+input:focus,
+input:focus-visible,
+input:active,
+input:hover,
+textarea:focus,
+textarea:focus-visible,
+textarea:active,
+textarea:hover {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: transparent;
+  outline: none !important;
+}
+
+/* Chrome/Safari specific fixes */
+input:-internal-autofill-selected,
+input:-internal-autofill-previewed {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+/* Data attribute specific targeting */
+input[data-input="true"],
+textarea[data-textarea="true"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+input[data-input="true"]:focus,
+input[data-input="true"]:active,
+input[data-input="true"]:hover,
+textarea[data-textarea="true"]:focus,
+textarea[data-textarea="true"]:active,
+textarea[data-textarea="true"]:hover {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Force text color with highest possible specificity */
+[data-input="true"][type="text"],
+[data-input="true"][type="email"],
+[data-input="true"][type="password"],
+[data-input="true"][type="search"],
+[data-input="true"][type="tel"],
+[data-input="true"][type="url"],
+[data-input="true"][type="number"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Additional browser-specific fixes */
+input::-webkit-input-placeholder {
+  color: #9ca3af !important;
+}
+
+input::-moz-placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+input:-ms-input-placeholder {
+  color: #9ca3af !important;
+}
+
+/* Option text for selects */
+option {
+  color: #ffffff !important;
+  background-color: #1f2937 !important;
+}
+
+/* STRONGEST POSSIBLE FIXES FOR FORM TEXT VISIBILITY */
+
+/* Universal input text color override */
+*,
+*::before,
+*::after {
+  input,
+  textarea,
+  select {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+  }
+}
+
+/* Direct element targeting */
+input,
+input[type],
+textarea,
+select,
+.input,
+[role="textbox"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+/* Force on all possible states */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Tailwind class overrides */
+.text-white,
+.text-text-primary,
+.text-gray-100,
+.text-gray-200 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Force visibility on focus and interaction */
+input:focus,
+input:active,
+input:hover,
+textarea:focus,
+textarea:active,
+textarea:hover {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* CSS Custom Properties override */
+input {
+  --tw-text-opacity: 1 !important;
+  color: rgb(255 255 255 / var(--tw-text-opacity)) !important;
+}
+
+/* Final nuclear option */
+body input,
+body textarea,
+body select,
+html input,
+html textarea,
+html select {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+  caret-color: white !important;
+}
