@@ -13,9 +13,9 @@
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
     "setup": "npm run copy-env && npm run install-all",
-    "copy-env": "node scripts/copy-env.js",
-    "check-env": "node scripts/check-env.js",
-    "generate-secrets": "node scripts/generate-secrets.js"
+    "copy-env": "echo 'Copy env script not implemented'",
+    "check-env": "echo 'Check env script not implemented'",
+    "generate-secrets": "echo 'Generate secrets script not implemented'"
   },
   "keywords": [
     "collaboration",

@@ -61,8 +61,8 @@ class Application {
       query = query.orderBy('createdAt', 'desc');
       indexFields.push('createdAt (desc)');
 
-      // Log index requirements
-      if (indexFields.length > 1) {
+      // Log index requirements (debug only)
+      if (indexFields.length > 1 && process.env.FIRESTORE_INDEX_DEBUG === 'true') {
         console.log('\n🔍 FIRESTORE INDEX NEEDED:');
         console.log('Collection: applications');
         console.log('Fields:', indexFields.join(', '));
@@ -116,8 +116,8 @@ class Application {
       query = query.orderBy('createdAt', 'desc');
       indexFields.push('createdAt (desc)');
 
-      // Log index requirements
-      if (indexFields.length > 1) {
+      // Log index requirements (debug only)
+      if (indexFields.length > 1 && process.env.FIRESTORE_INDEX_DEBUG === 'true') {
         console.log('\n🔍 FIRESTORE INDEX NEEDED:');
         console.log('Collection: applications');
         console.log('Fields:', indexFields.join(', '));
@@ -215,23 +215,25 @@ class Application {
   // Check if user has already applied to project
   async hasApplied(userId, projectId) {
     try {
-      console.log('\n🔍 FIRESTORE INDEX NEEDED:');
-      console.log('Collection: applications');
-      console.log('Fields: applicantId, projectId');
-      console.log('Query: Multiple where clauses require composite index');
-      
-      const indexConfig = {
-        collectionGroup: 'applications',
-        queryScope: 'COLLECTION',
-        fields: [
-          { fieldPath: 'applicantId', order: 'ASCENDING' },
-          { fieldPath: 'projectId', order: 'ASCENDING' }
-        ]
-      };
-      
-      console.log('\n📋 Add this to firestore.indexes.json:');
-      console.log(JSON.stringify(indexConfig, null, 2));
-      console.log('\n' + '='.repeat(60) + '\n');
+      if (process.env.FIRESTORE_INDEX_DEBUG === 'true') {
+        console.log('\n🔍 FIRESTORE INDEX NEEDED:');
+        console.log('Collection: applications');
+        console.log('Fields: applicantId, projectId');
+        console.log('Query: Multiple where clauses require composite index');
+        
+        const indexConfig = {
+          collectionGroup: 'applications',
+          queryScope: 'COLLECTION',
+          fields: [
+            { fieldPath: 'applicantId', order: 'ASCENDING' },
+            { fieldPath: 'projectId', order: 'ASCENDING' }
+          ]
+        };
+        
+        console.log('\n📋 Add this to firestore.indexes.json:');
+        console.log(JSON.stringify(indexConfig, null, 2));
+        console.log('\n' + '='.repeat(60) + '\n');
+      }
       
       const snapshot = await this.collection
         .where('applicantId', '==', userId)

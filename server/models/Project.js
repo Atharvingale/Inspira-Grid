@@ -77,8 +77,8 @@ class Project {
         query = query.limit(filters.limit);
       }
 
-      // Log index requirements if filters are applied
-      if (indexRequirements.length > 1) {
+      // Log index requirements if filters are applied (debug only)
+      if (indexRequirements.length > 1 && process.env.FIRESTORE_INDEX_DEBUG === 'true') {
         console.log('\n🔍 FIRESTORE INDEX NEEDED:');
         console.log('Collection: projects');
         console.log('Fields:', indexRequirements.join(', '));
@@ -213,29 +213,31 @@ class Project {
   // Get projects by team member
   async getByTeamMember(userId) {
     try {
-      console.log('\n🔍 FIRESTORE INDEX NEEDED:');
-      console.log('Collection: projects');
-      console.log('Fields: teamMembers (array-contains), updatedAt (desc)');
-      console.log('Query: teamMembers array-contains userId + orderBy updatedAt desc');
-      
-      const indexConfig = {
-        collectionGroup: 'projects',
-        queryScope: 'COLLECTION',
-        fields: [
-          {
-            fieldPath: 'teamMembers',
-            arrayConfig: 'CONTAINS'
-          },
-          {
-            fieldPath: 'updatedAt',
-            order: 'DESCENDING'
-          }
-        ]
-      };
-      
-      console.log('\n📋 Add this to firestore.indexes.json:');
-      console.log(JSON.stringify(indexConfig, null, 2));
-      console.log('\n' + '='.repeat(60) + '\n');
+      if (process.env.FIRESTORE_INDEX_DEBUG === 'true') {
+        console.log('\n🔍 FIRESTORE INDEX NEEDED:');
+        console.log('Collection: projects');
+        console.log('Fields: teamMembers (array-contains), updatedAt (desc)');
+        console.log('Query: teamMembers array-contains userId + orderBy updatedAt desc');
+        
+        const indexConfig = {
+          collectionGroup: 'projects',
+          queryScope: 'COLLECTION',
+          fields: [
+            {
+              fieldPath: 'teamMembers',
+              arrayConfig: 'CONTAINS'
+            },
+            {
+              fieldPath: 'updatedAt',
+              order: 'DESCENDING'
+            }
+          ]
+        };
+        
+        console.log('\n📋 Add this to firestore.indexes.json:');
+        console.log(JSON.stringify(indexConfig, null, 2));
+        console.log('\n' + '='.repeat(60) + '\n');
+      }
       
       const snapshot = await this.collection
         .where('teamMembers', 'array-contains', { userId })
