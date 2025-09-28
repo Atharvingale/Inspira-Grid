@@ -4,18 +4,24 @@
   "description": "A full-stack collaborative platform for students, creators, and developers",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "dev": "concurrently \"npm run server:dev\" \"npm run web:dev\" --names \"SERVER,WEB\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail",
+    "start": "npm run dev",
     "server:dev": "cd server && npm run dev",
-    "client:dev": "cd client && npm start",
+    "web:dev": "cd web && npm run dev",
+    "server:start": "cd server && npm start",
+    "web:build": "cd web && npm run build",
+    "web:start": "cd web && npm run start",
     "server:install": "cd server && npm install",
-    "client:install": "cd client && npm install",
-    "install-all": "npm install && npm run server:install && npm run client:install",
-    "build": "cd client && npm run build",
-    "start": "cd server && npm start",
-    "setup": "npm run copy-env && npm run install-all",
-    "copy-env": "echo 'Copy env script not implemented'",
-    "check-env": "echo 'Check env script not implemented'",
-    "generate-secrets": "echo 'Generate secrets script not implemented'"
+    "web:install": "cd web && npm install",
+    "install-all": "npm install && npm run server:install && npm run web:install",
+    "build": "npm run web:build",
+    "build:server": "cd server && npm run build 2>nul || echo 'No build script for server'",
+    "build:all": "npm run build:server && npm run web:build",
+    "setup": "npm run install-all",
+    "clean": "npm run clean:web && npm run clean:server",
+    "clean:web": "cd web && (rmdir /s /q .next 2>nul || echo 'No .next directory') && (rmdir /s /q node_modules 2>nul || echo 'No node_modules in web')",
+    "clean:server": "cd server && (rmdir /s /q node_modules 2>nul || echo 'No node_modules in server')",
+    "fresh-install": "npm run clean && npm run install-all"
   },
   "keywords": [
     "collaboration",
@@ -35,11 +41,6 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "autoprefixer": "^10.4.21",
-    "firebase": "^12.3.0",
-    "postcss": "^8.5.6",
-    "react-firebase-hooks": "^5.1.1",
-    "socket.io-client": "^4.8.1",
-    "tailwindcss": "^4.1.13"
+    "axios": "^1.12.2"
   }
 }

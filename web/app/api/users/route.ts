@@ -22,7 +22,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const projectId = searchParams.get('projectId');
 
-    let users: any[] = [];
+    interface UserData {
+      id: string;
+      name: string;
+      email: string;
+      photoURL?: string;
+      isOnline: boolean;
+      lastSeen?: Date;
+    }
+    
+    let users: UserData[] = [];
 
     if (projectId) {
       // Get users from project participants

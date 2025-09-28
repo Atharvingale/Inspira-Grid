@@ -113,7 +113,13 @@ class ProjectService extends BaseService {
     teamMembers: number;
     completionPercentage: number;
   }>> {
-    return this.get(`/projects/${projectId}/stats`);
+    return this.get<{
+      totalApplications: number;
+      acceptedApplications: number;
+      pendingApplications: number;
+      teamMembers: number;
+      completionPercentage: number;
+    }>(`/projects/${projectId}/stats`);
   }
 
   /**

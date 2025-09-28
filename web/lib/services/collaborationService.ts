@@ -5,7 +5,7 @@
  * sessions, presence, cursors, document editing, comments, and activity feeds.
  */
 
-import { baseService } from './baseService';
+import { BaseService } from './baseService';
 import {
   CollaborationSession,
   JoinSessionRequest,
@@ -34,8 +34,12 @@ import {
   SessionParticipant
 } from '@/lib/types/collaboration';
 
-class CollaborationService {
+class CollaborationService extends BaseService {
   private readonly endpoint = '/collaboration';
+
+  constructor() {
+    super();
+  }
 
   // =====================================
   // Session Management
@@ -45,7 +49,7 @@ class CollaborationService {
    * Join a collaboration session
    */
   async joinSession(request: JoinSessionRequest): Promise<JoinSessionResponse> {
-    const response = await baseService.post(`${this.endpoint}/sessions/join`, request);
+    const response = await this.post<JoinSessionResponse>(`${this.endpoint}/sessions/join`, request);
     return response.data;
   }
 
@@ -53,14 +57,14 @@ class CollaborationService {
    * Leave a collaboration session
    */
   async leaveSession(sessionId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/sessions/${sessionId}/leave`);
+    await this.post(`${this.endpoint}/sessions/${sessionId}/leave`, {});
   }
 
   /**
    * Get session details
    */
   async getSession(sessionId: string): Promise<CollaborationSession> {
-    const response = await baseService.get(`${this.endpoint}/sessions/${sessionId}`);
+    const response = await this.get<CollaborationSession>(`${this.endpoint}/sessions/${sessionId}`);
     return response.data;
   }
 
@@ -68,7 +72,7 @@ class CollaborationService {
    * Get active sessions for a user
    */
   async getUserSessions(userId?: string): Promise<CollaborationSession[]> {
-    const response = await baseService.get(`${this.endpoint}/sessions`, {
+    const response = await this.get<CollaborationSession[]>(`${this.endpoint}/sessions`, {
       params: userId ? { user_id: userId } : {}
     });
     return response.data;
@@ -85,7 +89,7 @@ class CollaborationService {
     maxParticipants?: number;
     settings: CollaborationSession['settings'];
   }): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/sessions`, session);
+    const response = await this.post<{ sessionId: string }>(`${this.endpoint}/sessions`, session);
     return response.data.sessionId;
   }
 
@@ -96,14 +100,14 @@ class CollaborationService {
     sessionId: string,
     updates: Partial<Pick<CollaborationSession, 'title' | 'description' | 'maxParticipants' | 'settings'>>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/sessions/${sessionId}`, updates);
+    await this.put(`${this.endpoint}/sessions/${sessionId}`, updates);
   }
 
   /**
    * End a collaboration session
    */
   async endSession(sessionId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/sessions/${sessionId}/end`);
+    await this.post(`${this.endpoint}/sessions/${sessionId}/end`, {});
   }
 
   // =====================================
@@ -114,7 +118,7 @@ class CollaborationService {
    * Get presence information for a context
    */
   async getPresence(contextId: string, contextType: string): Promise<UserPresence[]> {
-    const response = await baseService.get(`${this.endpoint}/presence/${contextType}/${contextId}`);
+    const response = await this.get<UserPresence[]>(`${this.endpoint}/presence/${contextType}/${contextId}`);
     return response.data;
   }
 
@@ -126,14 +130,14 @@ class CollaborationService {
     contextType: string,
     presence: Partial<UserPresence>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/presence/${contextType}/${contextId}`, presence);
+    await this.put(`${this.endpoint}/presence/${contextType}/${contextId}`, presence);
   }
 
   /**
    * Get context awareness information
    */
   async getContextAwareness(contextId: string, contextType: string): Promise<ContextAwareness> {
-    const response = await baseService.get(`${this.endpoint}/awareness/${contextType}/${contextId}`);
+    const response = await this.get<ContextAwareness>(`${this.endpoint}/awareness/${contextType}/${contextId}`);
     return response.data;
   }
 
@@ -145,7 +149,7 @@ class CollaborationService {
     contextType: string,
     awareness: Partial<AwarenessInfo>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/awareness/${contextType}/${contextId}`, awareness);
+    await this.put(`${this.endpoint}/awareness/${contextType}/${contextId}`, awareness);
   }
 
   // =====================================
@@ -156,7 +160,7 @@ class CollaborationService {
    * Get live cursors for a context
    */
   async getCursors(contextId: string, contextType: string): Promise<LiveCursor[]> {
-    const response = await baseService.get(`${this.endpoint}/cursors/${contextType}/${contextId}`);
+    const response = await this.get<LiveCursor[]>(`${this.endpoint}/cursors/${contextType}/${contextId}`);
     return response.data;
   }
 
@@ -168,14 +172,14 @@ class CollaborationService {
     contextType: string,
     cursor: Omit<LiveCursor, 'userId' | 'user' | 'timestamp'>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/cursors/${contextType}/${contextId}`, cursor);
+    await this.put(`${this.endpoint}/cursors/${contextType}/${contextId}`, cursor);
   }
 
   /**
    * Remove user cursor
    */
   async removeCursor(contextId: string, contextType: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/cursors/${contextType}/${contextId}`);
+    await this.delete(`${this.endpoint}/cursors/${contextType}/${contextId}`);
   }
 
   // =====================================
@@ -186,14 +190,14 @@ class CollaborationService {
    * Send document operation
    */
   async sendOperation(request: SendOperationRequest): Promise<void> {
-    await baseService.post(`${this.endpoint}/operations`, request);
+    await this.post(`${this.endpoint}/operations`, request);
   }
 
   /**
    * Get document state
    */
   async getDocumentState(documentId: string): Promise<DocumentState> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/state`);
+    const response = await this.get<DocumentState>(`${this.endpoint}/documents/${documentId}/state`);
     return response.data;
   }
 
@@ -205,7 +209,7 @@ class CollaborationService {
     fromVersion?: number,
     toVersion?: number
   ): Promise<Operation[]> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/operations`, {
+    const response = await this.get<Operation[]>(`${this.endpoint}/documents/${documentId}/operations`, {
       params: {
         from_version: fromVersion,
         to_version: toVersion
@@ -218,7 +222,7 @@ class CollaborationService {
    * Get editing indicators for a document
    */
   async getEditingIndicators(documentId: string): Promise<EditingIndicator[]> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/indicators`);
+    const response = await this.get<EditingIndicator[]>(`${this.endpoint}/documents/${documentId}/indicators`);
     return response.data;
   }
 
@@ -230,7 +234,7 @@ class CollaborationService {
     elementId: string,
     elementType: EditingIndicator['elementType']
   ): Promise<void> {
-    await baseService.post(`${this.endpoint}/documents/${documentId}/editing/start`, {
+    await this.post(`${this.endpoint}/documents/${documentId}/editing/start`, {
       element_id: elementId,
       element_type: elementType
     });
@@ -240,7 +244,7 @@ class CollaborationService {
    * Stop editing indicator
    */
   async stopEditing(documentId: string, elementId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/documents/${documentId}/editing/stop`, {
+    await this.post(`${this.endpoint}/documents/${documentId}/editing/stop`, {
       element_id: elementId
     });
   }
@@ -253,7 +257,7 @@ class CollaborationService {
     since?: string,
     limit: number = 100
   ): Promise<DocumentChange[]> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/changes`, {
+    const response = await this.get<DocumentChange[]>(`${this.endpoint}/documents/${documentId}/changes`, {
       params: {
         since,
         limit
@@ -266,7 +270,7 @@ class CollaborationService {
    * Revert document change
    */
   async revertChange(documentId: string, changeId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/documents/${documentId}/changes/${changeId}/revert`);
+    await this.post(`${this.endpoint}/documents/${documentId}/changes/${changeId}/revert`);
   }
 
   // =====================================
@@ -277,7 +281,7 @@ class CollaborationService {
    * Get conflicts for a document
    */
   async getConflicts(documentId: string): Promise<SyncConflict[]> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/conflicts`);
+    const response = await this.get<SyncConflict[]>(`${this.endpoint}/documents/${documentId}/conflicts`);
     return response.data;
   }
 
@@ -292,7 +296,7 @@ class CollaborationService {
       mergedOperation?: Operation;
     }
   ): Promise<void> {
-    await baseService.post(
+    await this.post(
       `${this.endpoint}/documents/${documentId}/conflicts/${conflictId}/resolve`,
       resolution
     );
@@ -302,7 +306,7 @@ class CollaborationService {
    * Get conflict resolution options
    */
   async getConflictResolutions(documentId: string): Promise<ConflictResolution[]> {
-    const response = await baseService.get(`${this.endpoint}/documents/${documentId}/resolutions`);
+    const response = await this.get<ConflictResolution[]>(`${this.endpoint}/documents/${documentId}/resolutions`);
     return response.data;
   }
 
@@ -325,7 +329,12 @@ class CollaborationService {
     unreadCount: number;
     hasMore: boolean;
   }> {
-    const response = await baseService.post(`${this.endpoint}/activities/feed`, {
+    const response = await this.post<{
+      activities: ActivityFeedItem[];
+      totalCount: number;
+      unreadCount: number;
+      hasMore: boolean;
+    }>(`${this.endpoint}/activities/feed`, {
       context_id: contextId,
       context_type: contextType,
       filters,
@@ -339,7 +348,7 @@ class CollaborationService {
    * Create activity
    */
   async createActivity(activity: Omit<ActivityFeedItem, 'id' | 'timestamp'>): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/activities`, activity);
+    const response = await this.post<{ activityId: string }>(`${this.endpoint}/activities`, activity);
     return response.data.activityId;
   }
 
@@ -347,7 +356,7 @@ class CollaborationService {
    * Mark activity as read
    */
   async markActivityAsRead(activityId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/activities/${activityId}/read`);
+    await this.post(`${this.endpoint}/activities/${activityId}/read`);
   }
 
   /**
@@ -357,7 +366,7 @@ class CollaborationService {
     contextId?: string,
     contextType?: string
   ): Promise<void> {
-    await baseService.post(`${this.endpoint}/activities/read-all`, {
+    await this.post(`${this.endpoint}/activities/read-all`, {
       context_id: contextId,
       context_type: contextType
     });
@@ -367,7 +376,7 @@ class CollaborationService {
    * Add reaction to activity
    */
   async addActivityReaction(activityId: string, emoji: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/activities/${activityId}/reactions`, {
+    await this.post(`${this.endpoint}/activities/${activityId}/reactions`, {
       emoji
     });
   }
@@ -376,14 +385,14 @@ class CollaborationService {
    * Remove reaction from activity
    */
   async removeActivityReaction(activityId: string, emoji: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/activities/${activityId}/reactions/${emoji}`);
+    await this.delete(`${this.endpoint}/activities/${activityId}/reactions/${emoji}`);
   }
 
   /**
    * Get activity reactions
    */
   async getActivityReactions(activityId: string): Promise<ActivityReaction[]> {
-    const response = await baseService.get(`${this.endpoint}/activities/${activityId}/reactions`);
+    const response = await this.get<ActivityReaction[]>(`${this.endpoint}/activities/${activityId}/reactions`);
     return response.data;
   }
 
@@ -399,7 +408,7 @@ class CollaborationService {
     contextType: string,
     includeResolved: boolean = false
   ): Promise<Comment[]> {
-    const response = await baseService.get(`${this.endpoint}/comments/${contextType}/${contextId}`, {
+    const response = await this.get<Comment[]>(`${this.endpoint}/comments/${contextType}/${contextId}`, {
       params: { include_resolved: includeResolved }
     });
     return response.data;
@@ -409,7 +418,7 @@ class CollaborationService {
    * Add comment
    */
   async addComment(comment: Omit<Comment, 'id' | 'timestamp'>): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/comments`, comment);
+    const response = await this.post<{ commentId: string }>(`${this.endpoint}/comments`, comment);
     return response.data.commentId;
   }
 
@@ -417,21 +426,21 @@ class CollaborationService {
    * Update comment
    */
   async updateComment(commentId: string, updates: Partial<Comment>): Promise<void> {
-    await baseService.put(`${this.endpoint}/comments/${commentId}`, updates);
+    await this.put(`${this.endpoint}/comments/${commentId}`, updates);
   }
 
   /**
    * Delete comment
    */
   async deleteComment(commentId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/comments/${commentId}`);
+    await this.delete(`${this.endpoint}/comments/${commentId}`);
   }
 
   /**
    * Resolve comment
    */
   async resolveComment(commentId: string, resolutionNote?: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/comments/${commentId}/resolve`, {
+    await this.post(`${this.endpoint}/comments/${commentId}/resolve`, {
       resolution_note: resolutionNote
     });
   }
@@ -440,14 +449,14 @@ class CollaborationService {
    * Reopen comment
    */
   async reopenComment(commentId: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/comments/${commentId}/reopen`);
+    await this.post(`${this.endpoint}/comments/${commentId}/reopen`);
   }
 
   /**
    * Add reaction to comment
    */
   async addCommentReaction(commentId: string, emoji: string): Promise<void> {
-    await baseService.post(`${this.endpoint}/comments/${commentId}/reactions`, {
+    await this.post(`${this.endpoint}/comments/${commentId}/reactions`, {
       emoji
     });
   }
@@ -456,7 +465,7 @@ class CollaborationService {
    * Remove reaction from comment
    */
   async removeCommentReaction(commentId: string, emoji: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/comments/${commentId}/reactions/${emoji}`);
+    await this.delete(`${this.endpoint}/comments/${commentId}/reactions/${emoji}`);
   }
 
   /**
@@ -466,7 +475,7 @@ class CollaborationService {
     contextId: string,
     contextType: string
   ): Promise<CommentThread[]> {
-    const response = await baseService.get(`${this.endpoint}/comments/${contextType}/${contextId}/threads`);
+    const response = await this.get<CommentThread[]>(`${this.endpoint}/comments/${contextType}/${contextId}/threads`);
     return response.data;
   }
 
@@ -474,7 +483,7 @@ class CollaborationService {
    * Get comment thread
    */
   async getCommentThread(threadId: string): Promise<CommentThread> {
-    const response = await baseService.get(`${this.endpoint}/comments/threads/${threadId}`);
+    const response = await this.get<CommentThread>(`${this.endpoint}/comments/threads/${threadId}`);
     return response.data;
   }
 
@@ -486,7 +495,7 @@ class CollaborationService {
    * Get live selections for a context
    */
   async getLiveSelections(contextId: string, contextType: string): Promise<LiveSelection[]> {
-    const response = await baseService.get(`${this.endpoint}/selections/${contextType}/${contextId}`);
+    const response = await this.get<LiveSelection[]>(`${this.endpoint}/selections/${contextType}/${contextId}`);
     return response.data;
   }
 
@@ -498,14 +507,14 @@ class CollaborationService {
     contextType: string,
     selection: Omit<LiveSelection, 'userId' | 'user' | 'timestamp'>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/selections/${contextType}/${contextId}`, selection);
+    await this.put(`${this.endpoint}/selections/${contextType}/${contextId}`, selection);
   }
 
   /**
    * Clear user selection
    */
   async clearSelection(contextId: string, contextType: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/selections/${contextType}/${contextId}`);
+    await this.delete(`${this.endpoint}/selections/${contextType}/${contextId}`);
   }
 
   /**
@@ -514,7 +523,7 @@ class CollaborationService {
   async createHighlight(
     highlight: Omit<SharedHighlight, 'id' | 'createdBy' | 'creator' | 'timestamp'>
   ): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/highlights`, highlight);
+    const response = await this.post<{ highlightId: string }>(`${this.endpoint}/highlights`, highlight);
     return response.data.highlightId;
   }
 
@@ -522,7 +531,7 @@ class CollaborationService {
    * Get shared highlights
    */
   async getHighlights(contextId: string, contextType: string): Promise<SharedHighlight[]> {
-    const response = await baseService.get(`${this.endpoint}/highlights/${contextType}/${contextId}`);
+    const response = await this.get<SharedHighlight[]>(`${this.endpoint}/highlights/${contextType}/${contextId}`);
     return response.data;
   }
 
@@ -530,14 +539,14 @@ class CollaborationService {
    * Update shared highlight
    */
   async updateHighlight(highlightId: string, updates: Partial<SharedHighlight>): Promise<void> {
-    await baseService.put(`${this.endpoint}/highlights/${highlightId}`, updates);
+    await this.put(`${this.endpoint}/highlights/${highlightId}`, updates);
   }
 
   /**
    * Delete shared highlight
    */
   async deleteHighlight(highlightId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/highlights/${highlightId}`);
+    await this.delete(`${this.endpoint}/highlights/${highlightId}`);
   }
 
   // =====================================
@@ -548,7 +557,7 @@ class CollaborationService {
    * Broadcast collaboration event
    */
   async broadcastEvent(request: BroadcastEventRequest): Promise<void> {
-    await baseService.post(`${this.endpoint}/events/broadcast`, request);
+    await this.post(`${this.endpoint}/events/broadcast`, request);
   }
 
   /**
@@ -560,7 +569,7 @@ class CollaborationService {
     since?: string,
     limit: number = 100
   ): Promise<CollaborationEvent[]> {
-    const response = await baseService.get(`${this.endpoint}/events/${contextType}/${contextId}`, {
+    const response = await this.get<CollaborationEvent[]>(`${this.endpoint}/events/${contextType}/${contextId}`, {
       params: {
         since,
         limit
@@ -577,7 +586,7 @@ class CollaborationService {
    * Get session participants
    */
   async getSessionParticipants(sessionId: string): Promise<SessionParticipant[]> {
-    const response = await baseService.get(`${this.endpoint}/sessions/${sessionId}/participants`);
+    const response = await this.get<SessionParticipant[]>(`${this.endpoint}/sessions/${sessionId}/participants`);
     return response.data;
   }
 
@@ -589,7 +598,7 @@ class CollaborationService {
     userId: string,
     role: SessionParticipant['role']
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/sessions/${sessionId}/participants/${userId}/role`, {
+    await this.put(`${this.endpoint}/sessions/${sessionId}/participants/${userId}/role`, {
       role
     });
   }
@@ -598,7 +607,7 @@ class CollaborationService {
    * Remove participant from session
    */
   async removeParticipant(sessionId: string, userId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/sessions/${sessionId}/participants/${userId}`);
+    await this.delete(`${this.endpoint}/sessions/${sessionId}/participants/${userId}`);
   }
 
   /**
@@ -613,7 +622,7 @@ class CollaborationService {
       message?: string;
     }>
   ): Promise<void> {
-    await baseService.post(`${this.endpoint}/sessions/${sessionId}/invite`, {
+    await this.post(`${this.endpoint}/sessions/${sessionId}/invite`, {
       invitations
     });
   }
@@ -652,7 +661,26 @@ class CollaborationService {
     }>;
     collaborationScore: number;
   }> {
-    const response = await baseService.get(
+    const response = await this.get<{
+      totalSessions: number;
+      totalParticipants: number;
+      averageSessionDuration: number;
+      totalEdits: number;
+      totalComments: number;
+      mostActiveUsers: Array<{
+        userId: string;
+        userName: string;
+        editCount: number;
+        commentCount: number;
+        timeSpent: number;
+      }>;
+      activityHeatmap: Array<{
+        hour: number;
+        day: number;
+        activityCount: number;
+      }>;
+      collaborationScore: number;
+    }>(
       `${this.endpoint}/analytics/${contextType}/${contextId}`,
       {
         params: {
@@ -691,7 +719,24 @@ class CollaborationService {
       viewing: number;
     };
   }> {
-    const response = await baseService.get(`${this.endpoint}/analytics/users/${userId}`, {
+    const response = await this.get<{
+      sessionsJoined: number;
+      totalTimeSpent: number;
+      editsCount: number;
+      commentsCount: number;
+      collaborationScore: number;
+      topCollaborators: Array<{
+        userId: string;
+        userName: string;
+        collaborationCount: number;
+      }>;
+      activityDistribution: {
+        editing: number;
+        commenting: number;
+        reviewing: number;
+        viewing: number;
+      };
+    }>(`${this.endpoint}/analytics/users/${userId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -719,7 +764,14 @@ class CollaborationService {
     canManage: boolean;
     role: string;
   }> {
-    const response = await baseService.get(
+    const response = await this.get<{
+      canView: boolean;
+      canEdit: boolean;
+      canComment: boolean;
+      canShare: boolean;
+      canManage: boolean;
+      role: string;
+    }>(
       `${this.endpoint}/permissions/${contextType}/${contextId}`,
       {
         params: userId ? { user_id: userId } : {}
@@ -745,7 +797,7 @@ class CollaborationService {
       };
     }>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/permissions/${contextType}/${contextId}`, {
+    await this.put(`${this.endpoint}/permissions/${contextType}/${contextId}`, {
       permissions
     });
   }
@@ -790,7 +842,26 @@ class CollaborationService {
       users: Record<string, number>;
     };
   }> {
-    const response = await baseService.post(`${this.endpoint}/search`, {
+    const response = await this.post<{
+      results: Array<{
+        id: string;
+        type: 'comment' | 'document' | 'activity';
+        title: string;
+        excerpt: string;
+        contextId: string;
+        contextType: string;
+        userId: string;
+        userName: string;
+        timestamp: string;
+        relevanceScore: number;
+      }>;
+      totalCount: number;
+      facets: {
+        contentTypes: Record<string, number>;
+        contexts: Record<string, number>;
+        users: Record<string, number>;
+      };
+    }>(`${this.endpoint}/search`, {
       query,
       filters,
       limit

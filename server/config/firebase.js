@@ -4,7 +4,8 @@ const admin = require('firebase-admin');
 if (!admin.apps.length) {
   try {
     // Check if running in development with emulators
-    const isEmulatorMode = process.env.NODE_ENV === 'development' && process.env.USE_FIREBASE_EMULATOR === 'true';
+    const isEmulatorMode = process.env.USE_FIREBASE_EMULATOR === 'true';
+    console.log('🔄 Firebase initialization - Emulator mode:', isEmulatorMode);
     
     if (isEmulatorMode) {
       // For emulator mode, use a demo project
@@ -55,7 +56,8 @@ if (!admin.apps.length) {
         // Fallback to emulator mode
         admin.initializeApp({
           projectId: 'demo-test',
-          credential: admin.credential.applicationDefault()
+          credential: admin.credential.applicationDefault(),
+          storageBucket: 'demo-test.appspot.com'
         });
         
         process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
@@ -73,7 +75,8 @@ if (!admin.apps.length) {
         
         admin.initializeApp({
           credential: admin.credential.cert(firebaseConfig),
-          databaseURL: process.env.FIREBASE_DATABASE_URL
+          databaseURL: process.env.FIREBASE_DATABASE_URL,
+          storageBucket: process.env.FIREBASE_PROJECT_ID + '.appspot.com'
         });
         
         console.log('✅ Firebase Admin SDK initialized successfully for production');

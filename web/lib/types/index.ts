@@ -329,6 +329,7 @@ export interface PaginationParams {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  [key: string]: string | number | undefined;
 }
 
 export interface HTTPMethod {
@@ -359,6 +360,9 @@ export interface RegisterFormData {
   displayName: string;
   acceptTerms: boolean;
 }
+
+// Export messaging types
+export * from './messaging';
 
 // Export commonly used type combinations
 export type ProjectWithDetails = RequiredFields<ProjectDetails, 'teamMembers' | 'applicationsCount'>;

@@ -34,8 +34,9 @@ export interface APIRequestConfig {
 class BaseService {
   protected baseUrl: string;
 
-  constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+  constructor(basePath: string = '') {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    this.baseUrl = basePath ? `${apiBaseUrl}${basePath}` : apiBaseUrl;
   }
 
   /**

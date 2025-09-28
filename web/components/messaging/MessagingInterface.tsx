@@ -46,8 +46,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Textarea from '@/components/ui/Textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface MessagingInterfaceProps {
@@ -91,15 +89,16 @@ function MessageItem({
   onDelete,
   showThread = false
 }: {
-  message: Message;
+  message: EnhancedMessage;
   currentUserId: string;
   onReaction: (messageId: string, emoji: string) => void;
-  onReply: (message: Message) => void;
-  onEdit: (message: Message) => void;
+  onReply: (message: EnhancedMessage) => void;
+  onEdit: (message: EnhancedMessage) => void;
   onDelete: (messageId: string) => void;
   showThread?: boolean;
 }) {
   const [showActions, setShowActions] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const isCurrentUser = message.senderId === currentUserId;
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
@@ -110,15 +109,15 @@ function MessageItem({
     });
   };
 
-  const groupedReactions = message.reactions.reduce((acc, reaction) => {
+  const groupedReactions = (message.reactions || []).reduce((acc, reaction) => {
     const key = reaction.emoji;
     if (!acc[key]) {
       acc[key] = { emoji: key, count: 0, users: [] };
     }
-    acc[key].count++;
-    acc[key].users.push(reaction.user);
+    acc[key].count = reaction.count;
+    acc[key].users = reaction.users;
     return acc;
-  }, {} as Record<string, { emoji: string; count: number; users: User[] }>);
+  }, {} as Record<string, { emoji: string; count: number; users: Array<{id: string; name: string; avatar?: string}> }>);
 
   return (
     <motion.div
@@ -133,9 +132,9 @@ function MessageItem({
     >
       {/* Avatar */}
       <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-        <AvatarImage src={message.sender.avatar} />
+        <AvatarImage src={message.senderAvatar} />
         <AvatarFallback>
-          {message.sender.name.charAt(0).toUpperCase()}
+          {message.senderName.charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
 
@@ -143,12 +142,12 @@ function MessageItem({
         {/* Header */}
         <div className={cn('flex items-center gap-2 mb-1', isCurrentUser && 'flex-row-reverse')}>
           <span className="font-medium text-sm text-text-primary dark:text-white">
-            {message.sender.name}
+            {message.senderName}
           </span>
           <span className="text-xs text-text-tertiary dark:text-text-tertiary">
-            {formatTime(message.timestamp)}
+            {formatTime(message.createdAt)}
           </span>
-          {message.isEdited && (
+          {message.metadata?.edited && (
             <span className="text-xs text-text-tertiary dark:text-text-tertiary">(edited)</span>
           )}
         </div>
@@ -159,12 +158,12 @@ function MessageItem({
           isCurrentUser 
             ? 'bg-brand-primary text-white' 
             : 'bg-dark-surface/50 dark:bg-dark-surface/50 text-text-primary dark:text-white',
-          message.parentId && 'border-l-4 border-dark-border dark:border-gray-600 pl-4'
+          message.parentMessageId && 'border-l-4 border-dark-border dark:border-gray-600 pl-4'
         )}>
           {/* Reply preview */}
-          {message.parentId && (
+          {message.parentMessageId && (
             <div className="mb-2 p-2 bg-dark-surface/30 dark:bg-dark-surface/50 rounded text-sm opacity-75">
-              <div className="font-medium">Replying to {message.sender.name}</div>
+              <div className="font-medium">Replying to {message.senderName}</div>
               <div className="truncate">Original message...</div>
             </div>
           )}
@@ -175,21 +174,21 @@ function MessageItem({
           </div>
 
           {/* Media attachments */}
-          {message.media.length > 0 && (
+          {(message.attachments || []).length > 0 && (
             <div className="mt-2 space-y-2">
-              {message.media.map(media => (
-                <div key={media.id} className="relative">
-                  {media.type === 'image' ? (
+              {(message.attachments || []).map(attachment => (
+                <div key={attachment.id} className="relative">
+                  {attachment.mimeType.startsWith('image/') ? (
                     <img
-                      src={media.url}
-                      alt={media.name}
+                      src={attachment.fileUrl}
+                      alt={attachment.fileName}
                       className="max-w-full rounded cursor-pointer hover:opacity-90 transition-opacity"
                       style={{ maxHeight: '300px' }}
-                      onClick={() => setExpandedImage(media.url)}
+                      onClick={() => setExpandedImage(attachment.fileUrl)}
                     />
-                  ) : media.type === 'video' ? (
+                  ) : attachment.mimeType.startsWith('video/') ? (
                     <video
-                      src={media.url}
+                      src={attachment.fileUrl}
                       controls
                       className="max-w-full rounded"
                       style={{ maxHeight: '300px' }}
@@ -197,9 +196,9 @@ function MessageItem({
                   ) : (
                     <div className="flex items-center gap-2 p-2 bg-white/5 rounded">
                       <File className="w-4 h-4" />
-                      <span className="text-sm">{media.name}</span>
+                      <span className="text-sm">{attachment.fileName}</span>
                       <span className="text-xs opacity-75">
-                        {(media.size / 1024 / 1024).toFixed(1)} MB
+                        {(attachment.fileSize / 1024 / 1024).toFixed(1)} MB
                       </span>
                     </div>
                   )}
@@ -209,7 +208,7 @@ function MessageItem({
           )}
 
           {/* Thread indicator */}
-          {message.threadCount > 0 && showThread && (
+          {message.replyCount && message.replyCount > 0 && showThread && (
             <button
               className={cn(
                 'mt-2 text-xs flex items-center gap-1 opacity-75 hover:opacity-100',
@@ -217,7 +216,7 @@ function MessageItem({
               )}
             >
               <MessageCircle className="w-3 h-3" />
-              {message.threadCount} replies
+              {message.replyCount} replies
             </button>
           )}
         </div>
@@ -255,18 +254,26 @@ function MessageItem({
                 isCurrentUser && 'flex-row-reverse'
               )}
             >
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <Smile className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <EmojiPicker 
-                    onEmojiSelect={(emoji) => onReaction(message.id, emoji)} 
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                >
+                  <Smile className="w-3 h-3" />
+                </Button>
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full mb-2 z-10 bg-white dark:bg-dark-surface/50 border border-dark-border/50 dark:border-gray-600 rounded-lg shadow-lg">
+                    <EmojiPicker 
+                      onEmojiSelect={(emoji) => {
+                        onReaction(message.id, emoji);
+                        setShowEmojiPicker(false);
+                      }} 
+                    />
+                  </div>
+                )}
+              </div>
 
               <Button
                 variant="ghost"
@@ -339,7 +346,7 @@ function MessageItem({
 function TypingIndicator({ typingUsers }: { typingUsers: TypingIndicatorType[] }) {
   if (typingUsers.length === 0) return null;
 
-  const names = typingUsers.map(t => t.user.name);
+  const names = typingUsers.map(t => t.userName);
   const text = names.length === 1 
     ? `${names[0]} is typing...`
     : names.length === 2
@@ -387,7 +394,7 @@ function MessageInput({
   onSendMessage: (content: string, media?: File[]) => void;
   onTyping: (isTyping: boolean) => void;
   placeholder?: string;
-  replyTo?: Message;
+  replyTo?: EnhancedMessage;
   onCancelReply?: () => void;
   disabled?: boolean;
 }) {
@@ -449,7 +456,7 @@ function MessageInput({
         <div className="mb-3 p-3 bg-dark-surface/30 dark:bg-dark-surface/50 rounded-lg flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-text-primary dark:text-white mb-1">
-              Replying to {replyTo.sender.name}
+              Replying to {replyTo.senderName}
             </div>
             <div className="text-sm text-text-secondary dark:text-text-tertiary truncate">
               {replyTo.content}
@@ -551,19 +558,19 @@ export default function MessagingInterface({
   projectId,
   className
 }: MessagingInterfaceProps) {
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [replyTo, setReplyTo] = useState<EnhancedMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<EnhancedMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const {
     conversations,
+    currentConversation,
     messages,
     typingUsers,
     loading,
     actions
-  } = useMessaging(projectId, selectedConversation);
+  } = useMessaging();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -573,13 +580,14 @@ export default function MessagingInterface({
   }, [messages]);
 
   const handleSendMessage = async (content: string, media?: File[]) => {
-    if (!selectedConversation) return;
+    if (!currentConversation) return;
 
     await actions.sendMessage({
-      conversationId: selectedConversation,
+      conversationId: currentConversation.id,
       content,
-      media: media || [],
-      parentId: replyTo?.id
+      messageType: 'text',
+      attachments: media || [],
+      replyToMessageId: replyTo?.id
     });
 
     setReplyTo(null);
@@ -590,13 +598,14 @@ export default function MessagingInterface({
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    await actions.deleteMessage(messageId);
+    // Delete message functionality would need to be added to the actions
+    console.log('Delete message:', messageId);
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.participants.some(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter((conv: Conversation) =>
+    (conv.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.participants.some((p: any) => 
+      (p.userName || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
 
@@ -628,26 +637,26 @@ export default function MessagingInterface({
         </div>
 
         {/* Conversations list */}
-        <ScrollArea className="flex-1">
-          {filteredConversations.map(conversation => (
+        <div className="flex-1 overflow-y-auto">
+          {filteredConversations.map((conversation: Conversation) => (
             <button
               key={conversation.id}
-              onClick={() => setSelectedConversation(conversation.id)}
+              onClick={() => actions.selectConversation(conversation.id)}
               className={cn(
                 'w-full flex items-start gap-3 p-4 hover:bg-dark-surface/30 dark:hover:bg-dark-surface/50 transition-colors text-left',
-                selectedConversation === conversation.id && 'bg-brand-primary dark:bg-brand-primary/20'
+                currentConversation?.id === conversation.id && 'bg-brand-primary dark:bg-brand-primary/20'
               )}
             >
               <div className="relative flex-shrink-0">
-                {conversation.isGroup ? (
+                {(conversation.type === 'group' || conversation.type === 'project' || conversation.type === 'team') ? (
                   <div className="w-10 h-10 bg-dark-surface/50 dark:bg-dark-surface/50 rounded-full flex items-center justify-center">
                     <Hash className="w-5 h-5" />
                   </div>
                 ) : (
                   <Avatar className="w-10 h-10">
-                    <AvatarImage src={conversation.participants[0]?.avatar} />
+                    <AvatarImage src={conversation.participants[0]?.userAvatar} />
                     <AvatarFallback>
-                      {conversation.participants[0]?.name.charAt(0).toUpperCase()}
+                      {conversation.participants[0]?.userName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 )}
@@ -661,7 +670,7 @@ export default function MessagingInterface({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-medium text-sm text-text-primary dark:text-white truncate">
-                    {conversation.name}
+                    {conversation.name || (conversation.type === 'direct' ? conversation.participants[0]?.userName : 'Group Chat')}
                   </h3>
                   <span className="text-xs text-text-tertiary dark:text-text-tertiary">
                     {conversation.lastMessage && 
@@ -673,7 +682,7 @@ export default function MessagingInterface({
                 {conversation.lastMessage && (
                   <p className="text-sm text-text-secondary dark:text-text-tertiary truncate">
                     <span className="font-medium">
-                      {conversation.lastMessage.sender.name}:
+                      {conversation.lastMessage.senderName}:
                     </span>{' '}
                     {conversation.lastMessage.content || 'Media message'}
                   </p>
@@ -681,13 +690,13 @@ export default function MessagingInterface({
 
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1">
-                    {conversation.isGroup && (
+                    {(conversation.type === 'group' || conversation.type === 'project' || conversation.type === 'team') && (
                       <Users className="w-3 h-3 text-text-tertiary" />
                     )}
-                    {conversation.isPinned && (
+                    {conversation.settings?.pinned && (
                       <Pin className="w-3 h-3 text-brand-primary" />
                     )}
-                    {conversation.isMuted && (
+                    {conversation.settings?.muted && (
                       <BellOff className="w-3 h-3 text-text-tertiary" />
                     )}
                   </div>
@@ -699,29 +708,29 @@ export default function MessagingInterface({
               </div>
             </button>
           ))}
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
+        {currentConversation ? (
           <>
             {/* Chat header */}
             <div className="p-4 border-b border-dark-border/50 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={conversations.find(c => c.id === selectedConversation)?.participants[0]?.avatar} />
+                    <AvatarImage src={currentConversation?.participants[0]?.userAvatar} />
                     <AvatarFallback>
-                      {conversations.find(c => c.id === selectedConversation)?.name.charAt(0).toUpperCase()}
+                      {currentConversation?.name?.charAt(0).toUpperCase() || currentConversation?.participants[0]?.userName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-medium text-text-primary dark:text-white">
-                      {conversations.find(c => c.id === selectedConversation)?.name}
+                      {currentConversation?.name || currentConversation?.participants[0]?.userName}
                     </h3>
                     <p className="text-sm text-text-tertiary dark:text-text-tertiary">
-                      {conversations.find(c => c.id === selectedConversation)?.participants.length} members
+                      {currentConversation?.participants.length} members
                     </p>
                   </div>
                 </div>
@@ -741,9 +750,9 @@ export default function MessagingInterface({
             </div>
 
             {/* Messages */}
-            <ScrollArea ref={scrollAreaRef} className="flex-1">
+            <div ref={scrollAreaRef} className="flex-1 overflow-y-auto">
               <div className="space-y-1">
-                {messages.map(message => (
+                {messages.map((message: EnhancedMessage) => (
                   <MessageItem
                     key={message.id}
                     message={message}
@@ -761,13 +770,21 @@ export default function MessagingInterface({
               <AnimatePresence>
                 <TypingIndicator typingUsers={typingUsers} />
               </AnimatePresence>
-            </ScrollArea>
+            </div>
 
             {/* Message input */}
             <MessageInput
               onSendMessage={handleSendMessage}
-              onTyping={actions.setTyping}
-              replyTo={replyTo}
+              onTyping={(isTyping) => {
+                if (currentConversation) {
+                  if (isTyping) {
+                    actions.startTyping(currentConversation.id);
+                  } else {
+                    actions.stopTyping(currentConversation.id);
+                  }
+                }
+              }}
+              replyTo={replyTo || undefined}
               onCancelReply={() => setReplyTo(null)}
               disabled={loading.sending}
             />

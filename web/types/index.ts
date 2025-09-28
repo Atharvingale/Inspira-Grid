@@ -249,26 +249,6 @@ export interface LoadingSpinnerProps {
   className?: string;
 }
 
-// Admin Interfaces
-export interface AdminStats {
-  totalUsers: number;
-  totalProjects: number;
-  totalApplications: number;
-  pendingApprovals: number;
-  activeUsers: number;
-  projectsByCategory: Record<string, number>;
-  userGrowth: { month: string; count: number; }[];
-  projectGrowth: { month: string; count: number; }[];
-}
-
-export interface AdminAction {
-  type: 'approve' | 'reject' | 'suspend' | 'activate' | 'delete';
-  targetId: string;
-  targetType: 'user' | 'project' | 'application';
-  reason?: string;
-  adminId: string;
-  timestamp: Date;
-}
 
 // API Response Types
 export interface APIError {

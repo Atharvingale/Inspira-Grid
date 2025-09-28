@@ -2,14 +2,15 @@ const express = require('express');
 const { body, validationResult, param, query } = require('express-validator');
 const ProjectModel = require('../models/Project');
 const ApplicationModel = require('../models/Application');
-const { requireAuth, requireCompleteProfile, createRateLimit } = require('../middleware/auth');
+const { requireAuth, createRateLimit, requireCompleteProfile } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
 
 const router = express.Router();
 
 // Rate limiting for project creation
 const createProjectLimit = createRateLimit(60 * 60 * 1000, 5); // 5 projects per hour
 
-// Get all projects with filters and pagination
+// Get all projects with enhanced filters and pagination
 router.get('/', async (req, res) => {
   try {
     const {
@@ -20,24 +21,37 @@ router.get('/', async (req, res) => {
       page = 1,
       limit = 12,
       orderBy = 'createdAt',
-      orderDirection = 'desc'
+      orderDirection = 'desc',
+      difficulty,
+      isRemote,
+      hasGitHub,
+      teamSizeMin,
+      teamSizeMax,
+      sortBy
     } = req.query;
 
     const filters = {
-      status: status || 'approved', // Default to approved projects
+      status: status || 'approved',
       category,
-      limit: parseInt(limit),
+      difficulty,
+      isRemote: isRemote !== undefined ? isRemote === 'true' : undefined,
+      hasGitHub: hasGitHub !== undefined ? hasGitHub === 'true' : undefined,
+      teamSizeMin: teamSizeMin ? parseInt(teamSizeMin) : undefined,
+      teamSizeMax: teamSizeMax ? parseInt(teamSizeMax) : undefined,
+      limit: parseInt(limit) * 2, // Get more for better filtering
       orderBy,
-      orderDirection
+      orderDirection,
+      sortBy
     };
 
     if (skills) {
-      filters.skills = Array.isArray(skills) ? skills : skills.split(',');
+      filters.skills = Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim());
     }
 
     let projects;
-    if (search) {
-      projects = await ProjectModel.search(search, filters);
+    if (search && search.trim()) {
+      console.log('🔍 Performing search with term:', search);
+      projects = await ProjectModel.search(search.trim(), filters);
     } else {
       projects = await ProjectModel.getAll(filters);
     }
@@ -47,6 +61,19 @@ router.get('/', async (req, res) => {
     const endIndex = startIndex + parseInt(limit);
     const paginatedProjects = projects.slice(startIndex, endIndex);
 
+    // Add user-specific info if authenticated
+    if (req.user) {
+      for (let project of paginatedProjects) {
+        try {
+          project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+          project.isOwner = project.ownerId === req.user.uid;
+          project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+        } catch (error) {
+          console.error('Error adding user info to project:', error);
+        }
+      }
+    }
+
     res.json({
       projects: paginatedProjects,
       pagination: {
@@ -55,7 +82,12 @@ router.get('/', async (req, res) => {
         totalPages: Math.ceil(projects.length / parseInt(limit)),
         hasNext: endIndex < projects.length,
         hasPrev: startIndex > 0
-      }
+      },
+      searchInfo: search ? {
+        searchTerm: search,
+        resultsFound: projects.length,
+        hasRelevanceScoring: true
+      } : null
     });
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -79,8 +111,12 @@ router.get('/:id', [
       });
     }
 
+    console.log('Looking for project with ID:', req.params.id);
     const project = await ProjectModel.getById(req.params.id);
+    console.log('Project lookup result:', project ? 'Found' : 'Not found');
+    
     if (!project) {
+      console.log('Project not found, returning 404');
       return res.status(404).json({
         error: 'Project not found'
       });
@@ -119,6 +155,9 @@ router.post('/', [
   body('teamSize').isInt({ min: 2, max: 20 }).withMessage('Team size must be 2-20 members'),
   body('duration').optional().trim(),
   body('budget').optional().trim(),
+  body('githubRepo').optional().isObject().withMessage('GitHub repository must be an object'),
+  body('githubRepo.owner').optional().trim().notEmpty().withMessage('GitHub repository owner is required'),
+  body('githubRepo.name').optional().trim().notEmpty().withMessage('GitHub repository name is required'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -141,6 +180,18 @@ router.post('/', [
       ownerName: req.user.displayName,
       ownerEmail: req.user.email
     };
+    
+    // Add GitHub repository if provided
+    if (req.body.githubRepo && req.body.githubRepo.owner && req.body.githubRepo.name) {
+      projectData.githubRepo = {
+        owner: req.body.githubRepo.owner,
+        name: req.body.githubRepo.name,
+        fullName: `${req.body.githubRepo.owner}/${req.body.githubRepo.name}`,
+        url: `https://github.com/${req.body.githubRepo.owner}/${req.body.githubRepo.name}`,
+        cloneUrl: `https://github.com/${req.body.githubRepo.owner}/${req.body.githubRepo.name}.git`,
+        linkedAt: new Date().toISOString()
+      };
+    }
 
     const project = await ProjectModel.create(projectData);
     
@@ -192,12 +243,7 @@ router.put('/:id', [
       });
     }
 
-    // Don't allow updates to approved projects unless admin
-    if (project.status === 'approved' && req.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Cannot update approved projects'
-      });
-    }
+    // Allow updates to projects by owners
 
     const updates = {};
     const allowedFields = ['title', 'description', 'category', 'skillsRequired', 'teamSize', 'duration', 'budget'];
@@ -244,10 +290,10 @@ router.delete('/:id', [
       });
     }
 
-    // Check if user is owner or admin
-    if (project.ownerId !== req.user.uid && req.user.role !== 'admin') {
+    // Check if user is owner
+    if (project.ownerId !== req.user.uid) {
       return res.status(403).json({
-        error: 'Only project owner or admin can delete this project'
+        error: 'Only project owner can delete this project'
       });
     }
 
@@ -334,10 +380,10 @@ router.post('/:id/apply', [
       });
     }
 
-    // Check if project is approved
-    if (project.status !== 'approved') {
+    // Check if project is approved or in-progress
+    if (project.status !== 'approved' && project.status !== 'in-progress') {
       return res.status(400).json({
-        error: 'Can only apply to approved projects'
+        error: 'Can only apply to approved or in-progress projects'
       });
     }
 
@@ -375,6 +421,19 @@ router.post('/:id/apply', [
     };
 
     const application = await ApplicationModel.create(applicationData);
+    
+    // Send notification to project owner
+    try {
+      await notificationService.notifyProjectApplication(
+        project.ownerId,
+        req.user.displayName || 'Someone',
+        project.title,
+        application.id
+      );
+    } catch (notificationError) {
+      console.error('Failed to send application notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
     
     res.status(201).json({
       message: 'Application submitted successfully',
@@ -426,6 +485,377 @@ router.get('/:id/applications', [
     console.error('Error fetching applications:', error);
     res.status(500).json({
       error: 'Failed to fetch applications',
+      message: error.message
+    });
+  }
+});
+
+// Update project status (admin only)
+router.patch('/:id/status', [
+  requireAuth,
+  param('id').isString().notEmpty(),
+  body('status').isIn(['approved', 'in-progress', 'completed', 'archived']),
+  body('note').optional().trim().isLength({ max: 500 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    // Check if user is project owner
+    const project = await ProjectModel.getById(req.params.id);
+    if (!project) {
+      return res.status(404).json({
+        error: 'Project not found'
+      });
+    }
+
+    const isOwner = project.ownerId === req.user.uid;
+
+    if (!isOwner) {
+      return res.status(403).json({
+        error: 'Only project owner can update project status'
+      });
+    }
+
+    const updateData = {
+      status: req.body.status,
+      lastModifiedBy: req.user.uid,
+      lastModifiedAt: new Date()
+    };
+
+    if (req.body.note) {
+      updateData.statusNote = req.body.note;
+    }
+
+    const updatedProject = await ProjectModel.update(req.params.id, updateData);
+    
+    res.json({
+      message: `Project status updated to ${req.body.status}`,
+      project: updatedProject
+    });
+  } catch (error) {
+    console.error('Error updating project status:', error);
+    res.status(500).json({
+      error: 'Failed to update project status',
+      message: error.message
+    });
+  }
+});
+
+// Remove team member from project
+router.delete('/:id/team/:userId', [
+  requireAuth,
+  param('id').isString().notEmpty(),
+  param('userId').isString().notEmpty()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const project = await ProjectModel.getById(req.params.id);
+    if (!project) {
+      return res.status(404).json({
+        error: 'Project not found'
+      });
+    }
+
+    // Check if user is project owner or removing themselves
+    const isOwner = project.ownerId === req.user.uid;
+    const isSelfRemoval = req.params.userId === req.user.uid;
+
+    if (!isOwner && !isSelfRemoval) {
+      return res.status(403).json({
+        error: 'You can only remove yourself or be the project owner'
+      });
+    }
+
+    const updatedProject = await ProjectModel.removeTeamMember(req.params.id, req.params.userId);
+    
+    res.json({
+      message: 'Team member removed successfully',
+      project: updatedProject
+    });
+  } catch (error) {
+    console.error('Error removing team member:', error);
+    res.status(500).json({
+      error: 'Failed to remove team member',
+      message: error.message
+    });
+  }
+});
+
+// ============================================================================
+// Enhanced Discovery Endpoints
+// ============================================================================
+
+// Get trending projects
+router.get('/discover/trending', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const trendingProjects = await ProjectModel.getTrendingProjects(parseInt(limit));
+    
+    // Add user-specific info if authenticated
+    if (req.user) {
+      for (let project of trendingProjects) {
+        try {
+          project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+          project.isOwner = project.ownerId === req.user.uid;
+          project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+        } catch (error) {
+          console.error('Error adding user info to trending project:', error);
+        }
+      }
+    }
+    
+    res.json({
+      projects: trendingProjects,
+      type: 'trending',
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching trending projects:', error);
+    res.status(500).json({
+      error: 'Failed to fetch trending projects',
+      message: error.message
+    });
+  }
+});
+
+// Get recommended projects for authenticated user
+router.get('/discover/recommended', requireAuth, async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const userSkills = req.user.skills || [];
+    const userInterests = req.user.interests || [];
+    
+    console.log('🎯 Getting recommendations for user:', {
+      userId: req.user.uid,
+      skills: userSkills,
+      interests: userInterests
+    });
+    
+    const recommendedProjects = await ProjectModel.getRecommendedProjects(
+      userSkills, 
+      userInterests, 
+      parseInt(limit)
+    );
+    
+    // Add user-specific info
+    for (let project of recommendedProjects) {
+      try {
+        project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+        project.isOwner = project.ownerId === req.user.uid;
+        project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+      } catch (error) {
+        console.error('Error adding user info to recommended project:', error);
+      }
+    }
+    
+    res.json({
+      projects: recommendedProjects,
+      type: 'recommended',
+      basedOn: {
+        skills: userSkills,
+        interests: userInterests
+      },
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching recommended projects:', error);
+    res.status(500).json({
+      error: 'Failed to fetch recommended projects',
+      message: error.message
+    });
+  }
+});
+
+// Get similar projects to a given project
+router.get('/:id/similar', [
+  param('id').isString().notEmpty()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+    
+    const { limit = 5 } = req.query;
+    const similarProjects = await ProjectModel.getSimilarProjects(req.params.id, parseInt(limit));
+    
+    // Add user-specific info if authenticated
+    if (req.user) {
+      for (let project of similarProjects) {
+        try {
+          project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+          project.isOwner = project.ownerId === req.user.uid;
+          project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+        } catch (error) {
+          console.error('Error adding user info to similar project:', error);
+        }
+      }
+    }
+    
+    res.json({
+      projects: similarProjects,
+      type: 'similar',
+      basedOnProject: req.params.id,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching similar projects:', error);
+    res.status(500).json({
+      error: 'Failed to fetch similar projects',
+      message: error.message
+    });
+  }
+});
+
+// Advanced search endpoint with detailed results
+router.post('/search/advanced', async (req, res) => {
+  try {
+    const {
+      searchTerm,
+      filters = {},
+      sortBy = 'relevance',
+      page = 1,
+      limit = 20
+    } = req.body;
+    
+    console.log('🔍 Advanced search request:', {
+      searchTerm,
+      filters,
+      sortBy
+    });
+    
+    const enhancedFilters = {
+      ...filters,
+      sortBy,
+      limit: parseInt(limit) * 2 // Get more for pagination
+    };
+    
+    let projects = [];
+    if (searchTerm && searchTerm.trim()) {
+      projects = await ProjectModel.search(searchTerm.trim(), enhancedFilters);
+    } else {
+      projects = await ProjectModel.getAll(enhancedFilters);
+    }
+    
+    // Apply pagination
+    const startIndex = (parseInt(page) - 1) * parseInt(limit);
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedProjects = projects.slice(startIndex, endIndex);
+    
+    // Add user-specific info if authenticated
+    if (req.user) {
+      for (let project of paginatedProjects) {
+        try {
+          project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+          project.isOwner = project.ownerId === req.user.uid;
+          project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+        } catch (error) {
+          console.error('Error adding user info to search result:', error);
+        }
+      }
+    }
+    
+    // Generate search analytics
+    const categoryDistribution = {};
+    const skillsDistribution = {};
+    
+    projects.forEach(project => {
+      // Count categories
+      if (project.category) {
+        categoryDistribution[project.category] = (categoryDistribution[project.category] || 0) + 1;
+      }
+      
+      // Count skills
+      if (project.skillsRequired) {
+        project.skillsRequired.forEach(skill => {
+          skillsDistribution[skill] = (skillsDistribution[skill] || 0) + 1;
+        });
+      }
+    });
+    
+    res.json({
+      projects: paginatedProjects,
+      pagination: {
+        currentPage: parseInt(page),
+        totalProjects: projects.length,
+        totalPages: Math.ceil(projects.length / parseInt(limit)),
+        hasNext: endIndex < projects.length,
+        hasPrev: startIndex > 0
+      },
+      searchAnalytics: {
+        totalResults: projects.length,
+        searchTerm: searchTerm || null,
+        filtersApplied: Object.keys(filters).length,
+        sortBy,
+        categoryDistribution,
+        topSkills: Object.entries(skillsDistribution)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 10)
+          .map(([skill, count]) => ({ skill, count }))
+      },
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error performing advanced search:', error);
+    res.status(500).json({
+      error: 'Failed to perform advanced search',
+      message: error.message
+    });
+  }
+});
+
+// Get projects by categories (bulk category filter)
+router.post('/discover/categories', async (req, res) => {
+  try {
+    const { categories, limit = 20 } = req.body;
+    
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
+      return res.status(400).json({
+        error: 'Categories array is required'
+      });
+    }
+    
+    const projects = await ProjectModel.getProjectsByCategories(categories, parseInt(limit));
+    
+    // Add user-specific info if authenticated
+    if (req.user) {
+      for (let project of projects) {
+        try {
+          project.hasApplied = await ApplicationModel.hasApplied(req.user.uid, project.id);
+          project.isOwner = project.ownerId === req.user.uid;
+          project.isTeamMember = project.teamMembers?.some(member => member.userId === req.user.uid);
+        } catch (error) {
+          console.error('Error adding user info to category project:', error);
+        }
+      }
+    }
+    
+    res.json({
+      projects,
+      categories: categories,
+      totalResults: projects.length,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching projects by categories:', error);
+    res.status(500).json({
+      error: 'Failed to fetch projects by categories',
       message: error.message
     });
   }

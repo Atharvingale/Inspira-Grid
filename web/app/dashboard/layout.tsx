@@ -13,9 +13,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SocketProvider>
       <ProtectedRoute>
-        <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-surface">
+        <div className="h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-surface flex flex-col">
           <Navbar />
-          <main className="pb-8">
+          <main className="flex-1 overflow-y-auto">
             {children}
           </main>
         </div>

@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { collaborationService } from '@/lib/services/collaborationService';
-import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { useSocketContext } from '@/lib/SocketContext';
 import {
   CollaborationSession,
   JoinSessionRequest,
@@ -72,7 +72,7 @@ export const useCollaboration = (
       
       setSession(response.session);
       setDocumentState(response.currentState);
-      setActiveUsers(response.activeParticipants.map(p => p.user as UserPresence));
+      setActiveUsers(response.activeParticipants.map(p => p as unknown as UserPresence));
       currentSessionId.current = response.sessionId;
       
       setIsConnected(true);

@@ -5,7 +5,7 @@
  * project analytics, team performance, financial data, and report generation.
  */
 
-import { baseService } from './baseService';
+import { BaseService } from './baseService';
 import {
   DashboardMetrics,
   ProjectAnalytics,
@@ -22,8 +22,12 @@ import {
   ChartDataPoint
 } from '@/lib/types/analytics';
 
-class AnalyticsService {
+class AnalyticsService extends BaseService {
   private readonly endpoint = '/analytics';
+
+  constructor() {
+    super();
+  }
 
   // =====================================
   // Dashboard Metrics
@@ -33,7 +37,7 @@ class AnalyticsService {
    * Load overview dashboard metrics
    */
   async getDashboardMetrics(timeframe: DateRange): Promise<DashboardMetrics> {
-    const response = await baseService.get(`${this.endpoint}/dashboard`, {
+    const response = await this.get<DashboardMetrics>(`${this.endpoint}/dashboard`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -47,7 +51,7 @@ class AnalyticsService {
    * Get real-time dashboard updates
    */
   async getDashboardUpdates(): Promise<Partial<DashboardMetrics>> {
-    const response = await baseService.get(`${this.endpoint}/dashboard/updates`);
+    const response = await this.get<Partial<DashboardMetrics>>(`${this.endpoint}/dashboard/updates`);
     return response.data;
   }
 
@@ -62,7 +66,7 @@ class AnalyticsService {
     projectId: string, 
     timeframe: DateRange
   ): Promise<ProjectAnalytics> {
-    const response = await baseService.get(`${this.endpoint}/projects/${projectId}`, {
+    const response = await this.get<ProjectAnalytics>(`${this.endpoint}/projects/${projectId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -79,7 +83,7 @@ class AnalyticsService {
     projectIds: string[],
     timeframe: DateRange
   ): Promise<ProjectAnalytics[]> {
-    const response = await baseService.post(`${this.endpoint}/projects/bulk`, {
+    const response = await this.post<ProjectAnalytics[]>(`${this.endpoint}/projects/bulk`, {
       project_ids: projectIds,
       start_date: timeframe.startDate,
       end_date: timeframe.endDate
@@ -107,7 +111,18 @@ class AnalyticsService {
       average: number;
     }>;
   }> {
-    const response = await baseService.post(`${this.endpoint}/projects/compare`, {
+    const response = await this.post<{
+      projects: Array<{
+        projectId: string;
+        projectName: string;
+        metrics: Record<string, number>;
+      }>;
+      comparison: Record<string, {
+        best: string;
+        worst: string;
+        average: number;
+      }>;
+    }>(`${this.endpoint}/projects/compare`, {
       project_ids: projectIds,
       metrics,
       start_date: timeframe.startDate,
@@ -128,7 +143,7 @@ class AnalyticsService {
     teamId: string,
     timeframe: DateRange
   ): Promise<TeamAnalytics> {
-    const response = await baseService.get(`${this.endpoint}/teams/${teamId}`, {
+    const response = await this.get<TeamAnalytics>(`${this.endpoint}/teams/${teamId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -142,7 +157,7 @@ class AnalyticsService {
    * Get organization-wide team analytics
    */
   async getOrganizationAnalytics(timeframe: DateRange): Promise<TeamAnalytics> {
-    const response = await baseService.get(`${this.endpoint}/organization`, {
+    const response = await this.get<TeamAnalytics>(`${this.endpoint}/organization`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -176,7 +191,24 @@ class AnalyticsService {
       improvement: number;
     }>;
   }> {
-    const response = await baseService.get(`${this.endpoint}/users/${userId}`, {
+    const response = await this.get<{
+      userId: string;
+      userName: string;
+      performance: TeamAnalytics['memberPerformance'][0];
+      projectContributions: Array<{
+        projectId: string;
+        projectName: string;
+        contribution: number;
+        role: string;
+        hours: number;
+      }>;
+      skillDevelopment: Array<{
+        skill: string;
+        previousLevel: number;
+        currentLevel: number;
+        improvement: number;
+      }>;
+    }>(`${this.endpoint}/users/${userId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -194,7 +226,7 @@ class AnalyticsService {
    * Get financial analytics and metrics
    */
   async getFinancialAnalytics(timeframe: DateRange): Promise<FinancialAnalytics> {
-    const response = await baseService.get(`${this.endpoint}/financial`, {
+    const response = await this.get<FinancialAnalytics>(`${this.endpoint}/financial`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -224,7 +256,21 @@ class AnalyticsService {
       confidence: number; // 0-100
     }>;
   }> {
-    const response = await baseService.get(`${this.endpoint}/financial/forecast`, {
+    const response = await this.get<{
+      historical: Array<{
+        month: string;
+        revenue: number;
+        costs: number;
+        profit: number;
+      }>;
+      forecast: Array<{
+        month: string;
+        estimatedRevenue: number;
+        projectedCosts: number;
+        expectedProfit: number;
+        confidence: number;
+      }>;
+    }>(`${this.endpoint}/financial/forecast`, {
       params: { months }
     });
 
@@ -256,7 +302,25 @@ class AnalyticsService {
       topClient: string;
     };
   }> {
-    const response = await baseService.get(`${this.endpoint}/financial/clients`, {
+    const response = await this.get<{
+      clients: Array<{
+        clientId: string;
+        clientName: string;
+        totalRevenue: number;
+        totalCosts: number;
+        profit: number;
+        margin: number;
+        projectCount: number;
+        averageProjectValue: number;
+        riskScore: number;
+      }>;
+      summary: {
+        totalClients: number;
+        profitableClients: number;
+        averageMargin: number;
+        topClient: string;
+      };
+    }>(`${this.endpoint}/financial/clients`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate,
@@ -279,7 +343,7 @@ class AnalyticsService {
     targetId: string,
     timeframe: DateRange
   ): Promise<ProductivityAnalytics> {
-    const response = await baseService.get(`${this.endpoint}/productivity/${scope}/${targetId}`, {
+    const response = await this.get<ProductivityAnalytics>(`${this.endpoint}/productivity/${scope}/${targetId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -311,7 +375,22 @@ class AnalyticsService {
       topPerformer: number;
     };
   }> {
-    const response = await baseService.get(`${this.endpoint}/productivity/recommendations/${userId}`, {
+    const response = await this.get<{
+      recommendations: Array<{
+        category: string;
+        title: string;
+        description: string;
+        impact: string;
+        effort: string;
+        priority: number;
+        actionItems: string[];
+      }>;
+      benchmarks: {
+        industryAverage: number;
+        teamAverage: number;
+        topPerformer: number;
+      };
+    }>(`${this.endpoint}/productivity/recommendations/${userId}`, {
       params: {
         start_date: timeframe.startDate,
         end_date: timeframe.endDate
@@ -329,7 +408,7 @@ class AnalyticsService {
    * Get all report templates
    */
   async getReportTemplates(): Promise<ReportTemplate[]> {
-    const response = await baseService.get(`${this.endpoint}/reports/templates`);
+    const response = await this.get<ReportTemplate[]>(`${this.endpoint}/reports/templates`);
     return response.data;
   }
 
@@ -339,7 +418,7 @@ class AnalyticsService {
   async createReportTemplate(
     template: Omit<ReportTemplate, 'id' | 'createdAt'>
   ): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/reports/templates`, template);
+    const response = await this.post<{ id: string }>(`${this.endpoint}/reports/templates`, template);
     return response.data.id;
   }
 
@@ -350,21 +429,21 @@ class AnalyticsService {
     templateId: string,
     updates: Partial<ReportTemplate>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/reports/templates/${templateId}`, updates);
+    await this.put(`${this.endpoint}/reports/templates/${templateId}`, updates);
   }
 
   /**
    * Delete a report template
    */
   async deleteReportTemplate(templateId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/reports/templates/${templateId}`);
+    await this.delete(`${this.endpoint}/reports/templates/${templateId}`);
   }
 
   /**
    * Generate a report from template
    */
   async generateReport(request: ReportGenerationRequest): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/reports/generate`, request);
+    const response = await this.post<{ reportId: string }>(`${this.endpoint}/reports/generate`, request);
     return response.data.reportId;
   }
 
@@ -379,7 +458,14 @@ class AnalyticsService {
     error?: string;
     estimatedTimeRemaining?: number; // minutes
   }> {
-    const response = await baseService.get(`${this.endpoint}/reports/${reportId}/status`);
+    const response = await this.get<{
+      id: string;
+      status: 'generating' | 'completed' | 'failed';
+      progress: number;
+      downloadUrl?: string;
+      error?: string;
+      estimatedTimeRemaining?: number;
+    }>(`${this.endpoint}/reports/${reportId}/status`);
     return response.data;
   }
 
@@ -387,7 +473,7 @@ class AnalyticsService {
    * Download generated report
    */
   async downloadReport(reportId: string): Promise<Blob> {
-    const response = await baseService.get(
+    const response = await this.get<Blob>(
       `${this.endpoint}/reports/${reportId}/download`,
       {
         responseType: 'blob'
@@ -410,7 +496,17 @@ class AnalyticsService {
     completedAt?: string;
     fileSize?: number;
   }>> {
-    const response = await baseService.get(`${this.endpoint}/reports`, {
+    const response = await this.get<Array<{
+      id: string;
+      templateId: string;
+      name: string;
+      format: string;
+      status: 'generating' | 'completed' | 'failed';
+      downloadUrl?: string;
+      createdAt: string;
+      completedAt?: string;
+      fileSize?: number;
+    }>>(`${this.endpoint}/reports`, {
       params: { limit }
     });
     return response.data;
@@ -423,7 +519,7 @@ class AnalyticsService {
     templateId: string,
     schedule: ReportTemplate['schedule']
   ): Promise<void> {
-    await baseService.post(`${this.endpoint}/reports/templates/${templateId}/schedule`, {
+    await this.post(`${this.endpoint}/reports/templates/${templateId}/schedule`, {
       schedule
     });
   }
@@ -432,7 +528,7 @@ class AnalyticsService {
    * Cancel scheduled report
    */
   async cancelScheduledReport(templateId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/reports/templates/${templateId}/schedule`);
+    await this.delete(`${this.endpoint}/reports/templates/${templateId}/schedule`);
   }
 
   // =====================================
@@ -443,7 +539,7 @@ class AnalyticsService {
    * Get user's dashboard configurations
    */
   async getDashboardConfigs(): Promise<DashboardConfig[]> {
-    const response = await baseService.get(`${this.endpoint}/dashboards`);
+    const response = await this.get<DashboardConfig[]>(`${this.endpoint}/dashboards`);
     return response.data;
   }
 
@@ -453,7 +549,7 @@ class AnalyticsService {
   async createDashboardConfig(
     config: Omit<DashboardConfig, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/dashboards`, config);
+    const response = await this.post<{ id: string }>(`${this.endpoint}/dashboards`, config);
     return response.data.id;
   }
 
@@ -464,14 +560,14 @@ class AnalyticsService {
     dashboardId: string,
     updates: Partial<DashboardConfig>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/dashboards/${dashboardId}`, updates);
+    await this.put(`${this.endpoint}/dashboards/${dashboardId}`, updates);
   }
 
   /**
    * Delete dashboard configuration
    */
   async deleteDashboardConfig(dashboardId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/dashboards/${dashboardId}`);
+    await this.delete(`${this.endpoint}/dashboards/${dashboardId}`);
   }
 
   /**
@@ -484,7 +580,13 @@ class AnalyticsService {
       error?: string;
     }>;
   }> {
-    const response = await baseService.post(`${this.endpoint}/dashboards/data`, request);
+    const response = await this.post<{
+      widgets: Record<string, {
+        data: any;
+        lastUpdated: string;
+        error?: string;
+      }>;
+    }>(`${this.endpoint}/dashboards/data`, request);
     return response.data;
   }
 
@@ -495,7 +597,7 @@ class AnalyticsService {
     dashboardId: string,
     widget: Omit<DashboardWidget, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> {
-    const response = await baseService.post(
+    const response = await this.post<{ widgetId: string }>(
       `${this.endpoint}/dashboards/${dashboardId}/widgets`,
       widget
     );
@@ -510,7 +612,7 @@ class AnalyticsService {
     widgetId: string,
     updates: Partial<DashboardWidget>
   ): Promise<void> {
-    await baseService.put(
+    await this.put(
       `${this.endpoint}/dashboards/${dashboardId}/widgets/${widgetId}`,
       updates
     );
@@ -523,7 +625,7 @@ class AnalyticsService {
     dashboardId: string,
     widgetId: string
   ): Promise<void> {
-    await baseService.delete(
+    await this.delete(
       `${this.endpoint}/dashboards/${dashboardId}/widgets/${widgetId}`
     );
   }
@@ -546,7 +648,7 @@ class AnalyticsService {
       includeRawData?: boolean;
     }
   ): Promise<Blob> {
-    const response = await baseService.post(
+    const response = await this.post<Blob>(
       `${this.endpoint}/export`,
       {
         type,
@@ -567,7 +669,7 @@ class AnalyticsService {
     dashboardId: string,
     format: 'pdf' | 'png' | 'json'
   ): Promise<Blob> {
-    const response = await baseService.get(
+    const response = await this.get<Blob>(
       `${this.endpoint}/dashboards/${dashboardId}/export`,
       {
         params: { format },
@@ -600,7 +702,17 @@ class AnalyticsService {
       trend?: 'up' | 'down' | 'stable';
     };
   }> {
-    const response = await baseService.post(`${this.endpoint}/charts/${chartType}`, {
+    const response = await this.post<{
+      data: ChartDataPoint[];
+      metadata: {
+        title: string;
+        xAxisLabel: string;
+        yAxisLabel: string;
+        total?: number;
+        average?: number;
+        trend?: 'up' | 'down' | 'stable';
+      };
+    }>(`${this.endpoint}/charts/${chartType}`, {
       data_source: dataSource,
       filters,
       start_date: timeframe?.startDate,
@@ -620,7 +732,13 @@ class AnalyticsService {
     supportedFilters: string[];
     requiredFilters: string[];
   }>> {
-    const response = await baseService.get(`${this.endpoint}/charts/available`, {
+    const response = await this.get<Array<{
+      type: string;
+      name: string;
+      description: string;
+      supportedFilters: string[];
+      requiredFilters: string[];
+    }>>(`${this.endpoint}/charts/available`, {
       params: { data_source: dataSource }
     });
     return response.data;
@@ -647,7 +765,7 @@ class AnalyticsService {
     recipients: string[];
     isActive: boolean;
   }): Promise<string> {
-    const response = await baseService.post(`${this.endpoint}/alerts`, alert);
+    const response = await this.post<{ alertId: string }>(`${this.endpoint}/alerts`, alert);
     return response.data.alertId;
   }
 
@@ -664,7 +782,16 @@ class AnalyticsService {
     lastTriggered?: string;
     createdAt: string;
   }>> {
-    const response = await baseService.get(`${this.endpoint}/alerts`);
+    const response = await this.get<Array<{
+      id: string;
+      name: string;
+      metric: string;
+      condition: string;
+      threshold: number;
+      isActive: boolean;
+      lastTriggered?: string;
+      createdAt: string;
+    }>>(`${this.endpoint}/alerts`);
     return response.data;
   }
 
@@ -680,14 +807,14 @@ class AnalyticsService {
       recipients: string[];
     }>
   ): Promise<void> {
-    await baseService.put(`${this.endpoint}/alerts/${alertId}`, updates);
+    await this.put(`${this.endpoint}/alerts/${alertId}`, updates);
   }
 
   /**
    * Delete analytics alert
    */
   async deleteAlert(alertId: string): Promise<void> {
-    await baseService.delete(`${this.endpoint}/alerts/${alertId}`);
+    await this.delete(`${this.endpoint}/alerts/${alertId}`);
   }
 
   // =====================================
@@ -718,7 +845,24 @@ class AnalyticsService {
     };
     lastUpdated: string;
   }> {
-    const response = await baseService.get(`${this.endpoint}/benchmarks`, {
+    const response = await this.get<{
+      industry: string;
+      companySize: string;
+      benchmarks: {
+        projectCompletionRate: number;
+        averageProjectDuration: number;
+        teamUtilization: number;
+        clientSatisfaction: number;
+        profitMargin: number;
+        hourlyRate: {
+          junior: number;
+          mid: number;
+          senior: number;
+          lead: number;
+        };
+      };
+      lastUpdated: string;
+    }>(`${this.endpoint}/benchmarks`, {
       params: {
         industry,
         company_size: companySize

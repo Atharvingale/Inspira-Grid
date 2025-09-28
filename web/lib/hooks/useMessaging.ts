@@ -181,15 +181,17 @@ export const useMessaging = (): UseMessagingReturn => {
     socket.socket.on('conversation:updated', handleConversationUpdated);
 
     return () => {
-      socket.socket.off('message:new', handleNewMessage);
-      socket.socket.off('message:updated', handleMessageUpdated);
-      socket.socket.off('message:deleted', handleMessageDeleted);
-      socket.socket.off('typing:start', handleTypingStart);
-      socket.socket.off('typing:stop', handleTypingStop);
-      socket.socket.off('user:online', handleUserOnline);
-      socket.socket.off('user:offline', handleUserOffline);
-      socket.socket.off('conversation:created', handleConversationCreated);
-      socket.socket.off('conversation:updated', handleConversationUpdated);
+      if (socket?.socket) {
+        socket.socket.off('message:new', handleNewMessage);
+        socket.socket.off('message:updated', handleMessageUpdated);
+        socket.socket.off('message:deleted', handleMessageDeleted);
+        socket.socket.off('typing:start', handleTypingStart);
+        socket.socket.off('typing:stop', handleTypingStop);
+        socket.socket.off('user:online', handleUserOnline);
+        socket.socket.off('user:offline', handleUserOffline);
+        socket.socket.off('conversation:created', handleConversationCreated);
+        socket.socket.off('conversation:updated', handleConversationUpdated);
+      }
 
       // Clear all typing timeouts
       typingTimeoutRef.current.forEach(timeout => clearTimeout(timeout));
@@ -304,7 +306,7 @@ export const useMessaging = (): UseMessagingReturn => {
         conversationId: request.conversationId,
         senderId: currentUser.uid,
         senderName: currentUser.displayName || currentUser.email || 'You',
-        senderAvatar: currentUser.photoURL,
+        senderAvatar: currentUser.photoURL || undefined,
         content: request.content,
         messageType: request.messageType || 'text',
         status: 'sending',

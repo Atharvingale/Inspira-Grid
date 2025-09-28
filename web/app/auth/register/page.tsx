@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, updateProfile } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, User, Mail, Lock, Github, Chrome, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, Github, Chrome, CheckCircle, Sparkles } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -159,29 +159,27 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter relative overflow-hidden">
-      {/* Animated Background Elements */}
+    <div className="h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-surface relative overflow-hidden">
+      {/* Minimal Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-40 -right-40 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl"
+          className="absolute -top-40 -right-40 w-72 h-72 bg-brand-primary/8 rounded-full blur-3xl"
           animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
+            scale: [1, 1.1, 1],
           }}
           transition={{
-            duration: 8,
+            duration: 12,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         />
         <motion.div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-purple/10 rounded-full blur-3xl"
+          className="absolute -bottom-40 -left-40 w-72 h-72 bg-accent-purple/6 rounded-full blur-3xl"
           animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.4, 0.6, 0.4],
+            scale: [1.1, 1, 1.1],
           }}
           transition={{
-            duration: 6,
+            duration: 10,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -192,19 +190,23 @@ export default function RegisterPage() {
         {/* Left Side - Branding */}
         <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
             className="max-w-lg text-center"
           >
-            <Link href="/" className="inline-flex items-center text-white text-4xl font-bold mb-8">
-              <span className="mr-3 text-brand-primary">⬢</span>
-              Inspira-Grid
+            <Link href="/" className="inline-flex items-center space-x-2 text-4xl font-bold mb-8">
+              <div className="w-12 h-12 bg-gradient-brand rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/25">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+              <span className="bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">Inspira-Grid</span>
             </Link>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-brand-primary to-accent-purple bg-clip-text text-transparent mb-6">
-              Join the Revolution
+            <h1 className="text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-brand-light to-brand-secondary bg-clip-text text-transparent">
+                Join the Revolution
+              </span>
             </h1>
-            <p className="text-xl text-text-tertiary mb-8">
+            <p className="text-xl text-text-secondary mb-8 leading-relaxed">
               Connect with talented creators, build amazing projects, and make your mark in the digital world.
             </p>
             <div className="grid grid-cols-2 gap-4 text-left">
@@ -232,26 +234,30 @@ export default function RegisterPage() {
         {/* Right Side - Register Form */}
         <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
             className="w-full max-w-md"
           >
             {/* Mobile Header */}
             <div className="lg:hidden text-center mb-8">
-              <Link href="/" className="inline-flex items-center text-white text-3xl font-bold mb-4">
-                <span className="mr-2 text-brand-primary">⬢</span>
-                Inspira-Grid
+              <Link href="/" className="inline-flex items-center justify-center space-x-2 text-3xl font-bold mb-4">
+                <div className="w-10 h-10 bg-gradient-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/25">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <span className="bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">Inspira-Grid</span>
               </Link>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-accent-purple bg-clip-text text-transparent">
-                Create Account
+              <h1 className="text-3xl font-bold">
+                <span className="bg-gradient-to-r from-brand-light to-brand-secondary bg-clip-text text-transparent">
+                  Create Account
+                </span>
               </h1>
             </div>
 
-            <Card className="p-8" blur gradient>
+            <Card blur className="p-8 shadow-xl">
               <div className="hidden lg:block mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
-                <p className="text-text-tertiary">Join thousands of creators worldwide</p>
+                <h2 className="text-2xl font-bold text-text-primary mb-2">Create Account</h2>
+                <p className="text-text-secondary">Join thousands of creators worldwide</p>
               </div>
 
               <AnimatePresence mode="wait">

@@ -24,25 +24,25 @@
 export { BaseService } from './baseService';
 
 // Export individual services
-export { projectService } from './projectService';
-export { userService } from './userService';
-export { applicationService } from './applicationService';
-export { messageService } from './messageService';
-export { notificationService } from './notificationService';
-export { authService } from './authService';
+// export { projectService } from './projectService';
+// export { userService } from './userService';
+// export { applicationService } from './applicationService';
+// export { messageService } from './messageService';
+// export { notificationService } from './notificationService';
+// export { authService } from './authService';
 
 // Export all services as a single object for convenience
-export const apiServices = {
-  projects: projectService,
-  users: userService,
-  applications: applicationService,
-  messages: messageService,
-  notifications: notificationService,
-  auth: authService,
-} as const;
+// export const apiServices = {
+//   projects: projectService,
+//   users: userService,
+//   applications: applicationService,
+//   messages: messageService,
+//   notifications: notificationService,
+//   auth: authService,
+// } as const;
 
 // Export type definitions for better IDE support
-export type ApiServices = typeof apiServices;
+// export type ApiServices = typeof apiServices;
 
 /**
  * Service initialization function

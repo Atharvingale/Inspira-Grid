@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import { initAdmin } from '@/lib/firebase-admin';
 
 initAdmin();
@@ -80,7 +80,7 @@ export async function PUT(
         }
 
         const reactions = messageData?.reactions || [];
-        const existingReaction = reactions.find((r: any) => r.emoji === emoji);
+        const existingReaction = reactions.find((r: { emoji: string; users: string[]; count: number }) => r.emoji === emoji);
 
         if (existingReaction) {
           // Add user to existing reaction if not already present
@@ -113,7 +113,7 @@ export async function PUT(
         }
 
         const updatedReactions = (messageData?.reactions || [])
-          .map((r: any) => {
+          .map((r: { emoji: string; users: string[]; count: number }) => {
             if (r.emoji === emoji) {
               const updatedUsers = r.users.filter((id: string) => id !== userId);
               return updatedUsers.length > 0 ? {

@@ -10,6 +10,10 @@ require('dotenv').config({ path: '../.env' });
 // Initialize Firebase before importing other modules
 require('./config/firebase');
 
+// Import notification service
+const notificationService = require('./services/notificationService');
+const notificationScheduler = require('./services/notificationScheduler');
+
 const passport = require('./config/passport');
 
 const app = express();
@@ -25,6 +29,12 @@ const io = socketIo(server, {
 
 // Make Socket.IO available to routes
 app.set('socketio', io);
+
+// Initialize notification service with Socket.IO
+notificationService.initialize(io);
+
+// Start notification scheduler
+notificationScheduler.start();
 
 const PORT = process.env.PORT || 5000;
 
@@ -63,6 +73,8 @@ const projectRoutes = require('./routes/projects');
 const applicationRoutes = require('./routes/applications');
 const messageRoutes = require('./routes/messages');
 const userRoutes = require('./routes/users');
+const notificationsRoutes = require('./routes/notifications');
+const uploadRoutes = require('./routes/upload');
 const { validateFirebaseToken } = require('./middleware/auth');
 
 // Add Firebase token validation middleware for API routes
@@ -75,6 +87,8 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationsRoutes.router);
+app.use('/api/upload', uploadRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -111,7 +125,11 @@ io.on('connection', (socket) => {
   // Join user to their personal room
   socket.on('join_user_room', (userId) => {
     socket.join(`user_${userId}`);
+    socket.userId = userId; // Store userId in socket object
     console.log(`User ${userId} joined personal room`);
+    
+    // Also authenticate with notification service
+    socket.emit('authenticate', userId);
   });
 
   // Join conversation room for messaging

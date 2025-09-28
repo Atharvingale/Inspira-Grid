@@ -11,7 +11,7 @@ import type {
  */
 class ApplicationService extends BaseService {
   constructor() {
-    super('/api');
+    super(); // Use default base URL without additional path
   }
 
   /**
@@ -77,14 +77,12 @@ class ApplicationService extends BaseService {
    * Get user's applications (applications submitted by the user)
    */
   async getUserApplications(
-    status?: 'pending' | 'accepted' | 'rejected',
-    pagination: PaginationParams = { page: 1, limit: 10 }
-  ): Promise<ApiResponse<PaginatedResponse<Application>>> {
-    const endpoint = this.buildEndpoint('/applications/me', {
+    status?: 'pending' | 'accepted' | 'rejected'
+  ): Promise<ApiResponse<{ applications: Application[] }>> {
+    const endpoint = this.buildEndpoint('/applications/my-applications', {
       status,
-      ...pagination,
     });
-    return this.get<PaginatedResponse<Application>>(endpoint);
+    return this.get<{ applications: Application[] }>(endpoint);
   }
 
   /**
@@ -93,11 +91,11 @@ class ApplicationService extends BaseService {
   async reviewApplication(
     applicationId: string,
     decision: 'accept' | 'reject',
-    reviewMessage?: string
+    reviewNote?: string
   ): Promise<ApiResponse<Application>> {
-    return this.patch<Application>(`/applications/${applicationId}/review`, {
+    return this.patch<Application>(`/applications/${applicationId}/status`, {
       status: decision === 'accept' ? 'accepted' : 'rejected',
-      reviewMessage,
+      reviewNote,
     });
   }
 
@@ -106,12 +104,11 @@ class ApplicationService extends BaseService {
    */
   async acceptApplication(
     applicationId: string,
-    role?: string,
-    welcomeMessage?: string
+    reviewNote?: string
   ): Promise<ApiResponse<Application>> {
-    return this.patch<Application>(`/applications/${applicationId}/accept`, {
-      role,
-      welcomeMessage,
+    return this.patch<Application>(`/applications/${applicationId}/status`, {
+      status: 'accepted',
+      reviewNote,
     });
   }
 
@@ -120,10 +117,11 @@ class ApplicationService extends BaseService {
    */
   async rejectApplication(
     applicationId: string,
-    rejectionMessage?: string
+    reviewNote?: string
   ): Promise<ApiResponse<Application>> {
-    return this.patch<Application>(`/applications/${applicationId}/reject`, {
-      rejectionMessage,
+    return this.patch<Application>(`/applications/${applicationId}/status`, {
+      status: 'rejected',
+      reviewNote,
     });
   }
 

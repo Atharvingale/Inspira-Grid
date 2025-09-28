@@ -9,7 +9,7 @@ import Loading from '@/components/common/Loading';
 import type { Application, ApiError } from '@/lib/types';
 
 const Applications = () => {
-  const { userProfile } = useAuth();
+  const {} = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
@@ -26,7 +26,7 @@ const Applications = () => {
       setLoading(true);
       const response = await applicationService.getUserApplications();
       if (response.success) {
-        setApplications(response.data?.data || []);
+        setApplications(response.data?.applications || []);
       } else {
         throw new Error(response.error || 'Failed to load applications');
       }
@@ -109,14 +109,67 @@ const Applications = () => {
   const filteredApplications = filterApplications(activeTab);
 
   return (
-    <div className="min-h-screen bg-dark-surface/30 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-text-primary">My Applications</h1>
-              <p className="text-text-secondary mt-1">Track your project applications and their status</p>
-            </div>
+    <>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-text-primary">My Applications</h1>
+            <p className="text-text-secondary mt-1">Track your project applications and their status</p>
+          </div>
+          <Link 
+            href="/dashboard/projects" 
+            className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary transition-colors"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Browse Projects
+          </Link>
+        </div>
+      </div>
+
+      {/* Applications Tabs */}
+      <div className="border-b border-dark-border/50 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          {[
+            { key: 'all', label: `All (${tabCounts.all})` },
+            { key: 'pending', label: `Pending (${tabCounts.pending})` },
+            { key: 'accepted', label: `Accepted (${tabCounts.accepted})` },
+            { key: 'rejected', label: `Rejected (${tabCounts.rejected})` }
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as 'all' | 'pending' | 'accepted' | 'rejected')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === tab.key
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-dark-border'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Applications List */}
+      {filteredApplications.length === 0 ? (
+        <div className="bg-dark-card/80 rounded-lg shadow-sm p-12 text-center">
+          <svg className="w-16 h-16 text-text-tertiary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          <h3 className="text-xl font-semibold text-text-primary mb-2">
+            {activeTab === 'all' 
+              ? 'No Applications Yet' 
+              : `No ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Applications`}
+          </h3>
+          <p className="text-text-secondary mb-4">
+            {activeTab === 'all'
+              ? "You haven't applied to any projects yet. Start exploring and find projects that match your skills!"
+              : `You don't have any ${activeTab} applications at the moment.`}
+          </p>
+          {activeTab === 'all' && (
             <Link 
               href="/dashboard/projects" 
               className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary transition-colors"
@@ -124,65 +177,12 @@ const Applications = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              Browse Projects
+              Explore Projects
             </Link>
-          </div>
+          )}
         </div>
-
-        {/* Applications Tabs */}
-        <div className="border-b border-dark-border/50 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { key: 'all', label: `All (${tabCounts.all})` },
-              { key: 'pending', label: `Pending (${tabCounts.pending})` },
-              { key: 'accepted', label: `Accepted (${tabCounts.accepted})` },
-              { key: 'rejected', label: `Rejected (${tabCounts.rejected})` }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as 'all' | 'pending' | 'accepted' | 'rejected')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-dark-border'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Applications List */}
-        {filteredApplications.length === 0 ? (
-          <div className="bg-dark-card/80 rounded-lg shadow-sm p-12 text-center">
-            <svg className="w-16 h-16 text-text-tertiary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <h3 className="text-xl font-semibold text-text-primary mb-2">
-              {activeTab === 'all' 
-                ? 'No Applications Yet' 
-                : `No ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Applications`}
-            </h3>
-            <p className="text-text-secondary mb-4">
-              {activeTab === 'all'
-                ? "You haven't applied to any projects yet. Start exploring and find projects that match your skills!"
-                : `You don't have any ${activeTab} applications at the moment.`}
-            </p>
-            {activeTab === 'all' && (
-              <Link 
-                href="/dashboard/projects" 
-                className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Explore Projects
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredApplications.map((application) => (
               <div key={application.id} className="bg-dark-card/80 rounded-lg shadow-sm border border-dark-border/50 h-full flex flex-col">
                 <div className="p-6 flex flex-col flex-1">
@@ -265,8 +265,8 @@ const Applications = () => {
                 </div>
               </div>
             ))}
-          </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Withdraw Confirmation Modal */}
@@ -304,7 +304,7 @@ const Applications = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

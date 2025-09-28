@@ -6,17 +6,13 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, Github } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Sparkles, Github } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Card } from "@/components/ui/Card";
 
-interface FirebaseError extends Error {
-  code?: string;
-  message: string;
-}
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
@@ -30,7 +26,6 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -107,18 +102,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter overflow-hidden">
-      {/* Floating background elements */}
+    <div className="h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-surface overflow-hidden">
+      {/* Minimal floating background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-20 left-10 w-20 h-20 bg-brand-primary/20 rounded-full blur-xl"
-          animate={{ y: [-20, 20, -20], x: [-10, 10, -10] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-20 left-10 w-24 h-24 bg-brand-primary/10 rounded-full blur-2xl"
+          animate={{ y: [-15, 15, -15] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute bottom-20 right-20 w-32 h-32 bg-accent-purple/20 rounded-full blur-xl"
-          animate={{ y: [20, -20, 20], x: [10, -10, 10] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-20 right-20 w-32 h-32 bg-accent-purple/8 rounded-full blur-3xl"
+          animate={{ y: [15, -15, 15] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
       
@@ -127,35 +122,34 @@ export default function LoginPage() {
         <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
           <motion.div 
             className="max-w-md text-center"
-            initial={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
           >
-            <motion.div 
-              className="mb-8"
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity }}
-            >
-              <div className="w-20 h-20 bg-gradient-to-r from-brand-primary to-brand-secondary rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <div className="mb-8">
+              <div className="w-20 h-20 bg-gradient-brand rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-primary/25">
                 <Sparkles className="w-12 h-12 text-white" />
               </div>
-            </motion.div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Welcome Back to
-              <span className="bg-gradient-to-r from-brand-light to-accent-purple bg-clip-text text-transparent block">
+            </div>
+            <h1 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">
+                Welcome Back to
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-brand-light to-brand-secondary bg-clip-text text-transparent">
                 Inspira-Grid
               </span>
             </h1>
-            <p className="text-text-tertiary text-lg">
-              Continue your journey of building amazing projects with talented creators.
+            <p className="text-text-secondary text-lg leading-relaxed">
+              Continue your journey of building amazing projects with talented creators around the world.
             </p>
-            <div className="mt-8 space-y-4">
+            <div className="mt-8 space-y-3">
               <div className="flex items-center text-text-tertiary">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse" />
-                <span>247 creators online now</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-3" />
+                <span>Join 247+ creators online</span>
               </div>
               <div className="flex items-center text-text-tertiary">
-                <div className="w-2 h-2 bg-brand-primary rounded-full mr-3 animate-pulse" />
+                <div className="w-2 h-2 bg-brand-primary rounded-full mr-3" />
                 <span>1,247 active projects</span>
               </div>
             </div>
@@ -166,23 +160,20 @@ export default function LoginPage() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
           <motion.div 
             className="w-full max-w-md"
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
             {/* Back to home link */}
-            <motion.div 
-              className="mb-8"
-              whileHover={{ x: -5 }}
-            >
+            <div className="mb-8">
               <Link 
                 href="/" 
-                className="inline-flex items-center text-text-tertiary hover:text-white transition-colors"
+                className="inline-flex items-center text-text-tertiary hover:text-text-primary transition-colors group"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                 Back to Home
               </Link>
-            </motion.div>
+            </div>
             
             {/* Mobile header */}
             <div className="lg:hidden text-center mb-8">
@@ -194,10 +185,10 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <Card className="p-8">
+            <Card blur className="p-8 shadow-xl">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Sign In</h2>
-                <p className="text-text-tertiary">Welcome back! Please sign in to continue</p>
+                <h2 className="text-2xl font-bold text-text-primary mb-2">Sign In</h2>
+                <p className="text-text-secondary">Welcome back! Please sign in to continue</p>
               </div>
               {error && (
                 <motion.div 

@@ -59,7 +59,6 @@ export const useSocket = () => {
   
   // Return default values if context is not available (graceful degradation)
   if (!context) {
-    console.log('🔌 Socket context not available - using default values');
     return {
       socket: null,
       isConnected: false,
@@ -128,15 +127,15 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
       // Listen for connection
       newSocket.on('connect', () => {
-        console.log('✅ Socket connected to server:', newSocket.id);
         setIsConnected(true);
+        // Authenticate with notification service
+        newSocket.emit('authenticate', currentUser.uid);
         // Join user's personal room only after successful connection
         newSocket.emit('join_user_room', currentUser.uid);
       });
 
       // Listen for disconnect
       newSocket.on('disconnect', (reason) => {
-        console.log('⚠️ Socket disconnected from server:', reason);
         setIsConnected(false);
       });
 
@@ -159,53 +158,71 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         });
       });
 
-      // Listen for notifications
-      newSocket.on('notification', (notification: Notification) => {
-        setNotifications(prev => [notification, ...prev].slice(0, 50)); // Keep last 50 notifications
+      // Listen for notifications from our notification system
+      newSocket.on('new_notification', (notification: any) => {
+        const formattedNotification: Notification = {
+          id: notification.id,
+          message: notification.message,
+          time: notification.createdAt,
+          read: notification.isRead || false,
+          type: notification.priority === 'high' ? 'warning' : 'info'
+        };
+        setNotifications(prev => [formattedNotification, ...prev].slice(0, 50));
+      });
+      
+      // Listen for unread count updates
+      newSocket.on('unread_count_update', (data: { count: number }) => {
+        // You can use this to update a badge or counter in your UI
+        console.log('Unread notifications count:', data.count);
+      });
+      
+      // Listen for notification read confirmations
+      newSocket.on('notification_marked_read', (data: { notificationId: string }) => {
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif.id === data.notificationId
+              ? { ...notif, read: true }
+              : notif
+          )
+        );
       });
 
       // Listen for real-time updates
       newSocket.on('project_update', (data: { projectId: string; type: string; payload: any }) => {
-        console.log('Project update received:', data);
         // Handle project updates (new applications, status changes, etc.)
       });
 
       newSocket.on('team_update', (data: { teamId: string; type: string; payload: any }) => {
-        console.log('Team update received:', data);
         // Handle team updates (new members, role changes, etc.)
       });
 
       newSocket.on('message', (data: { messageId: string; senderId: string; content: string; timestamp: string }) => {
-        console.log('New message received:', data);
         // Handle new messages
       });
 
       newSocket.on('typing_start', (data: { roomId: string; userId: string; userName: string }) => {
-        console.log('User started typing:', data);
         // Handle typing indicators
       });
 
       newSocket.on('typing_stop', (data: { roomId: string; userId: string }) => {
-        console.log('User stopped typing:', data);
         // Handle typing indicators
       });
 
       // Enhanced error handling
       newSocket.on('connect_error', (error) => {
-        console.warn('🔌 Socket connection failed (this is normal if server is not running):', error.message);
         // Don't throw error, just log it as the app can work without real-time features
       });
       
       newSocket.on('reconnect_error', (error) => {
-        console.warn('🔄 Socket reconnection failed:', error.message);
+        // Handle reconnection errors silently
       });
       
       newSocket.on('reconnect_failed', () => {
-        console.warn('❌ Socket failed to reconnect after maximum attempts');
+        // Handle reconnection failure silently
       });
       
       newSocket.on('reconnect', (attemptNumber) => {
-        console.log('🔄 Socket reconnected successfully after', attemptNumber, 'attempts');
+        // Handle successful reconnection silently
       });
 
       // Cleanup on unmount or user change
@@ -227,42 +244,36 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const joinTeamRoom = (teamId: string) => {
     if (socket) {
       socket.emit('join_team_room', teamId);
-      console.log(`Joined team room: ${teamId}`);
     }
   };
 
   const leaveTeamRoom = (teamId: string) => {
     if (socket) {
       socket.emit('leave_team_room', teamId);
-      console.log(`Left team room: ${teamId}`);
     }
   };
 
   const joinProjectRoom = (projectId: string) => {
     if (socket) {
       socket.emit('join_project_room', projectId);
-      console.log(`Joined project room: ${projectId}`);
     }
   };
 
   const leaveProjectRoom = (projectId: string) => {
     if (socket) {
       socket.emit('leave_project_room', projectId);
-      console.log(`Left project room: ${projectId}`);
     }
   };
 
   const joinConversationRoom = (conversationId: string) => {
     if (socket) {
       socket.emit('join_conversation_room', conversationId);
-      console.log(`Joined conversation room: ${conversationId}`);
     }
   };
 
   const leaveConversationRoom = (conversationId: string) => {
     if (socket) {
       socket.emit('leave_conversation_room', conversationId);
-      console.log(`Left conversation room: ${conversationId}`);
     }
   };
 
@@ -285,6 +296,12 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   };
 
   const markNotificationAsRead = (notificationId: string) => {
+    // Send to server via socket
+    if (socket) {
+      socket.emit('mark_notification_read', notificationId);
+    }
+    
+    // Update locally (will be confirmed by server)
     setNotifications(prev =>
       prev.map(notif =>
         notif.id === notificationId
@@ -295,7 +312,15 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   };
 
   const clearAllNotifications = () => {
-    setNotifications([]);
+    // Send to server via socket
+    if (socket) {
+      socket.emit('mark_all_notifications_read');
+    }
+    
+    // Update locally
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, read: true }))
+    );
   };
 
   const isUserOnline = (userId: string) => {
@@ -306,14 +331,12 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const joinCollaboration = useCallback((sessionId: string, contextId: string, contextType: string) => {
     if (socket) {
       socket.emit('join_collaboration', { sessionId, contextId, contextType });
-      console.log(`Joined collaboration session: ${sessionId}`);
     }
   }, [socket]);
 
   const leaveCollaboration = useCallback((sessionId: string, contextId: string, contextType: string) => {
     if (socket) {
       socket.emit('leave_collaboration', { sessionId, contextId, contextType });
-      console.log(`Left collaboration session: ${sessionId}`);
     }
   }, [socket]);
 

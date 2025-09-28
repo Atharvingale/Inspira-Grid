@@ -31,7 +31,7 @@ const inputVariants = cva(
 );
 
 interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size">,
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart" | "onAnimationEnd">,
     VariantProps<typeof inputVariants> {
   label?: string;
   error?: string;
@@ -121,7 +121,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               color: '#ffffff',
               caretColor: '#ffffff',
               WebkitTextFillColor: '#ffffff',
-              textFillColor: '#ffffff',
               colorScheme: 'dark',
             }}
             onFocus={handleFocus}

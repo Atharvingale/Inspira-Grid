@@ -45,24 +45,56 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
  * Get GitHub OAuth URL for authenticated user
  */
 router.get('/oauth-url', requireAuth, (req, res) => {
-  // Store user ID in session for linking after OAuth
-  req.session.firebaseUid = req.user.uid;
+  console.log('🔐 GitHub OAuth URL requested by user:', req.user.uid);
+  console.log('📋 Current session ID:', req.sessionID);
   
-  // Generate OAuth URL
-  const baseUrl = `https://github.com/login/oauth/authorize`;
-  const params = new URLSearchParams({
-    client_id: process.env.GITHUB_CLIENT_ID,
-    redirect_uri: process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/api/github/callback',
-    scope: 'user:email public_repo read:user',
-    state: req.user.uid // Include user ID for security
-  });
+  // Check if GitHub OAuth is configured
+  if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+    return res.status(503).json({
+      error: 'GitHub OAuth not configured',
+      message: 'GitHub OAuth credentials are not configured on the server'
+    });
+  }
   
-  const oauthUrl = `${baseUrl}?${params.toString()}`;
-  
-  res.json({
-    oauthUrl,
-    message: 'GitHub OAuth URL generated successfully'
-  });
+  try {
+    // Store user ID in session for linking after OAuth
+    req.session.firebaseUid = req.user.uid;
+    console.log('💾 Storing firebaseUid in session:', req.user.uid);
+    
+    // Store redirect preference
+    const redirectTo = req.query.redirect || 'project-create';
+    req.session.githubRedirect = redirectTo;
+    console.log('💾 Storing redirect preference:', redirectTo);
+    
+    // Generate OAuth URL with both session and state-based UID storage
+    const baseUrl = `https://github.com/login/oauth/authorize`;
+    const stateData = JSON.stringify({
+      uid: req.user.uid,
+      redirect: redirectTo,
+      timestamp: Date.now()
+    });
+    const encodedState = Buffer.from(stateData).toString('base64');
+    
+    const params = new URLSearchParams({
+      client_id: process.env.GITHUB_CLIENT_ID,
+      redirect_uri: process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/api/github/callback',
+      scope: 'user:email public_repo read:user',
+      state: encodedState // Include user ID and redirect preference in state
+    });
+    
+    const oauthUrl = `${baseUrl}?${params.toString()}`;
+    
+    res.json({
+      oauthUrl,
+      message: 'GitHub OAuth URL generated successfully'
+    });
+  } catch (error) {
+    console.error('Error generating GitHub OAuth URL:', error);
+    res.status(500).json({
+      error: 'Failed to generate OAuth URL',
+      message: error.message
+    });
+  }
 });
 
 /**
@@ -81,21 +113,44 @@ router.get('/connect', requireAuth, (req, res, next) => {
  * Handle GitHub OAuth callback
  */
 router.get('/callback', (req, res, next) => {
+  console.log('🔄 GitHub OAuth callback received');
+  console.log('Session firebaseUid:', req.session.firebaseUid);
+  console.log('Query params:', req.query);
+  
   passport.authenticate('github-oauth', async (err, githubData, info) => {
     if (err) {
       console.error('GitHub OAuth error:', err);
-      return res.redirect(`${process.env.CLIENT_URL}/profile?error=github_auth_failed`);
+      return res.redirect(`${process.env.CLIENT_URL}/dashboard/projects/create?error=github_auth_failed`);
     }
     
     if (!githubData) {
       console.error('GitHub OAuth failed - no user data');
-      return res.redirect(`${process.env.CLIENT_URL}/profile?error=github_auth_no_user`);
+      return res.redirect(`${process.env.CLIENT_URL}/dashboard/projects/create?error=github_auth_no_user`);
     }
     
     try {
-      const firebaseUid = req.session.firebaseUid;
+      let firebaseUid = req.session.firebaseUid;
+      let redirectPreference = req.session.githubRedirect || 'project-create';
+      
+      console.log('🔍 Checking firebaseUid from session:', firebaseUid);
+      
+      // If session doesn't have UID, try to get it from state parameter
+      if (!firebaseUid && req.query.state) {
+        try {
+          const stateData = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+          if (stateData.uid && (Date.now() - stateData.timestamp < 10 * 60 * 1000)) { // 10 min expiry
+            firebaseUid = stateData.uid;
+            redirectPreference = stateData.redirect || 'project-create';
+            console.log('🔄 Retrieved firebaseUid from state parameter:', firebaseUid);
+          }
+        } catch (error) {
+          console.log('❌ Failed to parse state parameter:', error.message);
+        }
+      }
+      
       if (!firebaseUid) {
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=login_required`);
+        console.log('❌ No firebaseUid in session or state, redirecting to login');
+        return res.redirect(`${process.env.CLIENT_URL}/auth/login?error=login_required`);
       }
       
       // Update user document with GitHub data
@@ -121,14 +176,29 @@ router.get('/callback', (req, res, next) => {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
+      // Determine redirect URL based on preference (from session or state)
+      let redirectUrl;
+      
+      switch (redirectPreference) {
+        case 'profile':
+          redirectUrl = `${process.env.CLIENT_URL}/dashboard/profile?github=connected&tab=github`;
+          break;
+        case 'project-create':
+        default:
+          redirectUrl = `${process.env.CLIENT_URL}/dashboard/projects/create?github=connected`;
+          break;
+      }
+      
       // Clean up session
       delete req.session.firebaseUid;
+      delete req.session.githubRedirect;
       
       console.log(`✅ GitHub linked to user: ${firebaseUid}`);
-      res.redirect(`${process.env.CLIENT_URL}/profile?success=true`);
+      console.log('🔄 Redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error('Error linking GitHub account:', error);
-      res.redirect(`${process.env.CLIENT_URL}/profile?error=github_link_failed`);
+      res.redirect(`${process.env.CLIENT_URL}/dashboard/projects/create?error=github_link_failed`);
     }
   })(req, res, next);
 });

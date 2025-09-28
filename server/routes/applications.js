@@ -2,7 +2,9 @@ const express = require('express');
 const { body, validationResult, param } = require('express-validator');
 const ApplicationModel = require('../models/Application');
 const ProjectModel = require('../models/Project');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, createRateLimit } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
+const admin = require('../config/firebase');
 
 const router = express.Router();
 
@@ -74,7 +76,7 @@ router.get('/:id', [
     const isOwner = application.applicantId === req.user.uid;
     const isProjectOwner = project.ownerId === req.user.uid;
 
-    if (!isOwner && !isProjectOwner && req.user.role !== 'admin') {
+    if (!isOwner && !isProjectOwner) {
       return res.status(403).json({
         error: 'You do not have permission to view this application'
       });
@@ -149,6 +151,38 @@ router.patch('/:id/status', [
       req.user.uid,
       req.body.reviewNote
     );
+
+    // Send notification to applicant about status update
+    try {
+      await notificationService.notifyApplicationStatus(
+        application.applicantId,
+        project.title,
+        req.body.status,
+        project.id
+      );
+      
+      // If accepted, also notify about team joining
+      if (req.body.status === 'accepted') {
+        try {
+          // Get applicant user details from Firestore
+          const userDoc = await admin.firestore().collection('users').doc(application.applicantId).get();
+          const applicantUser = userDoc.exists ? userDoc.data() : null;
+          const applicantName = applicantUser ? applicantUser.displayName || applicantUser.email : 'New Member';
+          
+          await notificationService.notifyTeamMemberJoined(
+            project.ownerId,
+            applicantName,
+            project.title,
+            project.id
+          );
+        } catch (teamNotificationError) {
+          console.error('Failed to send team notification:', teamNotificationError);
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send status update notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     res.json({
       message: `Application ${req.body.status} successfully`,
@@ -226,6 +260,83 @@ router.get('/stats/overview', requireAuth, async (req, res) => {
     console.error('Error fetching application stats:', error);
     res.status(500).json({
       error: 'Failed to fetch application statistics',
+      message: error.message
+    });
+  }
+});
+
+// Create new application
+router.post('/', [
+  requireAuth,
+  createRateLimit(60 * 1000, 10), // 10 applications per minute
+  body('projectId').isString().notEmpty(),
+  body('message').trim().isLength({ min: 10, max: 1000 }).withMessage('Message must be 10-1000 characters'),
+  body('skills').optional().isArray(),
+  body('portfolioUrl').optional().isURL().withMessage('Portfolio must be a valid URL'),
+  body('githubUsername').optional().isString().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { projectId, message, skills, portfolioUrl, githubUsername } = req.body;
+
+    // Check if project exists
+    const project = await ProjectModel.getById(projectId);
+    if (!project) {
+      return res.status(404).json({
+        error: 'Project not found'
+      });
+    }
+
+    // Check if user has already applied
+    const existingApplication = await ApplicationModel.hasApplied(req.user.uid, projectId);
+    if (existingApplication) {
+      return res.status(400).json({
+        error: 'You have already applied to this project'
+      });
+    }
+
+    // Create application
+    const applicationData = {
+      projectId,
+      applicantId: req.user.uid,
+      applicantName: req.user.displayName || req.user.email?.split('@')[0] || 'Unknown',
+      applicantEmail: req.user.email,
+      message,
+      skills: skills || [],
+      portfolioUrl,
+      githubUsername
+    };
+
+    const application = await ApplicationModel.create(applicationData);
+
+    // Send notification to project owner
+    try {
+      await notificationService.notifyProjectApplication(
+        project.ownerId,
+        applicationData.applicantName,
+        project.title,
+        application.id
+      );
+    } catch (notificationError) {
+      console.error('Failed to send application notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
+
+    res.status(201).json({
+      message: 'Application submitted successfully',
+      application
+    });
+  } catch (error) {
+    console.error('Error creating application:', error);
+    res.status(500).json({
+      error: 'Failed to submit application',
       message: error.message
     });
   }

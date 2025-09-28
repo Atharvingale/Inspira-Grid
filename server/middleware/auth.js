@@ -11,24 +11,6 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// Middleware to check if user has admin role
-const requireAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      error: 'Authentication required',
-      message: 'Please log in to access this resource'
-    });
-  }
-  
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'Admin access required',
-      message: 'You do not have permission to access this resource'
-    });
-  }
-  
-  next();
-};
 
 // Middleware to check if user's profile is complete
 const requireCompleteProfile = (req, res, next) => {
@@ -125,7 +107,6 @@ const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
 
 module.exports = {
   requireAuth,
-  requireAdmin,
   requireCompleteProfile,
   validateFirebaseToken,
   createRateLimit

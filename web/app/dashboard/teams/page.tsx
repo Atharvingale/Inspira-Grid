@@ -21,6 +21,25 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 
+// Utility function to format Firestore timestamps
+const formatTimestamp = (timestamp: any): string => {
+  if (!timestamp) return 'Recently';
+  
+  // Handle Firestore timestamp objects
+  if (timestamp._seconds || timestamp.seconds) {
+    const date = new Date((timestamp._seconds || timestamp.seconds) * 1000);
+    return `${Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+  }
+  
+  // Handle regular date strings or Date objects
+  if (typeof timestamp === 'string' || timestamp instanceof Date) {
+    const date = new Date(timestamp);
+    return `${Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+  }
+  
+  return 'Recently';
+};
+
 interface Project {
   id: string;
   title: string;
@@ -65,12 +84,13 @@ export default function TeamsPage() {
             title: project.title,
             description: project.description,
             category: project.category,
-            status: project.status === 'approved' ? 'active' : project.status,
+            status: project.status === 'approved' ? 'active' : 
+                   project.status === 'pending' ? 'recruiting' : project.status,
             teamSize: project.teamSize,
             currentTeamSize: project.teamMembers?.length || 1,
             owner: project.ownerName || 'You',
             role: 'Owner',
-            lastActivity: project.updatedAt || project.createdAt,
+            lastActivity: formatTimestamp(project.updatedAt || project.createdAt),
             skills: project.skillsRequired || [],
             priority: 'medium' as const
           }));
@@ -85,12 +105,13 @@ export default function TeamsPage() {
             title: project.title,
             description: project.description,
             category: project.category,
-            status: project.status === 'approved' ? 'active' : project.status,
+            status: project.status === 'approved' ? 'active' : 
+                   project.status === 'pending' ? 'recruiting' : project.status,
             teamSize: project.teamSize,
             currentTeamSize: project.teamMembers?.length || 1,
             owner: project.ownerName || 'Unknown',
             role: 'Member',
-            lastActivity: project.updatedAt || project.createdAt,
+            lastActivity: formatTimestamp(project.updatedAt || project.createdAt),
             skills: project.skillsRequired || [],
             priority: 'medium' as const
           }));
@@ -111,7 +132,7 @@ export default function TeamsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-dark-darker via-dark to-dark-lighter">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -179,8 +200,7 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -506,7 +526,6 @@ export default function TeamsPage() {
             </div>
           )}
         </motion.div>
-      </div>
     </div>
   );
 }

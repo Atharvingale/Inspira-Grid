@@ -253,7 +253,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Update user profile
   const updateUserProfile = async (uid: string, profileData: Partial<UserProfile>) => {
     try {
-      await updateDoc(doc(db, 'users', uid), profileData);
+      // Check if user document exists first
+      const docRef = doc(db, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        // Document exists, update it
+        await updateDoc(docRef, profileData);
+      } else {
+        // Document doesn't exist, create it
+        const newProfile = {
+          uid,
+          email: profileData.email || '',
+          displayName: profileData.displayName || '',
+          bio: '',
+          skills: [],
+          location: '',
+          website: '',
+          github: '',
+          linkedin: '',
+          profileComplete: false,
+          joinedAt: new Date().toISOString(),
+          role: 'user',
+          ...profileData
+        };
+        await setDoc(docRef, newProfile);
+      }
       
       // Update local state
       const updatedProfile = {
@@ -274,7 +299,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return true;
     } catch (error) {
       console.error('Profile update error:', error);
-      throw error;
+      // Return false on error instead of throwing so the UI can handle it gracefully
+      return false;
     }
   };
 

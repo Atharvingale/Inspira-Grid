@@ -1,4 +1,5 @@
 const admin = require('../config/firebase');
+const ProjectModel = require('./Project');
 
 class Application {
   constructor() {
@@ -180,8 +181,16 @@ class Application {
       if (status === 'accepted') {
         const application = await this.getById(applicationId);
         if (application) {
-          const ProjectModel = require('./Project');
-          await ProjectModel.addTeamMember(application.projectId, application.applicantId);
+          try {
+            console.log('Adding team member:', { projectId: application.projectId, applicantId: application.applicantId });
+            await ProjectModel.addTeamMember(application.projectId, application.applicantId);
+            console.log('Team member added successfully');
+          } catch (teamMemberError) {
+            console.error('Error adding team member:', teamMemberError);
+            // Re-throw the error to prevent the application from appearing as successfully accepted
+            // when the team member addition failed
+            throw new Error(`Failed to add team member: ${teamMemberError.message}`);
+          }
         }
       }
 

@@ -316,25 +316,6 @@ export default function Navbar() {
                       </Link>
                     </motion.div>
                     
-                    {userProfile?.role === 'admin' && (
-                      <>
-                        <div className="border-t border-dark-border/30 my-2"></div>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          <Link
-                            href="/admin"
-                            className="flex items-center px-4 py-3 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all rounded-lg mx-2 group"
-                            onClick={() => setShowUserDropdown(false)}
-                          >
-                            <Shield className="w-4 h-4 mr-3 text-text-muted group-hover:text-brand-primary transition-colors" />
-                            Admin Panel
-                          </Link>
-                        </motion.div>
-                      </>
-                    )}
                     
                     <div className="border-t border-dark-border/30 my-2"></div>
                     <motion.button

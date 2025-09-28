@@ -22,14 +22,14 @@ service cloud.firestore {
     match /applications/{applicationId} {
       allow read: if request.auth != null && 
         (request.auth.uid == resource.data.applicantId ||
-         request.auth.uid == resource.data.projectOwnerId);
+         request.auth.uid == get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.ownerId);
       allow create: if request.auth != null && request.auth.uid == request.resource.data.applicantId;
       allow update: if request.auth != null && 
         (request.auth.uid == resource.data.applicantId ||
-         request.auth.uid == resource.data.projectOwnerId);
+         request.auth.uid == get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.ownerId);
       allow delete: if request.auth != null && 
         (request.auth.uid == resource.data.applicantId ||
-         request.auth.uid == resource.data.projectOwnerId);
+         request.auth.uid == get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.ownerId);
     }
     
     // Messages and Conversations - only participants can access
@@ -50,6 +50,12 @@ service cloud.firestore {
       // Only message sender can update/delete their own messages
       allow update, delete: if request.auth != null && 
         request.auth.uid == resource.data.senderId;
+    }
+    
+    // Notifications - users can only access their own notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
     
     // Admin-only collections

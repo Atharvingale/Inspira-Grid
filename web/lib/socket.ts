@@ -11,7 +11,7 @@ class SocketManager {
       return this.socket;
     }
 
-    const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
     
     this.socket = io(serverUrl, {
       transports: ['websocket', 'polling'],

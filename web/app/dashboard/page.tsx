@@ -23,7 +23,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { apiClient } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 
 interface Stats {
   myProjects: number;
@@ -40,6 +40,14 @@ interface Project {
   ownerName: string;
   teamSize: number;
   skillsRequired?: string[];
+}
+
+interface ProjectsResponse {
+  projects: Project[];
+}
+
+interface ApplicationsResponse {
+  applications: unknown[];
 }
 
 export default function DashboardPage() {
@@ -71,10 +79,10 @@ export default function DashboardPage() {
         ]);
         
         // Extract data from successful responses
-        const myProjects = myProjectsRes.status === 'fulfilled' ? (myProjectsRes.value as any)?.projects || [] : [];
-        const teamProjects = teamProjectsRes.status === 'fulfilled' ? (teamProjectsRes.value as any)?.projects || [] : [];
-        const applications = applicationsRes.status === 'fulfilled' ? (applicationsRes.value as any)?.applications || [] : [];
-        const recentProjects = recentProjectsRes.status === 'fulfilled' ? (recentProjectsRes.value as any)?.projects || [] : [];
+        const myProjects = myProjectsRes.status === 'fulfilled' ? (myProjectsRes.value as ProjectsResponse)?.projects || [] : [];
+        const teamProjects = teamProjectsRes.status === 'fulfilled' ? (teamProjectsRes.value as ProjectsResponse)?.projects || [] : [];
+        const applications = applicationsRes.status === 'fulfilled' ? (applicationsRes.value as ApplicationsResponse)?.applications || [] : [];
+        const recentProjects = recentProjectsRes.status === 'fulfilled' ? (recentProjectsRes.value as ProjectsResponse)?.projects || [] : [];
         
         // Set statistics
         setStats({
@@ -186,105 +194,104 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8">
-            <div className="mb-6 lg:mb-0">
-              <motion.h1
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-4xl lg:text-5xl font-bold mb-4"
-              >
-                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Welcome back,{" "}
-                </span>
-                <span className="bg-gradient-to-r from-brand-primary to-accent-purple bg-clip-text text-transparent">
-                  {userProfile?.displayName || currentUser?.email?.split('@')[0]}!
-                </span>
-                <motion.span
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
-                  className="inline-block ml-2"
-                >
-                  👋
-                </motion.span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-xl text-text-tertiary max-w-2xl"
-              >
-                Ready to build something amazing? Here's your project overview and latest opportunities.
-              </motion.p>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8">
+          <div className="mb-6 lg:mb-0">
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl lg:text-5xl font-bold mb-4"
             >
-              <Button
-                variant="primary"
-                size="lg"
-                className="shadow-lg hover:shadow-brand-primary/25"
-                onClick={() => router.push('/dashboard/profile')}
+              <span className="bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">
+                Welcome back,{" "}
+              </span>
+              <span className="bg-gradient-to-r from-brand-light to-brand-secondary bg-clip-text text-transparent">
+                {userProfile?.displayName || currentUser?.email?.split('@')[0]}!
+              </span>
+              <motion.span
+                initial={{ rotate: 0 }}
+                animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
+                transition={{ delay: 0.5, duration: 0.8 }}
+                className="inline-block ml-2"
               >
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                Complete Profile
-              </Button>
-            </motion.div>
+                👋
+              </motion.span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-xl text-text-secondary max-w-2xl leading-relaxed"
+            >
+              Ready to build something amazing? Here's your project overview and latest opportunities.
+            </motion.p>
           </div>
-          
-          {/* Profile Completion Alert */}
-          {!userProfile?.profileComplete && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              transition={{ delay: 0.6 }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Button
+              variant="primary"
+              size="lg"
+              className="shadow-lg hover:shadow-brand-primary/25"
+              onClick={() => router.push('/dashboard/profile')}
             >
-              <Card className="p-6 border-accent-orange/20 bg-accent-orange/5" blur>
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 rounded-xl bg-accent-orange/10">
-                    <Lightbulb className="w-6 h-6 text-accent-orange" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-2">
-                      Boost Your Profile Visibility
-                    </h3>
-                    <p className="text-text-tertiary mb-4">
-                      Complete your profile to unlock personalized project recommendations and improve your chances of getting hired by 3x.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push('/dashboard/profile')}
-                      className="border-accent-orange text-accent-orange hover:bg-accent-orange hover:text-white"
-                    >
-                      Complete Now
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </div>
+              <CheckCircle2 className="w-5 h-5 mr-2" />
+              Complete Profile
+            </Button>
+          </motion.div>
+        </div>
+          
+        {/* Profile Completion Alert */}
+        {!userProfile?.profileComplete && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card blur className="p-6 border-accent-orange/20 bg-accent-orange/5 shadow-xl">
+              <div className="flex items-start space-x-4">
+                <div className="p-3 rounded-xl bg-accent-orange/10">
+                  <Lightbulb className="w-6 h-6 text-accent-orange" />
                 </div>
-              </Card>
-            </motion.div>
-          )}
-        </motion.div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">
+                    Boost Your Profile Visibility
+                  </h3>
+                  <p className="text-text-secondary mb-4">
+                    Complete your profile to unlock personalized project recommendations and improve your chances of getting hired by 3x.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push('/dashboard/profile')}
+                    className="border-accent-orange text-accent-orange hover:bg-accent-orange hover:text-white"
+                  >
+                    Complete Now
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </motion.div>
 
-        {/* Quick Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-        >
+      {/* Quick Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
           {quickStats.map((stat, index) => {
             const IconComponent = stat.icon;
             return (
@@ -296,7 +303,7 @@ export default function DashboardPage() {
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
                 <Link href={stat.link}>
-                  <Card className={`p-6 hover:shadow-xl hover:shadow-black/10 transition-all duration-300 border ${stat.borderColor} ${stat.bgColor}`} hover>
+                  <Card blur className={`p-6 hover:shadow-xl hover:shadow-brand-primary/5 transition-all duration-300 border ${stat.borderColor} ${stat.bgColor}`}>
                     <div className="flex items-center justify-between mb-4">
                       <div className={`p-3 rounded-xl ${stat.bgColor}`}>
                         <IconComponent className={`w-6 h-6 ${stat.color}`} />
@@ -304,10 +311,10 @@ export default function DashboardPage() {
                       <TrendingUp className="w-5 h-5 text-text-tertiary" />
                     </div>
                     <div>
-                      <h3 className="text-3xl font-bold text-white mb-1">
+                      <h3 className="text-3xl font-bold text-text-primary mb-1">
                         {stat.value}
                       </h3>
-                      <p className="text-lg font-medium text-text-tertiary mb-1">
+                      <p className="text-lg font-medium text-text-secondary mb-1">
                         {stat.label}
                       </p>
                       <p className="text-sm text-text-tertiary">
@@ -319,36 +326,36 @@ export default function DashboardPage() {
               </motion.div>
             );
           })}
-        </motion.div>
+      </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.2 }}
-            className="lg:col-span-2"
-          >
-            <Card className="overflow-hidden">
-              <div className="p-6 border-b border-gray-700/50 flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-brand-primary/10">
-                    <Clock className="w-5 h-5 text-brand-primary" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.2 }}
+          className="lg:col-span-2"
+        >
+          <Card blur className="overflow-hidden shadow-xl">
+            <CardHeader className="p-6 border-b border-dark-border/50 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-brand-primary/10">
+                  <Clock className="w-5 h-5 text-brand-primary" />
                 </div>
-                <Button variant="ghost" size="sm">
-                  View all <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
+                <h2 className="text-xl font-semibold text-text-primary">Recent Activity</h2>
               </div>
-              <div className="p-6">
+              <Button variant="ghost" size="sm">
+                View all <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6">
                 {recentActivity.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="p-4 rounded-full bg-dark-surface/50/50 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                       <Clock className="w-8 h-8 text-text-tertiary" />
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">No activity yet</h3>
-                    <p className="text-text-tertiary mb-6">Start by creating a project or browsing opportunities</p>
+                    <h3 className="text-lg font-medium text-text-primary mb-2">No activity yet</h3>
+                    <p className="text-text-secondary mb-6">Start by creating a project or browsing opportunities</p>
                     <Button
                       variant="primary"
                       onClick={() => router.push('/dashboard/projects')}
@@ -371,7 +378,7 @@ export default function DashboardPage() {
                           {activity.icon}
                         </div>
                         <div className="flex-1">
-                          <p className="text-white font-medium mb-1">{activity.action}</p>
+                          <p className="text-text-primary font-medium mb-1">{activity.action}</p>
                           <p className="text-sm text-text-tertiary flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
                             {activity.time}
@@ -381,26 +388,26 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            </Card>
-          </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.3 }}
-          >
-            <Card className="mb-6">
-              <div className="p-6 border-b border-gray-700/50">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-accent-purple/10">
-                    <Rocket className="w-5 h-5 text-accent-purple" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-white">Quick Actions</h2>
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.3 }}
+        >
+          <Card blur className="mb-6 shadow-xl">
+            <CardHeader className="p-6 border-b border-dark-border/50">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-accent-purple/10">
+                  <Rocket className="w-5 h-5 text-accent-purple" />
                 </div>
+                <h2 className="text-xl font-semibold text-text-primary">Quick Actions</h2>
               </div>
-              <div className="p-6">
+            </CardHeader>
+            <CardContent className="p-6">
                 <div className="space-y-3">
                   <Button
                     variant="primary"
@@ -438,19 +445,19 @@ export default function DashboardPage() {
                     <MessageSquare className="w-5 h-5 mr-3" />
                     Messages
                   </Button>
-                </div>
               </div>
-            </Card>
+            </CardContent>
+          </Card>
 
-            {/* Tips Section */}
-            <Card className="border-accent-orange/20 bg-accent-orange/5">
-              <div className="p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="p-2 rounded-lg bg-accent-orange/10">
-                    <Lightbulb className="w-5 h-5 text-accent-orange" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">Getting Started</h3>
+          {/* Tips Section */}
+          <Card blur className="border-accent-orange/20 bg-accent-orange/5 shadow-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-2 rounded-lg bg-accent-orange/10">
+                  <Lightbulb className="w-5 h-5 text-accent-orange" />
                 </div>
+                <h3 className="text-lg font-semibold text-text-primary">Getting Started</h3>
+              </div>
                 <div className="space-y-4">
                   {[
                     { text: "Complete your profile to attract collaborators", completed: true },
@@ -475,45 +482,45 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <p className={`text-sm ${
-                        tip.completed ? 'text-text-tertiary line-through' : 'text-white'
+                        tip.completed ? 'text-text-tertiary line-through' : 'text-text-secondary'
                       }`}>
                         {tip.text}
                       </p>
                     </motion.div>
                   ))}
-                </div>
               </div>
-            </Card>
-          </motion.div>
-        </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
-        {/* Featured Projects Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.4 }}
-          className="mt-8"
-        >
-          <Card className="overflow-hidden">
-            <div className="p-6 border-b border-gray-700/50 flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-brand-primary/10">
-                  <Star className="w-5 h-5 text-brand-primary" />
-                </div>
-                <h2 className="text-xl font-semibold text-white">Recommended Projects</h2>
+      {/* Featured Projects Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.4 }}
+        className="mt-8"
+      >
+        <Card blur className="overflow-hidden shadow-xl">
+          <CardHeader className="p-6 border-b border-dark-border/50 flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-brand-primary/10">
+                <Star className="w-5 h-5 text-brand-primary" />
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/projects')}>
-                Browse all <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
+              <h2 className="text-xl font-semibold text-text-primary">Recommended Projects</h2>
             </div>
-            <div className="p-6">
+            <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/projects')}>
+              Browse all <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-6">
               {recentProjects.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="p-4 rounded-full bg-dark-surface/50/50 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                     <Search className="w-8 h-8 text-text-tertiary" />
                   </div>
-                  <h3 className="text-lg font-medium text-white mb-2">No projects available yet</h3>
-                  <p className="text-text-tertiary mb-6">
+                  <h3 className="text-lg font-medium text-text-primary mb-2">No projects available yet</h3>
+                  <p className="text-text-secondary mb-6">
                     Complete your profile to see personalized project recommendations
                   </p>
                   <Button
@@ -533,9 +540,9 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 1.5 + index * 0.1 }}
                     >
-                      <Card className="p-6 hover:shadow-lg hover:shadow-brand-primary/5" hover>
+                      <Card blur className="p-6 hover:shadow-lg hover:shadow-brand-primary/5">
                         <div className="flex justify-between items-start mb-4">
-                          <h3 className="text-lg font-semibold text-white hover:text-brand-primary transition-colors">
+                          <h3 className="text-lg font-semibold text-text-primary hover:text-brand-primary transition-colors">
                             <Link href={`/dashboard/projects/${project.id}`}>
                               {project.title}
                             </Link>
@@ -545,7 +552,7 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         
-                        <p className="text-text-tertiary text-sm mb-4 line-clamp-2">
+                        <p className="text-text-secondary text-sm mb-4 line-clamp-2">
                           {project.description}
                         </p>
                         
@@ -580,10 +587,9 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </div>
-          </Card>
-        </motion.div>
-      </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

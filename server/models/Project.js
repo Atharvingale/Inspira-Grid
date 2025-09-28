@@ -13,7 +13,7 @@ class Project {
       const project = {
         id: docRef.id,
         ...projectData,
-        status: 'pending', // pending, approved, rejected, completed
+        status: 'approved', // Projects are directly approved without admin review
         applicationCount: 0,
         teamMembers: [],
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -170,8 +170,13 @@ class Project {
         throw new Error('Project not found');
       }
 
+      // Get user details to include name in team member data
+      const userDoc = await this.db.collection('users').doc(userId).get();
+      const userData = userDoc.exists ? userDoc.data() : null;
+
       const teamMember = {
         userId,
+        name: userData?.displayName || 'Unknown User',
         role,
         joinedAt: admin.firestore.FieldValue.serverTimestamp()
       };
@@ -259,36 +264,175 @@ class Project {
     }
   }
 
-  // Search projects
+  // Advanced search projects with ranking
   async search(searchTerm, filters = {}) {
     try {
-      // Note: Firestore doesn't have full-text search, so we'll do basic filtering
-      // In production, you might want to use Algolia or similar service
+      console.log('🔍 Advanced search:', { searchTerm, filters });
+      
+      // Get base dataset with filters
       let query = this.collection;
-
+      
+      // Apply filters first to reduce dataset
       if (filters.status) {
         query = query.where('status', '==', filters.status);
+      }
+      if (filters.category) {
+        query = query.where('category', '==', filters.category);
+      }
+      if (filters.difficulty) {
+        query = query.where('difficulty', '==', filters.difficulty);
+      }
+      if (filters.isRemote !== undefined) {
+        query = query.where('isRemote', '==', filters.isRemote);
+      }
+      if (filters.hasGitHub !== undefined) {
+        if (filters.hasGitHub) {
+          query = query.where('githubRepository', '!=', null);
+        } else {
+          query = query.where('githubRepository', '==', null);
+        }
       }
 
       const snapshot = await query
         .orderBy('createdAt', 'desc')
-        .limit(50)
+        .limit(filters.limit || 100)
         .get();
 
-      const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // Filter by search term (basic text matching)
-      const searchTermLower = searchTerm.toLowerCase();
-      const filtered = projects.filter(project => 
-        project.title?.toLowerCase().includes(searchTermLower) ||
-        project.description?.toLowerCase().includes(searchTermLower) ||
-        project.skillsRequired?.some(skill => skill.toLowerCase().includes(searchTermLower))
-      );
-
-      return filtered;
+      let projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Apply text search with relevance scoring
+      if (searchTerm && searchTerm.trim()) {
+        const searchResults = this.searchWithRelevanceScoring(projects, searchTerm);
+        projects = searchResults;
+      }
+      
+      // Apply additional filters that can't be done in Firestore
+      if (filters.skills && filters.skills.length > 0) {
+        projects = projects.filter(project => 
+          filters.skills.some(skill => 
+            project.skillsRequired?.some(reqSkill => 
+              reqSkill.toLowerCase().includes(skill.toLowerCase())
+            )
+          )
+        );
+      }
+      
+      if (filters.teamSizeMin) {
+        projects = projects.filter(project => project.teamSize >= filters.teamSizeMin);
+      }
+      
+      if (filters.teamSizeMax) {
+        projects = projects.filter(project => project.teamSize <= filters.teamSizeMax);
+      }
+      
+      // Sort results
+      projects = this.sortSearchResults(projects, filters.sortBy || 'relevance');
+      
+      console.log(`🎯 Search completed: ${projects.length} results`);
+      return projects.slice(0, filters.limit || 50);
     } catch (error) {
       console.error('Error searching projects:', error);
       throw error;
+    }
+  }
+
+  // Search with relevance scoring
+  searchWithRelevanceScoring(projects, searchTerm) {
+    const searchTerms = searchTerm.toLowerCase().split(' ').filter(term => term.length > 0);
+    
+    const scoredProjects = projects.map(project => {
+      let score = 0;
+      const title = (project.title || '').toLowerCase();
+      const description = (project.description || '').toLowerCase();
+      const skills = (project.skillsRequired || []).map(s => s.toLowerCase());
+      const category = (project.category || '').toLowerCase();
+      
+      searchTerms.forEach(term => {
+        // Title matches (highest weight)
+        if (title.includes(term)) {
+          score += title === term ? 100 : (title.startsWith(term) ? 80 : 50);
+        }
+        
+        // Category matches
+        if (category.includes(term)) {
+          score += 40;
+        }
+        
+        // Skills matches
+        skills.forEach(skill => {
+          if (skill.includes(term)) {
+            score += skill === term ? 60 : 30;
+          }
+        });
+        
+        // Description matches (lower weight)
+        if (description.includes(term)) {
+          score += 20;
+        }
+        
+        // Owner name matches
+        if ((project.ownerName || '').toLowerCase().includes(term)) {
+          score += 15;
+        }
+      });
+      
+      // Boost score for recent projects
+      const daysOld = (Date.now() - new Date(project.createdAt?.seconds ? project.createdAt.seconds * 1000 : project.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysOld < 7) score += 10;
+      else if (daysOld < 30) score += 5;
+      
+      // Boost score for projects with GitHub
+      if (project.githubRepository) score += 5;
+      
+      // Boost score for featured projects
+      if (project.featured) score += 10;
+      
+      return { ...project, relevanceScore: score };
+    });
+    
+    // Filter out projects with no relevance and sort by score
+    return scoredProjects
+      .filter(project => project.relevanceScore > 0)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+  
+  // Sort search results by different criteria
+  sortSearchResults(projects, sortBy) {
+    switch (sortBy) {
+      case 'newest':
+        return projects.sort((a, b) => {
+          const dateA = new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt);
+          const dateB = new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt);
+          return dateB - dateA;
+        });
+      
+      case 'oldest':
+        return projects.sort((a, b) => {
+          const dateA = new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt);
+          const dateB = new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt);
+          return dateA - dateB;
+        });
+      
+      case 'mostApplications':
+        return projects.sort((a, b) => (b.applicationCount || 0) - (a.applicationCount || 0));
+      
+      case 'teamSize':
+        return projects.sort((a, b) => (b.teamSize || 0) - (a.teamSize || 0));
+      
+      case 'alphabetical':
+        return projects.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      
+      case 'relevance':
+      default:
+        // If no relevance score, sort by newest
+        return projects.sort((a, b) => {
+          if (a.relevanceScore && b.relevanceScore) {
+            return b.relevanceScore - a.relevanceScore;
+          }
+          const dateA = new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt);
+          const dateB = new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt);
+          return dateB - dateA;
+        });
     }
   }
 
@@ -350,6 +494,206 @@ class Project {
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       console.error('Error getting projects with GitHub:', error);
+      throw error;
+    }
+  }
+
+  // Get trending projects (high activity in last 7 days)
+  async getTrendingProjects(limit = 10) {
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      // Get recent projects with activity
+      const snapshot = await this.collection
+        .where('status', '==', 'approved')
+        .where('updatedAt', '>=', sevenDaysAgo)
+        .orderBy('updatedAt', 'desc')
+        .limit(limit * 3) // Get more to filter and rank
+        .get();
+
+      const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Calculate trending score based on recent activity
+      const trendingProjects = projects.map(project => {
+        let trendingScore = 0;
+        const daysSinceUpdate = (Date.now() - new Date(project.updatedAt?.seconds ? project.updatedAt.seconds * 1000 : project.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+        
+        // Recent activity bonus
+        if (daysSinceUpdate < 1) trendingScore += 50;
+        else if (daysSinceUpdate < 3) trendingScore += 30;
+        else if (daysSinceUpdate < 7) trendingScore += 10;
+        
+        // Application activity bonus
+        trendingScore += (project.applicationCount || 0) * 5;
+        
+        // Team growth bonus
+        if (project.teamMembers && project.teamMembers.length > 1) {
+          trendingScore += project.teamMembers.length * 3;
+        }
+        
+        // GitHub activity bonus
+        if (project.githubRepository) trendingScore += 10;
+        
+        return { ...project, trendingScore };
+      });
+      
+      return trendingProjects
+        .sort((a, b) => b.trendingScore - a.trendingScore)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting trending projects:', error);
+      throw error;
+    }
+  }
+  
+  // Get recommended projects for a user based on their skills
+  async getRecommendedProjects(userSkills = [], userInterests = [], limit = 10) {
+    try {
+      if (!userSkills.length && !userInterests.length) {
+        // Return trending projects if no user data
+        return this.getTrendingProjects(limit);
+      }
+      
+      const snapshot = await this.collection
+        .where('status', '==', 'approved')
+        .orderBy('createdAt', 'desc')
+        .limit(100) // Get larger dataset for better recommendations
+        .get();
+
+      const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Calculate recommendation score
+      const recommendedProjects = projects.map(project => {
+        let recommendationScore = 0;
+        
+        // Skill matching (highest weight)
+        const projectSkills = project.skillsRequired || [];
+        const matchingSkills = projectSkills.filter(skill => 
+          userSkills.some(userSkill => 
+            skill.toLowerCase().includes(userSkill.toLowerCase()) ||
+            userSkill.toLowerCase().includes(skill.toLowerCase())
+          )
+        );
+        recommendationScore += matchingSkills.length * 40;
+        
+        // Category/interest matching
+        if (userInterests.includes(project.category)) {
+          recommendationScore += 30;
+        }
+        
+        // Diversity bonus (different skills to learn)
+        const newSkills = projectSkills.filter(skill => 
+          !userSkills.some(userSkill => 
+            skill.toLowerCase().includes(userSkill.toLowerCase())
+          )
+        );
+        if (newSkills.length > 0 && newSkills.length <= 3) {
+          recommendationScore += newSkills.length * 10;
+        }
+        
+        // Freshness bonus
+        const daysOld = (Date.now() - new Date(project.createdAt?.seconds ? project.createdAt.seconds * 1000 : project.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysOld < 7) recommendationScore += 15;
+        else if (daysOld < 30) recommendationScore += 5;
+        
+        // Activity bonus
+        recommendationScore += (project.applicationCount || 0) * 2;
+        
+        // GitHub bonus
+        if (project.githubRepository) recommendationScore += 5;
+        
+        return { ...project, recommendationScore };
+      });
+      
+      return recommendedProjects
+        .filter(project => project.recommendationScore > 0)
+        .sort((a, b) => b.recommendationScore - a.recommendationScore)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting recommended projects:', error);
+      throw error;
+    }
+  }
+  
+  // Get projects by multiple categories
+  async getProjectsByCategories(categories, limit = 20) {
+    try {
+      if (!categories || categories.length === 0) {
+        return [];
+      }
+      
+      // Firestore doesn't support 'in' with more than 10 items
+      const categoriesToQuery = categories.slice(0, 10);
+      
+      const snapshot = await this.collection
+        .where('status', '==', 'approved')
+        .where('category', 'in', categoriesToQuery)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting projects by categories:', error);
+      throw error;
+    }
+  }
+  
+  // Get similar projects to a given project
+  async getSimilarProjects(projectId, limit = 5) {
+    try {
+      const sourceProject = await this.getById(projectId);
+      if (!sourceProject) {
+        return [];
+      }
+      
+      const snapshot = await this.collection
+        .where('status', '==', 'approved')
+        .where('category', '==', sourceProject.category)
+        .orderBy('createdAt', 'desc')
+        .limit(20)
+        .get();
+
+      const projects = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(project => project.id !== projectId); // Exclude the source project
+      
+      // Calculate similarity score
+      const similarProjects = projects.map(project => {
+        let similarityScore = 0;
+        
+        // Same category bonus
+        if (project.category === sourceProject.category) {
+          similarityScore += 30;
+        }
+        
+        // Skills overlap
+        const sourceSkills = sourceProject.skillsRequired || [];
+        const projectSkills = project.skillsRequired || [];
+        const commonSkills = sourceSkills.filter(skill => 
+          projectSkills.some(pSkill => pSkill.toLowerCase() === skill.toLowerCase())
+        );
+        similarityScore += commonSkills.length * 20;
+        
+        // Similar team size
+        const sizeDiff = Math.abs((project.teamSize || 0) - (sourceProject.teamSize || 0));
+        if (sizeDiff <= 2) similarityScore += 10;
+        
+        // Both have GitHub or both don't
+        if (!!project.githubRepository === !!sourceProject.githubRepository) {
+          similarityScore += 5;
+        }
+        
+        return { ...project, similarityScore };
+      });
+      
+      return similarProjects
+        .filter(project => project.similarityScore > 0)
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting similar projects:', error);
       throw error;
     }
   }

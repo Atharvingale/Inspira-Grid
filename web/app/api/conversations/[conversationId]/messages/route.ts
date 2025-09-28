@@ -151,13 +151,16 @@ export async function POST(
       .add(messageData);
 
     // Update conversation with last message info and increment unread counts
-    const updateData: any = {
+    const updateData: {
+      lastMessageId: string;
+      updatedAt: Date;
+    } = {
       lastMessageId: messageRef.id,
       updatedAt: new Date()
     };
 
     // Increment unread count for all participants except sender
-    const unreadUpdates: any = {};
+    const unreadUpdates: Record<string, number> = {};
     for (const participantId of conversationData.participantIds) {
       if (participantId !== userId) {
         unreadUpdates[`unreadCounts.${participantId}`] = (conversationData.unreadCounts?.[participantId] || 0) + 1;

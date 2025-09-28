@@ -129,16 +129,13 @@ const Messages = () => {
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   if (state.loading) {
     return <Loading message="Loading messages..." />;
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter flex">
+    <div className="h-[calc(100vh-80px)] flex">
       <ConversationList
         conversations={state.conversations}
         activeConversation={state.activeConversation}

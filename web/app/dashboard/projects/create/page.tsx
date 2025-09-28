@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { toast } from 'react-toastify';
+import { toast } from '@/lib/toast';
 import { useAuth } from '@/lib/AuthContext';
 import { apiClient as api } from '@/lib/api';
+import { useGitHub, GitHubRepository } from '@/lib/hooks/useGitHub';
 
 interface FormData {
   title: string;
@@ -15,6 +16,10 @@ interface FormData {
   teamSize: number;
   duration: string;
   budget: string;
+  githubRepo?: {
+    owner: string;
+    name: string;
+  } | null;
 }
 
 interface FormErrors {
@@ -25,13 +30,49 @@ interface FormErrors {
   teamSize?: string;
 }
 
+interface ProjectData {
+  title: string;
+  description: string;
+  category: string;
+  skillsRequired: string[];
+  teamSize: number;
+  duration: string;
+  budget: string;
+  githubRepo?: {
+    owner: string;
+    name: string;
+  };
+}
+
+interface ValidationError {
+  param: string;
+  msg: string;
+}
+
+interface APIError {
+  response?: {
+    data?: {
+      message?: string;
+      details?: ValidationError[];
+    };
+  };
+}
+
 const CreateProject = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { userProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
+  
+  // GitHub integration
+  const github = useGitHub();
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(null);
+  const [repoSearch, setRepoSearch] = useState('');
+  const [repoResults, setRepoResults] = useState<GitHubRepository[]>([]);
+  const [showRepoSelector, setShowRepoSelector] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -41,6 +82,7 @@ const CreateProject = () => {
     teamSize: 3,
     duration: '',
     budget: '',
+    githubRepo: null,
   });
 
   const categories = [
@@ -142,6 +184,85 @@ const CreateProject = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // GitHub repository functions
+  const handleRepoSearch = async (query: string) => {
+    setRepoSearch(query);
+    if (query.trim()) {
+      const results = await github.searchRepositories(query, 10);
+      setRepoResults(results);
+    } else {
+      setRepoResults([]);
+    }
+  };
+
+  const selectRepository = (repo: GitHubRepository) => {
+    setSelectedRepo(repo);
+    setFormData(prev => ({
+      ...prev,
+      githubRepo: {
+        owner: repo.full_name.split('/')[0],
+        name: repo.name
+      }
+    }));
+    setShowRepoSelector(false);
+    setRepoSearch('');
+    setRepoResults([]);
+  };
+
+  const removeRepository = () => {
+    setSelectedRepo(null);
+    setFormData(prev => ({
+      ...prev,
+      githubRepo: null
+    }));
+  };
+
+  // Handle GitHub connection status from URL params
+  useEffect(() => {
+    const githubStatus = searchParams.get('github');
+    const error = searchParams.get('error');
+    
+    if (githubStatus === 'connected') {
+      toast.success('GitHub account connected successfully!');
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('github');
+      router.replace(url.pathname, { scroll: false });
+      // Refresh GitHub connection status after a short delay to ensure auth state is ready
+      setTimeout(() => {
+        github.checkConnection();
+      }, 1000);
+    } else if (error) {
+      switch (error) {
+        case 'github_auth_failed':
+          toast.error('GitHub authentication failed. Please try again.');
+          break;
+        case 'github_auth_no_user':
+          toast.error('GitHub authentication was cancelled.');
+          break;
+        case 'github_link_failed':
+          toast.error('Failed to link GitHub account. Please try again.');
+          break;
+        default:
+          toast.error('An error occurred during GitHub connection.');
+      }
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      router.replace(url.pathname);
+    }
+  }, [searchParams, router]); // Removed github from dependencies to prevent unnecessary re-runs
+
+  // Load repositories on GitHub connection
+  useEffect(() => {
+    if (github.isConnected) {
+      console.log('GitHub is connected, fetching repositories...');
+      github.fetchRepositories({ limit: 20, sort: 'updated', type: 'owner' });
+    } else {
+      console.log('GitHub not connected, skipping repository fetch');
+    }
+  }, [github.isConnected]); // Only depend on connection status
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -153,7 +274,7 @@ const CreateProject = () => {
     try {
       setLoading(true);
       
-      const projectData = {
+      const projectData: ProjectData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
@@ -162,24 +283,30 @@ const CreateProject = () => {
         duration: formData.duration.trim(),
         budget: formData.budget.trim(),
       };
+      
+      // Add GitHub repository if selected
+      if (formData.githubRepo) {
+        projectData.githubRepo = formData.githubRepo;
+      }
 
       await api.post('/api/projects', projectData);
       
-      toast.success('Project created successfully! It will be reviewed by admins.');
+      toast.success('Project created successfully! It is now live and available for applications.');
       router.push('/dashboard/projects');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating project:', error);
+      const apiError = error as APIError;
       
-      if (error.response?.data?.details) {
+      if (apiError.response?.data?.details) {
         // Handle validation errors from backend
         const backendErrors: FormErrors = {};
-        error.response.data.details.forEach((err: any) => {
+        apiError.response.data.details.forEach((err: ValidationError) => {
           backendErrors[err.param as keyof FormErrors] = err.msg;
         });
         setErrors(backendErrors);
         toast.error('Please fix the validation errors');
       } else {
-        toast.error(error.response?.data?.message || 'Failed to create project');
+        toast.error(apiError.response?.data?.message || 'Failed to create project');
       }
     } finally {
       setLoading(false);
@@ -189,8 +316,7 @@ const CreateProject = () => {
   // Check if profile is complete
   if (!userProfile?.profileComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-text-primary">Create New Project</h1>
             <p className="text-text-secondary mt-1">Start a new collaborative project</p>
@@ -220,14 +346,12 @@ const CreateProject = () => {
               </div>
             </div>
           </div>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-darker via-dark to-dark-lighter p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-text-primary">Create New Project</h1>
           <p className="text-text-secondary mt-1">Start a new collaborative project and find your team</p>
@@ -449,6 +573,193 @@ const CreateProject = () => {
                     </div>
                   </div>
 
+                  {/* GitHub Repository Integration */}
+                  <div className="mb-8">
+                    <h2 className="text-xl font-semibold text-text-primary mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                      </svg>
+                      GitHub Repository (Optional)
+                    </h2>
+                    
+                    {!github.isConnected ? (
+                      <div className="bg-dark-surface/30 border border-dark-border rounded-xl p-6">
+                        <div className="text-center">
+                          <svg className="w-12 h-12 text-text-tertiary mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                          </svg>
+                          <h3 className="text-lg font-medium text-text-primary mb-2">Connect GitHub Account</h3>
+                          <p className="text-text-secondary mb-4">
+                            Connect your GitHub account to link a repository to this project. This helps collaborators find and contribute to your code.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => github.connect()}
+                            disabled={github.loading}
+                            className="px-6 py-3 bg-[#24292e] hover:bg-[#1a1e22] text-white rounded-xl font-medium transition-colors flex items-center mx-auto disabled:opacity-50"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                            </svg>
+                            {github.loading ? 'Connecting...' : 'Connect GitHub'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-dark-surface/30 border border-dark-border rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                              <img 
+                                src={github.profile?.avatarUrl} 
+                                alt={github.profile?.username}
+                                className="w-6 h-6 rounded-full mr-3"
+                              />
+                              <span className="text-text-primary font-medium">@{github.profile?.username}</span>
+                              <span className="text-success-500 text-sm ml-2">Connected</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={github.disconnect}
+                              className="text-text-tertiary hover:text-red-400 text-sm transition-colors"
+                            >
+                              Disconnect
+                            </button>
+                          </div>
+                        </div>
+
+                        {selectedRepo ? (
+                          <div className="bg-dark-surface/50 border border-dark-border rounded-xl p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <svg className="w-5 h-5 text-text-secondary mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                                </svg>
+                                <div>
+                                  <p className="font-medium text-text-primary">{selectedRepo.full_name}</p>
+                                  {selectedRepo.description && (
+                                    <p className="text-sm text-text-secondary">{selectedRepo.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-4 mt-1 text-xs text-text-tertiary">
+                                    {selectedRepo.language && (
+                                      <span className="flex items-center">
+                                        <span className="w-2 h-2 rounded-full bg-brand-primary mr-1"></span>
+                                        {selectedRepo.language}
+                                      </span>
+                                    )}
+                                    <span>⭐ {selectedRepo.stargazers_count}</span>
+                                    <span>🍴 {selectedRepo.forks_count}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={removeRepository}
+                                className="text-text-tertiary hover:text-red-400 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <button
+                              type="button"
+                              onClick={() => setShowRepoSelector(!showRepoSelector)}
+                              className="w-full px-4 py-3 bg-dark-surface/50 border border-dark-border rounded-xl text-text-primary hover:bg-dark-surface/70 transition-colors flex items-center justify-center"
+                            >
+                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              Select Repository
+                            </button>
+
+                            {showRepoSelector && (
+                              <div className="bg-dark-surface/30 border border-dark-border rounded-xl p-4">
+                                <input
+                                  type="text"
+                                  value={repoSearch}
+                                  onChange={(e) => handleRepoSearch(e.target.value)}
+                                  placeholder="Search your repositories..."
+                                  className="w-full px-4 py-2 bg-dark-surface/50 border border-dark-border rounded-lg text-white placeholder:text-text-tertiary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all mb-3"
+                                />
+                                
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                  {github.loading ? (
+                                    <div className="text-center py-4 text-text-secondary">Loading repositories...</div>
+                                  ) : repoSearch ? (
+                                    repoResults.length > 0 ? (
+                                      repoResults.map(repo => (
+                                        <button
+                                          key={repo.id}
+                                          type="button"
+                                          onClick={() => selectRepository(repo)}
+                                          className="w-full p-3 bg-dark-surface/50 hover:bg-dark-surface/70 border border-dark-border rounded-lg transition-colors text-left"
+                                        >
+                                          <div className="flex items-center">
+                                            <svg className="w-4 h-4 text-text-secondary mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                                            </svg>
+                                            <div className="flex-1">
+                                              <p className="font-medium text-text-primary">{repo.full_name}</p>
+                                              {repo.description && (
+                                                <p className="text-sm text-text-secondary truncate">{repo.description}</p>
+                                              )}
+                                              <div className="flex items-center gap-3 mt-1 text-xs text-text-tertiary">
+                                                {repo.language && <span>{repo.language}</span>}
+                                                <span>⭐ {repo.stargazers_count}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="text-center py-4 text-text-secondary">No repositories found</div>
+                                    )
+                                  ) : (
+                                    github.repositories.slice(0, 10).map(repo => (
+                                      <button
+                                        key={repo.id}
+                                        type="button"
+                                        onClick={() => selectRepository(repo)}
+                                        className="w-full p-3 bg-dark-surface/50 hover:bg-dark-surface/70 border border-dark-border rounded-lg transition-colors text-left"
+                                      >
+                                        <div className="flex items-center">
+                                          <svg className="w-4 h-4 text-text-secondary mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                                          </svg>
+                                          <div className="flex-1">
+                                            <p className="font-medium text-text-primary">{repo.full_name}</p>
+                                            {repo.description && (
+                                              <p className="text-sm text-text-secondary truncate">{repo.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-3 mt-1 text-xs text-text-tertiary">
+                                              {repo.language && <span>{repo.language}</span>}
+                                              <span>⭐ {repo.stargazers_count}</span>
+                                              <span className="text-xs text-text-tertiary">
+                                                {new Date(repo.updated_at).toLocaleDateString()}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <p className="text-text-tertiary text-sm">
+                          💡 Linking a repository helps collaborators understand your project structure and contribute more effectively.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex gap-3">
                     <button
                       type="submit"
@@ -517,10 +828,10 @@ const CreateProject = () => {
                         Set realistic team size
                       </li>
                       <li className="flex items-center text-text-secondary">
-                        <svg className="w-4 h-4 mr-2 text-warning-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg className="w-4 h-4 mr-2 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Projects require admin approval
+                        Projects go live immediately
                       </li>
                       <li className="flex items-center text-text-secondary">
                         <svg className="w-4 h-4 mr-2 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -551,7 +862,6 @@ const CreateProject = () => {
             </form>
           </div>
         </div>
-      </div>
     </div>
   );
 };
