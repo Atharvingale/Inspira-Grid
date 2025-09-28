@@ -31,7 +31,10 @@ const textareaVariants = cva(
 );
 
 interface TextareaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "size">,
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 
+    "size" | 'onDrag' | 'onDragEnd' | 'onDragStart' | 'onDragOver' | 'onDragEnter' | 'onDragLeave' | 'onDrop' |
+    'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'
+  >,
     VariantProps<typeof textareaVariants> {
   label?: string;
   error?: string;
@@ -112,9 +115,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
               color: '#ffffff',
               caretColor: '#ffffff',
               WebkitTextFillColor: '#ffffff',
-              textFillColor: '#ffffff',
               colorScheme: 'dark',
-            }}
+            } as React.CSSProperties}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}
@@ -181,7 +183,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
               transition={{ duration: 0.2 }}
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {isOverLimit ? `Message is too long (${currentLength - characterLimit} characters over limit)` : error}
+              {isOverLimit ? `Message is too long (${currentLength - (characterLimit || 0)} characters over limit)` : error}
             </motion.div>
           )}
           

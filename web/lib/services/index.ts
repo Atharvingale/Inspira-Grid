@@ -31,6 +31,14 @@ export { messageService } from './messageService';
 export { notificationService } from './notificationService';
 export { authService } from './authService';
 
+// Import services for internal use in apiServices object
+import { projectService } from './projectService';
+import { userService } from './userService';
+import { applicationService } from './applicationService';
+import { messageService } from './messageService';
+import { notificationService } from './notificationService';
+import { authService } from './authService';
+
 // Export all services as a single object for convenience
 export const apiServices = {
   projects: projectService,

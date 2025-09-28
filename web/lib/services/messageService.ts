@@ -22,7 +22,7 @@ class MessageService extends BaseService {
   async getConversations(
     pagination: PaginationParams = { page: 1, limit: 20 }
   ): Promise<ApiResponse<PaginatedResponse<Conversation>>> {
-    const endpoint = this.buildEndpoint('/conversations', pagination);
+    const endpoint = this.buildEndpoint('/conversations', pagination as unknown as Record<string, unknown>);
     return this.get<PaginatedResponse<Conversation>>(endpoint);
   }
 
@@ -52,7 +52,7 @@ class MessageService extends BaseService {
     conversationId: string,
     pagination: PaginationParams = { page: 1, limit: 50 }
   ): Promise<ApiResponse<PaginatedResponse<Message>>> {
-    const endpoint = this.buildEndpoint(`/conversations/${conversationId}/messages`, pagination);
+    const endpoint = this.buildEndpoint(`/conversations/${conversationId}/messages`, pagination as unknown as Record<string, unknown>);
     return this.get<PaginatedResponse<Message>>(endpoint);
   }
 

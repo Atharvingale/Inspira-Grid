@@ -140,7 +140,7 @@ export default function InputTest() {
                 value={formData.username}
                 onChange={handleInputChange}
                 placeholder="Choose a username"
-                icon={<User className="w-5 h-5" />}
+                leftIcon={<User className="w-5 h-5" />}
                 error={errors.username}
                 success={success.username}
                 required
@@ -153,7 +153,7 @@ export default function InputTest() {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter your email"
-                icon={<Mail className="w-5 h-5" />}
+                leftIcon={<Mail className="w-5 h-5" />}
                 error={errors.email}
                 success={success.email}
                 required
@@ -166,7 +166,7 @@ export default function InputTest() {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Enter a secure password"
-                icon={<Lock className="w-5 h-5" />}
+                leftIcon={<Lock className="w-5 h-5" />}
                 error={errors.password}
                 success={success.password}
                 required
@@ -179,7 +179,7 @@ export default function InputTest() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="(555) 123-4567"
-                icon={<Phone className="w-5 h-5" />}
+                leftIcon={<Phone className="w-5 h-5" />}
               />
             </div>
             
@@ -192,7 +192,7 @@ export default function InputTest() {
                 placeholder="Tell us about yourself... (max 200 characters)"
                 rows={4}
                 error={errors.bio}
-                helperText={`${formData.bio.length}/200 characters`}
+                characterLimit={200}
               />
             </div>
           </div>
@@ -206,7 +206,6 @@ export default function InputTest() {
             
             <div className="grid md:grid-cols-2 gap-6">
               <Select
-                name="country"
                 label="Country"
                 value={formData.country}
                 onChange={handleSelectChange("country")}
@@ -220,7 +219,6 @@ export default function InputTest() {
                   { value: "au", label: "Australia" },
                 ]}
                 placeholder="Select your country"
-                icon={<Globe className="w-5 h-5" />}
               />
               
               <Input
@@ -230,7 +228,7 @@ export default function InputTest() {
                 value={formData.location}
                 onChange={handleInputChange}
                 placeholder="Enter your city"
-                icon={<MapPin className="w-5 h-5" />}
+                leftIcon={<MapPin className="w-5 h-5" />}
               />
             </div>
             

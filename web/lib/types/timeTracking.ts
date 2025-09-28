@@ -125,7 +125,7 @@ export interface Timesheet {
   }>;
   
   // Breakdown by category
-  categoryBreakdown: Record<TimeEntry['category'] | 'other', {
+  categoryBreakdown: Record<NonNullable<TimeEntry['category']> | 'other', {
     hours: number;
     percentage: number;
   }>;
@@ -209,7 +209,7 @@ export interface ProductivityMetrics {
   leastProductiveDay: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   
   // Category distribution
-  timeByCategory: Record<TimeEntry['category'] | 'other', {
+  timeByCategory: Record<NonNullable<TimeEntry['category']> | 'other', {
     hours: number;
     percentage: number;
     trend: 'up' | 'down' | 'stable';
@@ -281,7 +281,7 @@ export interface TeamTimeAnalytics {
   }>;
   
   // Time allocation
-  categoryDistribution: Record<TimeEntry['category'] | 'other', {
+  categoryDistribution: Record<NonNullable<TimeEntry['category']> | 'other', {
     hours: number;
     percentage: number;
     members: number;

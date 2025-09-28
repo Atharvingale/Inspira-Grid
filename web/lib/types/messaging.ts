@@ -5,6 +5,9 @@
  * including conversations, messages, reactions, threads, and file sharing.
  */
 
+// Basic Message type for compatibility
+export type Message = EnhancedMessage;
+
 export interface EnhancedMessage {
   id: string;
   conversationId: string;
@@ -230,6 +233,7 @@ export interface MessageSearchParams {
   hasAttachments?: boolean;
   limit?: number;
   offset?: number;
+  [key: string]: unknown;
 }
 
 export interface MessagesLoadOptions {

@@ -135,10 +135,9 @@ class MessagingService extends BaseService {
    * Get messages for a conversation
    */
   async getMessages(options: MessagesLoadOptions): Promise<ApiResponse<PaginatedResponse<EnhancedMessage>>> {
-    const params = { ...options };
-    delete params.conversationId;
+    const { conversationId, ...params } = options;
     
-    const endpoint = this.buildEndpoint(`/conversations/${options.conversationId}/messages`, params);
+    const endpoint = this.buildEndpoint(`/conversations/${conversationId}/messages`, params);
     return this.get<PaginatedResponse<EnhancedMessage>>(endpoint);
   }
 

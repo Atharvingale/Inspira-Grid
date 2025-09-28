@@ -252,8 +252,10 @@ class UserService extends BaseService {
    * Delete user account
    */
   async deleteAccount(confirmPassword: string): Promise<ApiResponse<void>> {
-    return this.delete<void>('/users/me', { 
-      'X-Confirm-Password': confirmPassword 
+    return this.delete<void>('/users/me', {
+      headers: {
+        'X-Confirm-Password': confirmPassword
+      }
     });
   }
 

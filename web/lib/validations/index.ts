@@ -355,7 +355,7 @@ export const apiResponseSchema = z.object({
   data: z.any().optional(),
   message: z.string().optional(),
   error: z.string().optional(),
-  errors: z.record(z.array(z.string())).optional()
+  errors: z.record(z.string(), z.array(z.string())).optional()
 });
 
 // =====================================
@@ -400,7 +400,7 @@ export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors: Record<string, string> = {};
-      error.errors.forEach((err) => {
+      error.issues.forEach((err) => {
         const path = err.path.join('.');
         errors[path] = err.message;
       });

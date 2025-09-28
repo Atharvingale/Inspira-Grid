@@ -4,7 +4,10 @@ import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onDrag'> {
+interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
+  'onDrag' | 'onDragEnd' | 'onDragStart' | 'onDragOver' | 'onDragEnter' | 'onDragLeave' | 'onDrop' |
+  'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'
+> {
   hover?: boolean;
   gradient?: boolean;
   blur?: boolean;

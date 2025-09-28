@@ -11,7 +11,7 @@ import type {
  */
 class ApplicationService extends BaseService {
   constructor() {
-    super('/api');
+    super();
   }
 
   /**
@@ -161,7 +161,7 @@ class ApplicationService extends BaseService {
   async getApplicationsForReview(
     pagination: PaginationParams = { page: 1, limit: 10 }
   ): Promise<ApiResponse<PaginatedResponse<Application>>> {
-    const endpoint = this.buildEndpoint('/applications/review-queue', pagination);
+    const endpoint = this.buildEndpoint('/applications/review-queue', pagination as Record<string, unknown>);
     return this.get<PaginatedResponse<Application>>(endpoint);
   }
 

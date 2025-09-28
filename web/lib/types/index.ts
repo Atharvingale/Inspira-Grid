@@ -329,6 +329,7 @@ export interface PaginationParams {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  [key: string]: unknown;
 }
 
 export interface HTTPMethod {
@@ -359,6 +360,30 @@ export interface RegisterFormData {
   displayName: string;
   acceptTerms: boolean;
 }
+
+// Re-export messaging types
+export type {
+  EnhancedMessage,
+  Conversation,
+  CreateConversationRequest,
+  SendMessageRequest,
+  MessageSearchParams,
+  MessagesLoadOptions,
+  MessageReaction,
+  MessageAttachment as MessageAttachmentEnhanced
+} from './messaging';
+
+// Re-export video call types
+export type {
+  VideoCall,
+  CreateCallRequest,
+  JoinCallRequest,
+  UpdateCallRequest,
+  ScheduleCallRequest,
+  ScheduledCall,
+  CallRecording,
+  CallParticipant
+} from './videoCalls';
 
 // Export commonly used type combinations
 export type ProjectWithDetails = RequiredFields<ProjectDetails, 'teamMembers' | 'applicationsCount'>;

@@ -11,7 +11,7 @@ import type {
  */
 class AuthService extends BaseService {
   constructor() {
-    super('/api/auth');
+    super();
   }
 
   /**
