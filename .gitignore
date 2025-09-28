@@ -1,3 +1,29 @@
+# Dependencies
+node_modules/
+*/node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production builds
+build/
+dist/
+client/build/
+server/build/
+server/dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.production
+.env.staging
+.env.test
+
+# Keep environment examples
+# !.env.example
 # Logs
 logs
 *.log
@@ -10,6 +36,15 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+# Firebase
+firebase-debug.log*
+firestore-debug.log*
+database-debug.log*
+ui-debug.log*
+functions-debug.log*
+.firebase/
+.firebaserc
+
 # Runtime data
 pids
 *.pid
@@ -21,7 +56,9 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage/
 *.lcov
+.coverage/
 
 # nyc test coverage
 .nyc_output
@@ -48,6 +85,9 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# ESLint cache
+.eslintcache
+
 # Optional npm cache directory
 .npm
 
@@ -62,7 +102,6 @@ web_modules/
 .rts2_cache_cjs/
 .rts2_cache_es/
 .rts2_cache_umd/
-
 # Optional REPL history
 .node_repl_history
 
@@ -112,7 +151,6 @@ dist
 
 # Docusaurus cache and generated files
 .docusaurus
-
 # Serverless directories
 .serverless/
 
@@ -133,6 +171,80 @@ dist
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
-.pnp.*.env
+.pnp.*
 
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Package manager lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Jest
+jest-coverage/
+
+# Webpack
+.webpack/
+
+# Storybook
+storybook-static/
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional REPL history
+.repl_history
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Local Netlify folder
+.netlify
+
+# Vercel
 .vercel
+
+# Sentry
+.sentryclirc
+
+# SvelteKit
+.svelte-kit
+
+# End of https://www.toptal.com/developers/gitignore/api/node,react,firebase
