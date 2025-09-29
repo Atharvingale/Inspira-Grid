@@ -171,7 +171,7 @@ export const projectSchema = z.object({
     .optional(),
   
   visibility: z.enum(['public', 'private'], {
-    errorMap: () => ({ message: 'Please select project visibility' })
+    message: 'Please select project visibility'
   }),
   
   applicationDeadline: z.string()
@@ -216,7 +216,7 @@ export const applicationReviewSchema = z.object({
   applicationId: z.string().min(1, { message: 'Application ID is required' }),
   
   decision: z.enum(['accept', 'reject'], {
-    errorMap: () => ({ message: 'Please select a decision' })
+    message: 'Please select a decision'
   }),
   
   reviewNote: z.string()
@@ -264,7 +264,7 @@ export const teamInvitationSchema = z.object({
   teamId: z.string().min(1, { message: 'Team ID is required' }),
   invitedEmail: emailSchema,
   role: z.enum(['admin', 'member'], {
-    errorMap: () => ({ message: 'Please select a valid role' })
+    message: 'Please select a valid role'
   })
 });
 
@@ -424,11 +424,14 @@ export function safeParse<T>(schema: z.ZodSchema<T>, data: unknown): T | null {
 /**
  * Validate partial data (useful for form updates)
  */
-export function validatePartial<T>(schema: z.ZodSchema<T>, data: unknown): {
+export function validatePartial<T>(schema: z.ZodTypeAny, data: unknown): {
   success: boolean;
   data?: Partial<T>;
   errors?: Record<string, string>;
 } {
-  const partialSchema = schema.partial();
-  return validateData(partialSchema, data);
+  let partialSchema: z.ZodTypeAny = schema;
+  if (schema instanceof z.ZodObject) {
+    partialSchema = (schema as z.ZodObject<any>).partial();
+  }
+  return validateData(partialSchema as z.ZodTypeAny, data) as any;
 }

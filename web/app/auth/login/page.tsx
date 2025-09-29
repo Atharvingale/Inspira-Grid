@@ -6,17 +6,13 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, Github } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Sparkles, Github } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Card } from "@/components/ui/Card";
 
-interface FirebaseError extends Error {
-  code?: string;
-  message: string;
-}
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
@@ -30,7 +26,6 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {

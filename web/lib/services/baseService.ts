@@ -205,7 +205,7 @@ class BaseService {
   /**
    * Build query string from parameters
    */
-  protected buildQueryString(params: Record<string, unknown>): string {
+  protected buildQueryString(params: Record<string, any>): string {
     const searchParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
@@ -224,7 +224,7 @@ class BaseService {
   /**
    * Build endpoint with query parameters
    */
-  protected buildEndpoint(path: string, params?: Record<string, unknown>): string {
+  protected buildEndpoint(path: string, params?: Record<string, any>): string {
     if (!params) return path;
     
     const queryString = this.buildQueryString(params);

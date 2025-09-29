@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { projectService } from "@/lib/services";
-import type { Project, ApiError } from "@/lib/types";
+import type { Project } from "@/lib/types";
 
 export default function AdminPage() {
   const [projects, setProjects] = useState<Project[] | null>(null);

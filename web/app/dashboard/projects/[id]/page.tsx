@@ -42,7 +42,7 @@ interface Application {
 const ProjectDetails = () => {
   const { id } = useParams();
   const router = useRouter();
-  const { currentUser, userProfile } = useAuth();
+  const { userProfile } = useAuth();
   
   const [project, setProject] = useState<Project | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
