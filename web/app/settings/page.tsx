@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { auth } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 
@@ -27,14 +27,14 @@ export default function SettingsPage() {
     showOnlineStatus: true
   });
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [passwords, setPasswords] = useState({
+  const [_showPasswordModal, setShowPasswordModal] = useState(false);
+  const [_showEmailModal, setShowEmailModal] = useState(false);
+  const [_passwords, _setPasswords] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-  const [newEmail, setNewEmail] = useState('');
+  const [_newEmail, _setNewEmail] = useState('');
 
   const saveNotificationSettings = async () => {
     setSaving(true);

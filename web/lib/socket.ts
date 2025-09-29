@@ -6,12 +6,17 @@ class SocketManager {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
-  connect(token?: string): Socket {
+  connect(token?: string): Socket | null {
+    // Check if sockets should be disabled
+    if (process.env.NEXT_PUBLIC_DISABLE_SOCKET === 'true') {
+      return null;
+    }
+
     if (this.socket?.connected) {
       return this.socket;
     }
 
-    const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    const serverUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
     
     this.socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
@@ -30,35 +35,31 @@ class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket?.id);
       this.reconnectAttempts = 0;
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      // Handle disconnect
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
       this.reconnectAttempts++;
       
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('Max reconnection attempts reached');
         this.socket?.disconnect();
       }
     });
 
     this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      // Handle socket error
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`Socket reconnected after ${attemptNumber} attempts`);
       this.reconnectAttempts = 0;
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed');
+      // Handle reconnection failure
     });
   }
 
@@ -79,10 +80,11 @@ class SocketManager {
 
   // Utility methods for common socket operations
   emit(event: string, data?: any) {
+    if (process.env.NEXT_PUBLIC_DISABLE_SOCKET === 'true') {
+      return; // Silently ignore when disabled
+    }
     if (this.socket?.connected) {
       this.socket.emit(event, data);
-    } else {
-      console.warn(`Cannot emit ${event}: socket not connected`);
     }
   }
 
@@ -98,8 +100,9 @@ class SocketManager {
 // Create a singleton instance
 const socketManager = new SocketManager();
 
-// Export the socket instance for direct use
-export const socket = socketManager.connect();
+// Export the socket instance for direct use (may be null if disabled)
+const socketInstance = socketManager.connect();
+export const socket = socketInstance;
 
 // Export the manager for advanced control
 export default socketManager;

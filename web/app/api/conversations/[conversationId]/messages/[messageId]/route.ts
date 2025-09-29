@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initAdmin } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
 
 initAdmin();
-const db = getFirestore();
+const db = admin.firestore();
+const auth = admin.auth();
 
 export async function PUT(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function PUT(
     }
 
     const token = authHeader.split(' ')[1];
-    const decodedToken = await getAuth().verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
     const { conversationId, messageId } = await context.params;
@@ -74,7 +74,7 @@ export async function PUT(
           }
         });
 
-      case 'addReaction':
+      case 'addReaction': {
         if (!emoji) {
           return NextResponse.json({ error: 'Emoji is required' }, { status: 400 });
         }
@@ -106,8 +106,9 @@ export async function PUT(
             reactions
           }
         });
+      }
 
-      case 'removeReaction':
+      case 'removeReaction': {
         if (!emoji) {
           return NextResponse.json({ error: 'Emoji is required' }, { status: 400 });
         }
@@ -135,6 +136,7 @@ export async function PUT(
             reactions: updatedReactions
           }
         });
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -160,7 +162,7 @@ export async function DELETE(
     }
 
     const token = authHeader.split(' ')[1];
-    const decodedToken = await getAuth().verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
     const { conversationId, messageId } = await context.params;

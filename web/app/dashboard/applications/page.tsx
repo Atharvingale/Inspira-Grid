@@ -9,7 +9,7 @@ import Loading from '@/components/common/Loading';
 import type { Application, ApiError } from '@/lib/types';
 
 const Applications = () => {
-  const { userProfile } = useAuth();
+  const { currentUser } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
@@ -96,7 +96,7 @@ const Applications = () => {
         ? new Date(date.seconds * 1000)
         : new Date(date as string);
       return dateObj.toLocaleDateString();
-    } catch (error) {
+    } catch (_error) {
       return 'Unknown date';
     }
   };

@@ -225,10 +225,12 @@ class BaseService {
    * Build endpoint with query parameters
    */
   protected buildEndpoint(path: string, params?: Record<string, any>): string {
-    if (!params) return path;
+    const fullPath = `${this.baseUrl}${path}`;
+    
+    if (!params) return fullPath;
     
     const queryString = this.buildQueryString(params);
-    return queryString ? `${path}?${queryString}` : path;
+    return queryString ? `${fullPath}?${queryString}` : fullPath;
   }
 
   /**

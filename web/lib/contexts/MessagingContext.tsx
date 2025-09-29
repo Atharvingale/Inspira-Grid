@@ -158,7 +158,7 @@ function messagingReducer(state: MessagingState, action: MessagingAction): Messa
         },
       };
 
-    case 'ADD_MESSAGE':
+    case 'ADD_MESSAGE': {
       const conversationMessages = state.messages[action.payload.conversationId] || [];
       return {
         ...state,
@@ -167,6 +167,7 @@ function messagingReducer(state: MessagingState, action: MessagingAction): Messa
           [action.payload.conversationId]: [...conversationMessages, action.payload],
         },
       };
+    }
 
     case 'UPDATE_MESSAGE':
       return {
@@ -208,7 +209,7 @@ function messagingReducer(state: MessagingState, action: MessagingAction): Messa
         onlineUsers: state.onlineUsers.filter(u => u.id !== action.payload),
       };
 
-    case 'SET_TYPING':
+    case 'SET_TYPING': {
       const existingTyping = state.typingIndicators.find(
         t => t.conversationId === action.payload.conversationId && t.userId === action.payload.userId
       );
@@ -218,6 +219,7 @@ function messagingReducer(state: MessagingState, action: MessagingAction): Messa
         ...state,
         typingIndicators: [...state.typingIndicators, action.payload],
       };
+    }
 
     case 'CLEAR_TYPING':
       return {
@@ -311,7 +313,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
 
   // Socket event handlers
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !socket) return;
 
     // Join user to their personal room for notifications
     socket.emit('user:join', currentUser.uid);
@@ -394,19 +396,22 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      socket.off('message:new');
-      socket.off('message:updated');
-      socket.off('message:deleted');
-      socket.off('reaction:added');
-      socket.off('reaction:removed');
-      socket.off('user:online');
-      socket.off('user:offline');
-      socket.off('typing:start');
-      socket.off('typing:stop');
-      socket.off('conversation:updated');
-      socket.off('conversation:new');
-      socket.off('error');
+      if (socket) {
+        socket.off('message:new');
+        socket.off('message:updated');
+        socket.off('message:deleted');
+        socket.off('reaction:added');
+        socket.off('reaction:removed');
+        socket.off('user:online');
+        socket.off('user:offline');
+        socket.off('typing:start');
+        socket.off('typing:stop');
+        socket.off('conversation:updated');
+        socket.off('conversation:new');
+        socket.off('error');
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   // Notification sound function
@@ -415,7 +420,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       const audio = new Audio('/sounds/notification.mp3');
       audio.volume = 0.5;
       audio.play().catch(e => console.log('Could not play notification sound:', e));
-    } catch (error) {
+    } catch (_error) {
       console.log('Notification sound not available');
     }
   }, []);
@@ -489,6 +494,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     if (conversation && conversation.unreadCount > 0) {
       markConversationAsRead(conversation.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const markConversationAsRead = useCallback((conversationId: string) => {
@@ -560,7 +566,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'ADD_MESSAGE', payload: data.message });
       
       // Emit socket event for real-time updates
-      socket.emit('message:send', data.message);
+      if (socket) {
+        socket.emit('message:send', data.message);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
@@ -592,7 +600,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_MESSAGE', payload: data.message });
       
       // Emit socket event for real-time updates
-      socket.emit('message:edit', data.message);
+      if (socket) {
+        socket.emit('message:edit', data.message);
+      }
     } catch (error) {
       console.error('Error editing message:', error);
       throw error;
@@ -620,7 +630,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_MESSAGE', payload: data.message });
       
       // Emit socket event for real-time updates
-      socket.emit('message:delete', { conversationId, messageId });
+      if (socket) {
+        socket.emit('message:delete', { conversationId, messageId });
+      }
     } catch (error) {
       console.error('Error deleting message:', error);
       throw error;
@@ -652,7 +664,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_MESSAGE', payload: data.message });
       
       // Emit socket event for real-time updates
-      socket.emit('reaction:add', { conversationId, messageId, emoji, userId: currentUser.uid });
+      if (socket) {
+        socket.emit('reaction:add', { conversationId, messageId, emoji, userId: currentUser.uid });
+      }
     } catch (error) {
       console.error('Error adding reaction:', error);
     }
@@ -683,7 +697,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_MESSAGE', payload: data.message });
       
       // Emit socket event for real-time updates
-      socket.emit('reaction:remove', { conversationId, messageId, emoji, userId: currentUser.uid });
+      if (socket) {
+        socket.emit('reaction:remove', { conversationId, messageId, emoji, userId: currentUser.uid });
+      }
     } catch (error) {
       console.error('Error removing reaction:', error);
     }
@@ -730,12 +746,12 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser, sendMessage]);
 
   const startTyping = useCallback((conversationId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || !socket) return;
     socket.emit('typing:start', { conversationId, userId: currentUser.uid, userName: currentUser.displayName });
   }, [currentUser]);
 
   const stopTyping = useCallback((conversationId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || !socket) return;
     socket.emit('typing:stop', { conversationId, userId: currentUser.uid });
   }, [currentUser]);
 

@@ -57,12 +57,14 @@ const ProjectDetails = () => {
     if (id) {
       loadProject();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (project && project.isOwner && activeTab === 'applications') {
       loadApplications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, activeTab]);
 
   const loadProject = async () => {
@@ -133,7 +135,7 @@ const ProjectDetails = () => {
         ? new Date(date.seconds * 1000)
         : new Date(date as string);
       return dateObj.toLocaleDateString();
-    } catch (error) {
+    } catch (_error) {
       return 'Unknown date';
     }
   };

@@ -106,9 +106,14 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
   useEffect(() => {
     // Allow disabling socket in development via environment variable
-    const SOCKET_DISABLED = process.env.NEXT_PUBLIC_DISABLE_SOCKET === 'true';
+    const SOCKET_DISABLED = process.env.NEXT_PUBLIC_DISABLE_SOCKET === 'true' || process.env.NEXT_PUBLIC_ENABLE_REAL_TIME === 'false';
     
-    if (currentUser && !SOCKET_DISABLED) {
+    if (SOCKET_DISABLED) {
+      console.log('🔌 Sockets disabled via environment variable');
+      return;
+    }
+    
+    if (currentUser) {
       // Initialize socket connection with better error handling
       const serverUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const newSocket = io(serverUrl, {
@@ -190,14 +195,18 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         // Handle typing indicators
       });
 
-      // Enhanced error handling
+      // Enhanced error handling with reduced logging
+      let errorLogged = false;
       newSocket.on('connect_error', (error) => {
-        console.warn('🔌 Socket connection failed (this is normal if server is not running):', error.message);
-        // Don't throw error, just log it as the app can work without real-time features
+        if (!errorLogged) {
+          console.log('🔌 Real-time features unavailable (server not running)');
+          errorLogged = true;
+        }
+        // Don't throw error, just log it once as the app can work without real-time features
       });
       
       newSocket.on('reconnect_error', (error) => {
-        console.warn('🔄 Socket reconnection failed:', error.message);
+        // Silently handle reconnection errors to avoid spam
       });
       
       newSocket.on('reconnect_failed', () => {

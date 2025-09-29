@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { formatFirebaseTimestamp } from '@/lib/utils/dateUtils';
 
 interface Project {
   id: string;
@@ -325,7 +326,7 @@ export default function TeamsPage() {
                         </div>
                         <div className="flex items-center space-x-2 text-text-tertiary">
                           <Clock className="w-4 h-4" />
-                          <span className="text-sm">Updated {project.lastActivity}</span>
+                          <span className="text-sm">Updated {formatFirebaseTimestamp(project.lastActivity, 'recently')}</span>
                         </div>
                       </div>
                       
@@ -440,7 +441,7 @@ export default function TeamsPage() {
                         </div>
                         <div className="flex items-center space-x-2 text-text-tertiary">
                           <Clock className="w-4 h-4" />
-                          <span className="text-sm">Updated {project.lastActivity}</span>
+                          <span className="text-sm">Updated {formatFirebaseTimestamp(project.lastActivity, 'recently')}</span>
                         </div>
                       </div>
                       

@@ -129,8 +129,9 @@ const Messages = () => {
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const _formatTime = (date: Date | { seconds: number; nanoseconds: number }) => {
+    const dateObj = date instanceof Date ? date : new Date(date.seconds * 1000);
+    return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   if (state.loading) {

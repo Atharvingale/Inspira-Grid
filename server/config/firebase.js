@@ -8,8 +8,6 @@ if (!admin.apps.length) {
     
     if (isEmulatorMode) {
       // For emulator mode, use a demo project
-      console.log('🔄 Initializing Firebase Admin SDK for emulator mode...');
-      
       admin.initializeApp({
         projectId: 'demo-test',
         credential: admin.credential.applicationDefault()
@@ -18,10 +16,6 @@ if (!admin.apps.length) {
       // Connect to emulators
       process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
       process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
-      
-      console.log('✅ Firebase Admin SDK initialized for emulator mode');
-      console.log('🔥 Connected to Firebase Auth Emulator: localhost:9099');
-      console.log('🔥 Connected to Firestore Emulator: localhost:8080');
     } else {
       // Production mode - use service account credentials
       const firebaseConfig = {
@@ -49,8 +43,6 @@ if (!admin.apps.length) {
       const missingVars = requiredVars.filter(varName => !process.env[varName]);
       
       if (missingVars.length > 0) {
-        console.warn('⚠️  Firebase admin initialization skipped: missing environment variables:', missingVars);
-        console.warn('⚠️  Falling back to emulator mode');
         
         // Fallback to emulator mode
         admin.initializeApp({
@@ -61,7 +53,7 @@ if (!admin.apps.length) {
         process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
         process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
         
-        console.log('✅ Firebase Admin SDK initialized in fallback emulator mode');
+        // Firebase initialized in fallback emulator mode
       } else {
         console.log('🔍 Firebase config loaded:', {
           projectId: firebaseConfig.project_id,
